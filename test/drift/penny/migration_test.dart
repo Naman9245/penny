@@ -10,6 +10,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -130,6 +131,56 @@ void main() {
       validateItems: (newDb) async {
         expect(expectedNewTxnsData, await newDb.select(newDb.txns).get());
         expect(await newDb.select(newDb.insights).get(), isEmpty);
+      },
+    );
+  });
+
+  // Entries and Penny's reports carry over; My needs and the chat start
+  // empty.
+  test('migration from v3 to v4 does not corrupt data', () async {
+    const id = '0192f0c0-0000-7000-8000-000000000003';
+    const at = 1793500000;
+    const txn = v3.TxnsData(
+      id: id,
+      amountPaise: 34900,
+      type: 'debit',
+      categoryId: 'food',
+      merchant: 'Swiggy',
+      occurredAt: at,
+      source: 'share',
+      tag: 'wasteful',
+      createdAt: at,
+      updatedAt: at,
+      dedupeKey: 'abc',
+      payeeIsPerson: 0,
+    );
+    const insight = v3.InsightsData(
+      month: '2026-10',
+      inputHash: 'hash',
+      groupKeys: '{"s1":["shop|food|swiggy"]}',
+      answer: '{"tags":{"s1":"wasteful"}}',
+      model: 'gemini-3.5-flash-lite',
+      createdAt: at,
+    );
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.txns, [txn]);
+        batch.insertAll(oldDb.insights, [insight]);
+      },
+      validateItems: (newDb) async {
+        final txns = await newDb.select(newDb.txns).get();
+        expect(txns.single.toJson(), txn.toJson());
+        final insights = await newDb.select(newDb.insights).get();
+        expect(insights.single.toJson(), insight.toJson());
+        expect(await newDb.select(newDb.tagRules).get(), isEmpty);
+        expect(await newDb.select(newDb.prefs).get(), isEmpty);
+        expect(await newDb.select(newDb.chatMessages).get(), isEmpty);
       },
     );
   });

@@ -2,11 +2,13 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:penny/data/db/app_database.steps.dart';
 import 'package:penny/data/db/tables.dart';
+import 'package:penny/models/chat.dart';
+import 'package:penny/models/rule_kind.dart';
 import 'package:penny/models/txn_enums.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Txns, Insights])
+@DriftDatabase(tables: [Txns, Insights, TagRules, Prefs, ChatMessages])
 class AppDatabase extends _$AppDatabase {
   /// Opens `penny.sqlite` in the app's documents folder. Tests pass an
   /// in-memory executor instead.
@@ -16,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,6 +33,14 @@ class AppDatabase extends _$AppDatabase {
       from2To3: (m, schema) async {
         await m.addColumn(schema.txns, schema.txns.payeeIsPerson);
         await m.createTable(schema.insights);
+      },
+      // v4: My needs (rules and the note) and the chat with Penny.
+      from3To4: (m, schema) async {
+        await m.createTable(schema.tagRules);
+        await m.createIndex(schema.tagRulesKindRuleKey);
+        await m.createTable(schema.prefs);
+        await m.createTable(schema.chatMessages);
+        await m.createIndex(schema.chatMessagesCreatedAt);
       },
     ),
   );

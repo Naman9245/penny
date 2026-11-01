@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/data/chat_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/insight_repository.dart';
+import 'package:penny/data/prefs_repository.dart';
+import 'package:penny/data/rules_repository.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 
@@ -90,6 +94,33 @@ final insightRequestProvider = StreamProvider.autoDispose
             ),
           );
     });
+
+final rulesRepositoryProvider = Provider<RulesRepository>(
+  (ref) => RulesRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// What My needs says.
+final yourRulesProvider = StreamProvider.autoDispose<YourRules>(
+  (ref) => ref.watch(rulesRepositoryProvider).watch(),
+);
+
+final prefsRepositoryProvider = Provider<PrefsRepository>(
+  (ref) => PrefsRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// What the user told Penny about their life, if anything.
+final pennyNoteProvider = StreamProvider.autoDispose<String?>(
+  (ref) => ref.watch(prefsRepositoryProvider).watchNote(),
+);
+
+final chatRepositoryProvider = Provider<ChatRepository>(
+  (ref) => ChatRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// The chat with Penny, oldest message first.
+final chatMessagesProvider = StreamProvider.autoDispose<List<ChatMessage>>(
+  (ref) => ref.watch(chatRepositoryProvider).watch(),
+);
 
 /// That month's spending split into necessary, wasteful and not sorted.
 final tagSplitProvider = Provider.autoDispose

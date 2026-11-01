@@ -1,4 +1,6 @@
 import 'package:drift/drift.dart';
+import 'package:penny/models/chat.dart';
+import 'package:penny/models/rule_kind.dart';
 import 'package:penny/models/txn_enums.dart';
 
 /// Every money movement.
@@ -71,4 +73,51 @@ class Insights extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {month};
+}
+
+/// What My needs says: a whole category, or one shop, is always necessary
+/// or always wasteful. Kept like entries (UUIDv7 ids, soft deletes), ready
+/// for sync.
+@DataClassName('TagRule')
+@TableIndex.sql(
+  'CREATE UNIQUE INDEX tag_rules_kind_rule_key ON tag_rules (kind, rule_key) '
+  'WHERE deleted_at IS NULL',
+)
+class TagRules extends Table {
+  TextColumn get id => text()();
+  TextColumn get kind => textEnum<RuleKind>()();
+
+  /// A category id, or a shop name as `shopKey` writes it.
+  TextColumn get ruleKey => text()();
+  TextColumn get tag => textEnum<TxnTag>()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Small settings, one text value each. For now, the note to Penny.
+@DataClassName('Pref')
+class Prefs extends Table {
+  TextColumn get name => text()();
+  TextColumn get value => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {name};
+}
+
+/// The chat with Penny. It stays on this phone and is never synced.
+@DataClassName('ChatMessage')
+@TableIndex(name: 'chat_messages_created_at', columns: {#createdAt})
+class ChatMessages extends Table {
+  TextColumn get id => text()();
+  TextColumn get role => textEnum<ChatRole>()();
+  TextColumn get body => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
 }

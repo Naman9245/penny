@@ -6,6 +6,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/sms_parser.dart';
 
 // What Penny sends for a look at one month: month totals per shop, people
@@ -31,11 +32,8 @@ DateTime insightHistoryStart(DateTime month) {
 /// Which group an entry belongs to: one shop in one category, or the
 /// category alone when there's no shop name. Stays on the phone.
 String groupKeyOf(Txn txn) {
-  final shop = txn.merchant?.trim().toLowerCase().replaceAll(
-    RegExp(r'\s+'),
-    ' ',
-  );
-  return shop == null || shop.isEmpty
+  final shop = shopKey(txn.merchant);
+  return shop == null
       ? 'cat|${txn.categoryId}'
       : 'shop|${txn.categoryId}|$shop';
 }
