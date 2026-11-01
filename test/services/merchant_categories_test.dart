@@ -32,9 +32,18 @@ void main() {
   });
 
   test('income: refunds, cashback and salaries', () {
-    expect(suggestCategory(type: TxnType.credit, text: 'Refund of Rs.399 credited'), 'refund');
-    expect(suggestCategory(type: TxnType.credit, text: 'Cashback of Rs.25 credited'), 'refund');
-    expect(suggestCategory(type: TxnType.credit, text: 'credited by SALARY OCT26'), 'salary');
+    expect(
+      suggestCategory(type: TxnType.credit, text: 'Refund of Rs.399 credited'),
+      'refund',
+    );
+    expect(
+      suggestCategory(type: TxnType.credit, text: 'Cashback of Rs.25 credited'),
+      'refund',
+    );
+    expect(
+      suggestCategory(type: TxnType.credit, text: 'credited by SALARY OCT26'),
+      'salary',
+    );
     expect(
       suggestCategory(
         type: TxnType.credit,
@@ -44,7 +53,11 @@ void main() {
       'salary',
     );
     expect(
-      suggestCategory(type: TxnType.credit, text: 'credited from KARAN MEHTA', payee: 'Karan Mehta'),
+      suggestCategory(
+        type: TxnType.credit,
+        text: 'credited from KARAN MEHTA',
+        payee: 'Karan Mehta',
+      ),
       isNull,
     );
   });

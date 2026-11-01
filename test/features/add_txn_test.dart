@@ -21,8 +21,9 @@ Future<void> addFood250(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('type 250, tap Food: it shows on Home, and Undo removes it',
-      (tester) async {
+  testWidgets('type 250, tap Food: it shows on Home, and Undo removes it', (
+    tester,
+  ) async {
     final db = await pumpApp(tester);
     expect(find.textContaining('Nothing logged yet'), findsOneWidget);
 
@@ -59,8 +60,9 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('the undo offer fades by itself and the entry stays',
-      (tester) async {
+  testWidgets('the undo offer fades by itself and the entry stays', (
+    tester,
+  ) async {
     final db = await pumpApp(tester);
     await addFood250(tester);
     expect(find.text('Added ₹250 · Food'), findsOneWidget);

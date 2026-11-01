@@ -17,15 +17,15 @@ final txnRepositoryProvider = Provider<TxnRepository>(
 );
 
 /// Entries in the month containing the given date, newest first.
-final monthTxnsProvider =
-    StreamProvider.autoDispose.family<List<Txn>, DateTime>(
-  (ref, month) => ref.watch(txnRepositoryProvider).watchMonth(month),
-);
+final monthTxnsProvider = StreamProvider.autoDispose
+    .family<List<Txn>, DateTime>(
+      (ref, month) => ref.watch(txnRepositoryProvider).watchMonth(month),
+    );
 
-final monthSummaryProvider =
-    StreamProvider.autoDispose.family<MonthSummary, DateTime>(
-  (ref, month) => ref.watch(txnRepositoryProvider).watchMonthSummary(month),
-);
+final monthSummaryProvider = StreamProvider.autoDispose
+    .family<MonthSummary, DateTime>(
+      (ref, month) => ref.watch(txnRepositoryProvider).watchMonthSummary(month),
+    );
 
 final recentTxnsProvider = StreamProvider.autoDispose<List<Txn>>(
   (ref) => ref.watch(txnRepositoryProvider).watchRecent(),

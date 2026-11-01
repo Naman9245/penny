@@ -9,7 +9,8 @@ class GoalsScreen extends StatelessWidget {
     return const ComingSoon(
       title: 'Goals',
       milestone: 4,
-      blurb: 'Save for things like a Delhi trip. Penny works out what to put '
+      blurb:
+          'Save for things like a Delhi trip. Penny works out what to put '
           'aside each week from your real spending.',
     );
   }

@@ -19,13 +19,18 @@ import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/edge_fade.dart';
 import 'package:penny/widgets/sliding_toggle.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
 /// Adds an entry, or edits one when [editId] is set: type the amount, pick a
 /// category, tap ✓.
 class AddTxnScreen extends ConsumerWidget {
-  const AddTxnScreen({super.key, this.initialType = TxnType.debit, this.editId});
+  const AddTxnScreen({
+    super.key,
+    this.initialType = TxnType.debit,
+    this.editId,
+  });
 
   final TxnType initialType;
   final String? editId;
@@ -34,9 +39,12 @@ class AddTxnScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final id = editId;
     if (id == null) return AddTxnView(args: AddTxnArgs.create(initialType));
-    return ref.watch(txnByIdProvider(id)).when(
-          data: (txn) =>
-              txn == null ? const _Gone() : AddTxnView(args: AddTxnArgs.edit(txn)),
+    return ref
+        .watch(txnByIdProvider(id))
+        .when(
+          data: (txn) => txn == null
+              ? const _Gone()
+              : AddTxnView(args: AddTxnArgs.edit(txn)),
           loading: () => const Scaffold(body: SizedBox.shrink()),
           error: (error, stackTrace) => const _Gone(),
         );
@@ -119,7 +127,8 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
       } else {
         showUndoSnackBar(
           context,
-          message: 'Added ${formatPaise(state.amountPaise)} · '
+          message:
+              'Added ${formatPaise(state.amountPaise)} · '
               '${categoryById(categoryId).label}',
           onUndo: () => repo.softDelete(id),
         );
@@ -178,7 +187,9 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('Copy a bank SMS first, then tap Paste SMS.')),
+          const SnackBar(
+            content: Text('Copy a bank SMS first, then tap Paste SMS.'),
+          ),
         );
       return;
     }
@@ -240,34 +251,46 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
-                child: Column(
-                  children: [
-                    if (widget.args.sms case final sms?) ...[
-                      SmsCard(preview: sms.preview),
-                      const SizedBox(height: 18),
+              child: EdgeFade(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
+                  child: Column(
+                    children: [
+                      if (widget.args.sms case final sms?) ...[
+                        SmsCard(preview: sms.preview),
+                        const SizedBox(height: 18),
+                      ],
+                      Text(_prompt(state), style: AppText.bodyMuted),
+                      const SizedBox(height: 2),
+                      _AmountDisplay(
+                        text: state.amountText,
+                        shake: _shakeAmount,
+                      ),
+                      const SizedBox(height: 14),
+                      _DayAndWhere(
+                        state: state,
+                        onDay: _controller.setDay,
+                        onPickDay: () => _pickDay(state.occurredAt),
+                        onWhere: () => _editWhere(state.merchant),
+                        onPaste: _editing || _importing ? null : _paste,
+                        // A person read from the SMS, until the name is changed.
+                        payeeIsPerson:
+                            (widget.args.sms?.payeeIsPerson ?? false) &&
+                            state.merchant == widget.args.sms?.payee,
+                      ),
+                      const SizedBox(height: 24),
+                      CategoryGrid(
+                            categories: categoriesFor(state.type),
+                            selectedId: state.categoryId,
+                            onTap: _pick,
+                          )
+                          .animate(
+                            controller: _shakeCategories,
+                            autoPlay: false,
+                          )
+                          .shakeX(hz: 5, amount: 6),
                     ],
-                    Text(_prompt(state), style: AppText.bodyMuted),
-                    const SizedBox(height: 2),
-                    _AmountDisplay(text: state.amountText, shake: _shakeAmount),
-                    const SizedBox(height: 14),
-                    _DayAndWhere(
-                      state: state,
-                      onDay: _controller.setDay,
-                      onPickDay: () => _pickDay(state.occurredAt),
-                      onWhere: () => _editWhere(state.merchant),
-                      onPaste: _editing || _importing ? null : _paste,
-                    ),
-                    const SizedBox(height: 24),
-                    CategoryGrid(
-                      categories: categoriesFor(state.type),
-                      selectedId: state.categoryId,
-                      onTap: _pick,
-                    )
-                        .animate(controller: _shakeCategories, autoPlay: false)
-                        .shakeX(hz: 5, amount: 6),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -321,6 +344,7 @@ class _DayAndWhere extends StatelessWidget {
     required this.onPickDay,
     required this.onWhere,
     this.onPaste,
+    this.payeeIsPerson = false,
   });
 
   final AddTxnState state;
@@ -330,6 +354,9 @@ class _DayAndWhere extends StatelessWidget {
 
   /// Offered only for a new, hand-typed entry.
   final VoidCallback? onPaste;
+
+  /// Shows a person, not a shop, on the payee chip.
+  final bool payeeIsPerson;
 
   @override
   Widget build(BuildContext context) {
@@ -362,7 +389,7 @@ class _DayAndWhere extends StatelessWidget {
         ),
         BrutalChip(
           label: merchant ?? 'Where?',
-          icon: Icons.storefront_rounded,
+          icon: payeeIsPerson ? Icons.person_rounded : Icons.storefront_rounded,
           selected: merchant != null,
           selectedColor: AppColors.sky,
           onTap: onWhere,
@@ -433,7 +460,10 @@ class _WhereSheetState extends State<_WhereSheet> {
               counterText: '',
               filled: true,
               fillColor: AppColors.white,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               border: border,
               enabledBorder: border,
               focusedBorder: border,
@@ -454,7 +484,11 @@ class _WhereSheetState extends State<_WhereSheet> {
                 const SizedBox(width: 12),
               ],
               Expanded(
-                child: BrutalButton(label: 'Done', expand: true, onPressed: _done),
+                child: BrutalButton(
+                  label: 'Done',
+                  expand: true,
+                  onPressed: _done,
+                ),
               ),
             ],
           ),

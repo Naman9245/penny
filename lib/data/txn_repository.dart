@@ -9,7 +9,7 @@ import 'package:uuid/uuid.dart';
 /// class.
 class TxnRepository {
   TxnRepository(this._db, {DateTime Function()? clock})
-      : _clock = clock ?? DateTime.now;
+    : _clock = clock ?? DateTime.now;
 
   final AppDatabase _db;
   final DateTime Function() _clock;
@@ -31,7 +31,9 @@ class TxnRepository {
     _checkAmount(amountPaise);
     final id = _uuid.v7();
     final now = _clock();
-    await _db.into(_txns).insert(
+    await _db
+        .into(_txns)
+        .insert(
           TxnsCompanion.insert(
             id: id,
             amountPaise: amountPaise,
@@ -80,8 +82,9 @@ class TxnRepository {
 
   Future<void> restore(String id) {
     return _db.transaction(() async {
-      final row = await (_db.select(_txns)..where((t) => t.id.equals(id)))
-          .getSingleOrNull();
+      final row = await (_db.select(
+        _txns,
+      )..where((t) => t.id.equals(id))).getSingleOrNull();
       final key = row?.dedupeKey;
       // If the same SMS was imported again meanwhile, that entry keeps the
       // fingerprint and this one comes back without it.

@@ -9,7 +9,8 @@ class CalendarScreen extends StatelessWidget {
     return const ComingSoon(
       title: 'Mood calendar',
       milestone: 4,
-      blurb: "Every day coloured by Penny's mood, so your spending patterns "
+      blurb:
+          "Every day coloured by Penny's mood, so your spending patterns "
           'show at a glance.',
     );
   }

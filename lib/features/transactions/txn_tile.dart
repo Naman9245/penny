@@ -11,7 +11,12 @@ import 'package:penny/widgets/money_text.dart';
 /// One transaction row: category face, what it was, when, and the signed
 /// amount.
 class TxnTile extends StatelessWidget {
-  const TxnTile({super.key, required this.txn, this.onTap, this.showDay = false});
+  const TxnTile({
+    super.key,
+    required this.txn,
+    this.onTap,
+    this.showDay = false,
+  });
 
   final Txn txn;
   final VoidCallback? onTap;
@@ -68,7 +73,9 @@ class TxnTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   // A huge amount shrinks instead of squeezing out the title.
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.4),
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth * 0.4,
+                    ),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,

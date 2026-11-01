@@ -6,10 +6,12 @@ import 'package:penny/services/sms_parser.dart';
 import '../helpers/app_harness.dart';
 
 // Made up, in HDFC's real format.
-const _hdfcSwiggy = 'Sent Rs.250.00\nFrom HDFC Bank A/C *4821\nTo SWIGGY\n'
+const _hdfcSwiggy =
+    'Sent Rs.250.00\nFrom HDFC Bank A/C *4821\nTo SWIGGY\n'
     'On 01/11/26\nRef 630512345678\nNot You?\n'
     'Call 18002586161/SMS BLOCK UPI to 7308080808';
-const _otp = 'OTP is 482913 for txn of INR 649.00 at ZOMATO on HDFC Bank card '
+const _otp =
+    'OTP is 482913 for txn of INR 649.00 at ZOMATO on HDFC Bank card '
     'ending 9034. Do not share OTP for security reasons.';
 
 Future<void> openImport(WidgetTester tester, String sms) async {
@@ -18,8 +20,9 @@ Future<void> openImport(WidgetTester tester, String sms) async {
 }
 
 void main() {
-  testWidgets('a shared SMS opens a filled-in review; the tick saves it',
-      (tester) async {
+  testWidgets('a shared SMS opens a filled-in review; the tick saves it', (
+    tester,
+  ) async {
     final db = await pumpApp(tester);
 
     await openImport(tester, _hdfcSwiggy);
@@ -27,9 +30,15 @@ void main() {
     expect(find.text('From your SMS'), findsOneWidget);
     expect(find.text('₹250'), findsOneWidget);
     // Swiggy was read and Food suggested, so it's ready for the tick.
-    expect(find.text('Check what Penny read, then tap the tick'), findsOneWidget);
+    expect(
+      find.text('Check what Penny read, then tap the tick'),
+      findsOneWidget,
+    );
     // The reference number was blanked before anything was shown.
-    expect(find.textContaining('630512345678', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('630512345678', findRichText: true),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const ValueKey('key-done')));
     await tester.pumpAndSettle();
@@ -40,8 +49,9 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('the same SMS twice: the second time says already added',
-      (tester) async {
+  testWidgets('the same SMS twice: the second time says already added', (
+    tester,
+  ) async {
     final db = await pumpApp(tester);
     await openImport(tester, _hdfcSwiggy);
     await tester.tap(find.byKey(const ValueKey('key-done')));
@@ -54,8 +64,9 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('an OTP is refused with the reason and nothing is saved',
-      (tester) async {
+  testWidgets('an OTP is refused with the reason and nothing is saved', (
+    tester,
+  ) async {
     final db = await pumpApp(tester);
 
     await openImport(tester, _otp);
@@ -68,8 +79,9 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('an SMS shared from Messages opens straight into its review',
-      (tester) async {
+  testWidgets('an SMS shared from Messages opens straight into its review', (
+    tester,
+  ) async {
     final messenger = tester.binding.defaultBinaryMessenger;
     const channel = MethodChannel('penny/share');
     messenger.setMockMethodCallHandler(channel, (call) async {
@@ -91,7 +103,9 @@ void main() {
       if (call.method == 'Clipboard.getData') return {'text': _hdfcSwiggy};
       return null;
     });
-    addTearDown(() => messenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
     final db = await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('home-add')));
     await tester.pumpAndSettle();

@@ -13,14 +13,8 @@ DateTime dayStart(DateTime date) => DateTime(date.year, date.month, date.day);
 
 /// [day] at the time of day of [time], so back-dated entries still sort
 /// sensibly within their day.
-DateTime onDay(DateTime day, DateTime time) => DateTime(
-      day.year,
-      day.month,
-      day.day,
-      time.hour,
-      time.minute,
-      time.second,
-    );
+DateTime onDay(DateTime day, DateTime time) =>
+    DateTime(day.year, day.month, day.day, time.hour, time.minute, time.second);
 
 /// "Today", "Yesterday", then "Fri, 30 Oct".
 String dayLabel(DateTime date, {DateTime? now}) {

@@ -26,10 +26,10 @@ enum _Filter {
   final String label;
 
   bool keeps(Txn txn) => switch (this) {
-        _Filter.all => true,
-        _Filter.spent => txn.type == TxnType.debit,
-        _Filter.got => txn.type == TxnType.credit,
-      };
+    _Filter.all => true,
+    _Filter.spent => txn.type == TxnType.debit,
+    _Filter.got => txn.type == TxnType.credit,
+  };
 }
 
 /// Every entry in a month, grouped by day. Swipe left to delete, tap to edit.
@@ -124,7 +124,10 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
                 data: _days,
                 loading: () => const SizedBox.shrink(),
                 error: (error, stackTrace) => Center(
-                  child: Text("Couldn't load entries: $error", style: AppText.body),
+                  child: Text(
+                    "Couldn't load entries: $error",
+                    style: AppText.body,
+                  ),
                 ),
               ),
             ),
@@ -176,7 +179,8 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
     repo.softDelete(txn.id);
     showUndoSnackBar(
       context,
-      message: 'Deleted ${formatPaise(txn.amountPaise)} · '
+      message:
+          'Deleted ${formatPaise(txn.amountPaise)} · '
           '${categoryById(txn.categoryId).label}',
       onUndo: () {
         repo.restore(txn.id);

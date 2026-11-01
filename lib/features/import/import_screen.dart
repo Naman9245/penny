@@ -26,25 +26,29 @@ class ImportScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return switch (sms) {
-      final SmsTxn txn => ref.watch(txnByDedupeKeyProvider(txn.dedupeKey)).when(
-            data: (existing) => existing == null
-                ? AddTxnView(args: AddTxnArgs.fromSms(txn))
-                : _AlreadyAdded(existing),
-            loading: () => const Scaffold(body: SizedBox.shrink()),
-            error: (error, stackTrace) => AddTxnView(args: AddTxnArgs.fromSms(txn)),
-          ),
+      final SmsTxn txn =>
+        ref
+            .watch(txnByDedupeKeyProvider(txn.dedupeKey))
+            .when(
+              data: (existing) => existing == null
+                  ? AddTxnView(args: AddTxnArgs.fromSms(txn))
+                  : _AlreadyAdded(existing),
+              loading: () => const Scaffold(body: SizedBox.shrink()),
+              error: (error, stackTrace) =>
+                  AddTxnView(args: AddTxnArgs.fromSms(txn)),
+            ),
       SmsIgnored(:final reason) => _Outcome(
-          mood: PennyMood.worried,
-          title: 'Not a payment',
-          message: reason.explanation,
-          action: 'Add by hand',
-          onAction: () => context.pushReplacement('/add'),
-        ),
+        mood: PennyMood.worried,
+        title: 'Not a payment',
+        message: reason.explanation,
+        action: 'Add by hand',
+        onAction: () => context.pushReplacement('/add'),
+      ),
       null => const _Outcome(
-          mood: PennyMood.neutral,
-          title: 'Nothing to add',
-          message: 'Share a bank SMS to Penny, or copy one and tap Paste SMS.',
-        ),
+        mood: PennyMood.neutral,
+        title: 'Nothing to add',
+        message: 'Share a bank SMS to Penny, or copy one and tap Paste SMS.',
+      ),
     };
   }
 }
@@ -57,7 +61,9 @@ class _AlreadyAdded extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final day = dayLabel(txn.occurredAt);
-    final when = day == 'Today' || day == 'Yesterday' ? day.toLowerCase() : 'on $day';
+    final when = day == 'Today' || day == 'Yesterday'
+        ? day.toLowerCase()
+        : 'on $day';
     return _Outcome(
       mood: PennyMood.happy,
       title: 'Already added',

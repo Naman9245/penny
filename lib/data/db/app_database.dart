@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   /// Opens `penny.sqlite` in the app's documents folder. Tests pass an
   /// in-memory executor instead.
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'penny'));
+    : super(executor ?? driftDatabase(name: 'penny'));
 
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
@@ -20,13 +20,13 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
-        onUpgrade: stepByStep(
-          // v2: fingerprints of imported SMS, unique among live entries.
-          from1To2: (m, schema) async {
-            await m.addColumn(schema.txns, schema.txns.dedupeKey);
-            await m.createIndex(schema.txnsDedupeKey);
-          },
-        ),
-      );
+    onCreate: (m) => m.createAll(),
+    onUpgrade: stepByStep(
+      // v2: fingerprints of imported SMS, unique among live entries.
+      from1To2: (m, schema) async {
+        await m.addColumn(schema.txns, schema.txns.dedupeKey);
+        await m.createIndex(schema.txnsDedupeKey);
+      },
+    ),
+  );
 }

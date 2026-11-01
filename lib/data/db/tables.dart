@@ -18,8 +18,9 @@ class Txns extends Table {
   TextColumn get id => text()();
   // Drift reads this getter as a schema description; the self-reference
   // becomes `CHECK (amount_paise > 0)`, not a call.
-  // ignore: recursive_getters
-  IntColumn get amountPaise => integer().check(amountPaise.isBiggerThanValue(0))();
+  IntColumn get amountPaise =>
+      // ignore: recursive_getters
+      integer().check(amountPaise.isBiggerThanValue(0))();
   TextColumn get type => textEnum<TxnType>()();
   TextColumn get categoryId => text()();
   TextColumn get merchant => text().nullable()();

@@ -9,7 +9,8 @@ class AnalysisScreen extends StatelessWidget {
     return const ComingSoon(
       title: 'Analysis',
       milestone: 2,
-      blurb: 'Where your money comes from and where it goes, with charts and '
+      blurb:
+          'Where your money comes from and where it goes, with charts and '
           'a card for every category.',
     );
   }

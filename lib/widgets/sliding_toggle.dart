@@ -98,7 +98,10 @@ class _SlidingToggleState<T> extends State<SlidingToggle<T>>
     final velocity = details.primaryVelocity ?? 0;
     final flick = velocity.abs() > 300 ? velocity.sign * 0.45 : 0.0;
     final last = widget.options.length - 1;
-    final target = math.max(0, math.min(last, (_position.value + flick).round()));
+    final target = math.max(
+      0,
+      math.min(last, (_position.value + flick).round()),
+    );
     _slideTo(target);
     final value = widget.options[target].value;
     if (value != widget.value) widget.onChanged(value);
@@ -138,7 +141,10 @@ class _SlidingToggleState<T> extends State<SlidingToggle<T>>
       },
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: brutalDecoration(color: AppColors.white, radius: kPillRadius),
+        decoration: brutalDecoration(
+          color: AppColors.white,
+          radius: kPillRadius,
+        ),
         child: AnimatedBuilder(
           animation: _position,
           builder: (context, _) {

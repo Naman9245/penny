@@ -61,7 +61,11 @@ class _PennyPainter extends CustomPainter {
     _drawBand(canvas);
     canvas.drawCircle(_center, _radius, Paint()..color = AppColors.yellow);
     canvas.drawCircle(_center, _radius - 5.5, _stroke(AppColors.coinRim, 2));
-    canvas.drawCircle(const Offset(36, 38), 3.2, Paint()..color = AppColors.white);
+    canvas.drawCircle(
+      const Offset(36, 38),
+      3.2,
+      Paint()..color = AppColors.white,
+    );
     canvas.drawCircle(_center, _radius, outline);
     // The ₹ is unreadable on small Pennys, so it only appears on big ones.
     _drawCups(canvas, outline, withRupee: size.width >= 56);
@@ -75,7 +79,13 @@ class _PennyPainter extends CustomPainter {
     const start = 195 * math.pi / 180;
     const sweep = 150 * math.pi / 180;
     canvas.drawArc(rect, start, sweep, false, _stroke(AppColors.ink, 11));
-    canvas.drawArc(rect, start, sweep, false, _stroke(AppColors.headphones, 5.5));
+    canvas.drawArc(
+      rect,
+      start,
+      sweep,
+      false,
+      _stroke(AppColors.headphones, 5.5),
+    );
   }
 
   void _drawCups(Canvas canvas, Paint outline, {required bool withRupee}) {
@@ -183,7 +193,11 @@ class _PennyPainter extends CustomPainter {
     }
   }
 
-  void _openSmile(Canvas canvas, {required double width, required double depth}) {
+  void _openSmile(
+    Canvas canvas, {
+    required double width,
+    required double depth,
+  }) {
     const top = 64.0;
     final mouth = Path()
       ..moveTo(50 + width / 2, top)
@@ -227,8 +241,16 @@ class _PennyPainter extends CustomPainter {
     final r = 4 * scale;
     final drop = Path()
       ..moveTo(tip.dx, tip.dy)
-      ..quadraticBezierTo(tip.dx + r, tip.dy + r * 1.2, tip.dx + r, tip.dy + r * 2)
-      ..arcToPoint(Offset(tip.dx - r, tip.dy + r * 2), radius: Radius.circular(r))
+      ..quadraticBezierTo(
+        tip.dx + r,
+        tip.dy + r * 1.2,
+        tip.dx + r,
+        tip.dy + r * 2,
+      )
+      ..arcToPoint(
+        Offset(tip.dx - r, tip.dy + r * 2),
+        radius: Radius.circular(r),
+      )
       ..quadraticBezierTo(tip.dx - r, tip.dy + r * 1.2, tip.dx, tip.dy)
       ..close();
     canvas.drawPath(drop, Paint()..color = AppColors.sky);

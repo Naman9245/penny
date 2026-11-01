@@ -24,7 +24,9 @@ class HomeScreen extends ConsumerWidget {
     final now = DateTime.now();
     final month = monthStart(now);
     final mood = ref.watch(pennyMoodProvider);
-    final summary = ref.watch(monthSummaryProvider(month)).when(
+    final summary = ref
+        .watch(monthSummaryProvider(month))
+        .when(
           data: (summary) => summary,
           loading: () => MonthSummary.empty,
           error: (error, stackTrace) => MonthSummary.empty,
@@ -39,7 +41,10 @@ class HomeScreen extends ConsumerWidget {
         children: [
           Text(_greeting(now), style: AppText.h1),
           const SizedBox(height: 2),
-          Text(DateFormat('EEEE, d MMMM').format(now), style: AppText.bodyMuted),
+          Text(
+            DateFormat('EEEE, d MMMM').format(now),
+            style: AppText.bodyMuted,
+          ),
           const SizedBox(height: 18),
           _PennyCard(mood: mood),
           const SizedBox(height: 16),
@@ -91,10 +96,10 @@ class HomeScreen extends ConsumerWidget {
   }
 
   static String _greeting(DateTime now) => switch (now.hour) {
-        < 12 => 'Good morning',
-        < 17 => 'Good afternoon',
-        _ => 'Good evening',
-      };
+    < 12 => 'Good morning',
+    < 17 => 'Good afternoon',
+    _ => 'Good evening',
+  };
 }
 
 class _PennyCard extends StatelessWidget {
@@ -116,7 +121,10 @@ class _PennyCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.white,
                     borderRadius: BorderRadius.circular(kPillRadius),

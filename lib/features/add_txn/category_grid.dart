@@ -38,9 +38,8 @@ class CategoryGrid extends StatelessWidget {
         final fits =
             (constraints.maxWidth + _gap) ~/ (_minTileWidth * growth + _gap);
         final columns = math.max(2, math.min(4, fits));
-        final width =
-            ((constraints.maxWidth - _gap * (columns - 1)) / columns)
-                .floorToDouble();
+        final width = ((constraints.maxWidth - _gap * (columns - 1)) / columns)
+            .floorToDouble();
         return Wrap(
           spacing: _gap,
           runSpacing: 16,
@@ -133,9 +132,9 @@ class _PickedBadge extends StatelessWidget {
       ),
       child: const Icon(Icons.check_rounded, size: 15, color: AppColors.white),
     ).animate().scale(
-          begin: const Offset(0.3, 0.3),
-          duration: 220.ms,
-          curve: Curves.easeOutBack,
-        );
+      begin: const Offset(0.3, 0.3),
+      duration: 220.ms,
+      curve: Curves.easeOutBack,
+    );
   }
 }

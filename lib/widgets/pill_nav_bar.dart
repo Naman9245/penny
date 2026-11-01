@@ -98,7 +98,10 @@ class _PillNavBarState extends State<PillNavBar>
     final velocity = details.primaryVelocity ?? 0;
     final flick = velocity.abs() > 300 ? velocity.sign * 0.45 : 0.0;
     final last = widget.items.length - 1;
-    final target = math.max(0, math.min(last, (_position.value + flick).round()));
+    final target = math.max(
+      0,
+      math.min(last, (_position.value + flick).round()),
+    );
     _slideTo(target);
     if (target != widget.currentIndex) widget.onSelect(target);
   }
@@ -131,8 +134,8 @@ class _PillNavBarState extends State<PillNavBar>
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // The open tab gets whatever the circles leave over.
-                  final wide = constraints.maxWidth -
-                      (widget.items.length - 1) * _step;
+                  final wide =
+                      constraints.maxWidth - (widget.items.length - 1) * _step;
                   return AnimatedBuilder(
                     animation: _position,
                     builder: (context, _) => _track(wide, animate),
@@ -151,9 +154,7 @@ class _PillNavBarState extends State<PillNavBar>
     final count = widget.items.length;
     // A tab is fully open with the pill right under it and closed by the
     // time the pill is one tab away.
-    final openness = [
-      for (var i = 0; i < count; i++) _unit(1 - (p - i).abs()),
-    ];
+    final openness = [for (var i = 0; i < count; i++) _unit(1 - (p - i).abs())];
     final lefts = <double>[];
     final widths = <double>[];
     var x = 0.0;
@@ -165,19 +166,19 @@ class _PillNavBarState extends State<PillNavBar>
     }
 
     Widget tab(int i) => Positioned(
-          key: ValueKey(i),
-          left: lefts[i],
-          top: 0,
-          bottom: 0,
-          width: widths[i],
-          child: _Tab(
-            item: widget.items[i],
-            openness: openness[i],
-            selected: i == widget.currentIndex,
-            animate: animate,
-            onTap: () => widget.onSelect(i),
-          ),
-        );
+      key: ValueKey(i),
+      left: lefts[i],
+      top: 0,
+      bottom: 0,
+      width: widths[i],
+      child: _Tab(
+        item: widget.items[i],
+        openness: openness[i],
+        selected: i == widget.currentIndex,
+        animate: animate,
+        onTap: () => widget.onSelect(i),
+      ),
+    );
 
     return Stack(
       children: [
@@ -241,15 +242,24 @@ class _TabState extends State<_Tab> with SingleTickerProviderStateMixin {
   );
   late final Animation<double> _popScale = TweenSequence<double>([
     TweenSequenceItem(
-      tween: Tween(begin: 1.0, end: 1.3).chain(CurveTween(curve: Curves.easeOut)),
+      tween: Tween(
+        begin: 1.0,
+        end: 1.3,
+      ).chain(CurveTween(curve: Curves.easeOut)),
       weight: 35,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: 1.3, end: 0.92).chain(CurveTween(curve: Curves.easeInOut)),
+      tween: Tween(
+        begin: 1.3,
+        end: 0.92,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
       weight: 30,
     ),
     TweenSequenceItem(
-      tween: Tween(begin: 0.92, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
+      tween: Tween(
+        begin: 0.92,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOut)),
       weight: 35,
     ),
   ]).animate(_pop);
@@ -298,7 +308,9 @@ class _TabState extends State<_Tab> with SingleTickerProviderStateMixin {
         // Squishes while pressed.
         child: AnimatedScale(
           scale: _down ? 0.88 : 1,
-          duration: widget.animate ? const Duration(milliseconds: 110) : Duration.zero,
+          duration: widget.animate
+              ? const Duration(milliseconds: 110)
+              : Duration.zero,
           curve: Curves.easeOut,
           child: Container(
             decoration: BoxDecoration(

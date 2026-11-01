@@ -34,7 +34,8 @@ class AppShell extends StatelessWidget {
         items: _tabs,
         currentIndex: index,
         // Tapping the tab you're on takes it back to its first screen.
-        onSelect: (i) => navigationShell.goBranch(i, initialLocation: i == index),
+        onSelect: (i) =>
+            navigationShell.goBranch(i, initialLocation: i == index),
       ),
     );
   }

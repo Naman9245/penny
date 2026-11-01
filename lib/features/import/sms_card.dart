@@ -20,7 +20,7 @@ class SmsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BrutalCard(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,10 +36,10 @@ class SmsCard extends StatelessWidget {
             TextSpan(children: _pieces()),
             style: AppText.small.copyWith(color: AppColors.ink, height: 1.45),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const Text(
-            'Highlighted is what Penny read. Account, card and reference '
-            'numbers are hidden, and the message itself is never saved.',
+            'Highlighted is what Penny read. Numbers are hidden, and the SMS '
+            'itself is never saved.',
             style: AppText.small,
           ),
         ],
@@ -58,7 +58,9 @@ class SmsCard extends StatelessWidget {
     var at = 0;
     for (final mark in marks) {
       if (mark.start < at) continue; // Overlaps the mark before it.
-      if (mark.start > at) pieces.add(TextSpan(text: text.substring(at, mark.start)));
+      if (mark.start > at) {
+        pieces.add(TextSpan(text: text.substring(at, mark.start)));
+      }
       pieces.add(
         TextSpan(
           text: text.substring(mark.start, mark.end),

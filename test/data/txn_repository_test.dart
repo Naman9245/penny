@@ -119,13 +119,13 @@ void main() {
 
   group('SMS fingerprints', () {
     Future<String> importSms(String key) => repo.add(
-          amountPaise: 25000,
-          type: TxnType.debit,
-          categoryId: 'food',
-          occurredAt: DateTime(2026, 11, 1, 9),
-          source: TxnSource.share,
-          dedupeKey: key,
-        );
+      amountPaise: 25000,
+      type: TxnType.debit,
+      categoryId: 'food',
+      occurredAt: DateTime(2026, 11, 1, 9),
+      source: TxnSource.share,
+      dedupeKey: key,
+    );
 
     test('find the live entry an SMS became', () async {
       final id = await importSms('abc');

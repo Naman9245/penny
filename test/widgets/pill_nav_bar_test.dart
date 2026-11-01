@@ -43,8 +43,9 @@ void main() {
     expect(find.text('Home'), findsNothing);
   });
 
-  testWidgets('dragging the pill two tabs along selects that tab',
-      (tester) async {
+  testWidgets('dragging the pill two tabs along selects that tab', (
+    tester,
+  ) async {
     await tester.pumpWidget(_bar());
 
     await tester.drag(find.bySemanticsLabel('Home'), const Offset(2 * 58, 0));
@@ -67,7 +68,11 @@ void main() {
   testWidgets('a quick flick carries on to the next tab', (tester) async {
     await tester.pumpWidget(_bar());
 
-    await tester.fling(find.bySemanticsLabel('Home'), const Offset(60, 0), 1000);
+    await tester.fling(
+      find.bySemanticsLabel('Home'),
+      const Offset(60, 0),
+      1000,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Analysis'), findsOneWidget);

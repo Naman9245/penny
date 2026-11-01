@@ -16,7 +16,9 @@ enum IgnoreReason {
   upcoming("It's about a payment that hasn't happened yet."),
   failed('The payment failed, so no money moved.'),
   offer('It looks like an offer, not a payment.'),
-  ownTransfer('It moves money between your own accounts, so Penny leaves it out.'),
+  ownTransfer(
+    'It moves money between your own accounts, so Penny leaves it out.',
+  ),
   balance('It only tells you a balance.'),
   unreadable("Penny couldn't find an amount and a debit or credit in it.");
 
@@ -137,8 +139,12 @@ final _strongCredit = _rx(
 );
 final _weakDebit = _rx(r'\b(?:txn|transaction|payment)\b');
 
-final _currencyAmount = _rx(r'(?:₹|\brs\.?|\binr)\s*:?\s*([\d,]+(?:\.\d{1,2})?)');
-final _bareAmount = _rx(r'\b(?:debited|credited)\s+(?:by|for|with)\s+([\d,]+(?:\.\d{1,2})?)\b');
+final _currencyAmount = _rx(
+  r'(?:₹|\brs\.?|\binr)\s*:?\s*([\d,]+(?:\.\d{1,2})?)',
+);
+final _bareAmount = _rx(
+  r'\b(?:debited|credited)\s+(?:by|for|with)\s+([\d,]+(?:\.\d{1,2})?)\b',
+);
 final _amountIsBalance = _rx(
   r'(?:bal(?:ance)?|limit|avl(?:bl)?|avail(?:able)?|outstanding|due|min(?:imum)?)\.?[\s:.\-]*(?:amt|amount|bal(?:ance)?)?[\s:.\-]*$',
 );
@@ -150,7 +156,10 @@ const _end =
     r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal)\b|\s+-)';
 final _upiPath = _rx(r'\bupi/(?:p2[am]/)?\d+/([a-z][^/\n.]{1,40})');
 final _debitPayees = [
-  _rx(r'\bto\s+(?:vpa\s+)?' r'([\w.\-]{2,}@[a-z][a-z.]*)\b'),
+  _rx(
+    r'\bto\s+(?:vpa\s+)?'
+    r'([\w.\-]{2,}@[a-z][a-z.]*)\b',
+  ),
   _upiPath,
   _rx(r';\s*' + _name + r'\s+credited'),
   _rx(r'\btrf to\s+' + _honorific + _name + _end),
@@ -162,7 +171,10 @@ final _debitPayees = [
   _rx(r'\bfor\s+' + _name + _end),
 ];
 final _creditPayees = [
-  _rx(r'\b(?:from|by|linked to)\s+(?:vpa\s+)?' r'([\w.\-]{2,}@[a-z][a-z.]*)\b'),
+  _rx(
+    r'\b(?:from|by|linked to)\s+(?:vpa\s+)?'
+    r'([\w.\-]{2,}@[a-z][a-z.]*)\b',
+  ),
   _upiPath,
   _rx(r'\bneft\s*cr-[a-z0-9]+-([a-z][a-z0-9 .&]{1,60}?)-'),
   _rx(r'\bfrom\s+' + _honorific + _name + _end),
@@ -171,11 +183,25 @@ final _creditPayees = [
 final _notAPayee = _rx(
   r'^(?:(?:rs|inr)\.?\s*\d|(?:rs|inr|upi|txn|your|you|ur|a/?c|ac|acct|account|card|bank|the|ref|vpa|imps|neft|date|dt)\b)',
 );
-final _atmWithdrawal = _rx(r'\b(?:withdrawn|withdrawal)\b[^\n]*\batm\b|\batm\b[^\n]*\bwithdrawn\b');
+final _atmWithdrawal = _rx(
+  r'\b(?:withdrawn|withdrawal)\b[^\n]*\batm\b|\batm\b[^\n]*\bwithdrawn\b',
+);
 final _business = _rx(
   r'\b(?:pvt|private|ltd|limited|llp|india|store|stores|services|technologies|solutions|pay|bank|mart|enterprises|restaurant|cafe|hotel)\b',
 );
-const _acronyms = {'ATM', 'UPI', 'NEFT', 'IMPS', 'RTGS', 'IRCTC', 'LIC', 'EMI', 'HDFC', 'ICICI', 'SBI'};
+const _acronyms = {
+  'ATM',
+  'UPI',
+  'NEFT',
+  'IMPS',
+  'RTGS',
+  'IRCTC',
+  'LIC',
+  'EMI',
+  'HDFC',
+  'ICICI',
+  'SBI',
+};
 // Vowel-less, but words rather than abbreviations.
 const _plainWords = {'PVT', 'LTD'};
 
@@ -189,7 +215,20 @@ final _namedDate = _rx(
 final _numericDate = RegExp(
   r'\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b(?:[\s,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?',
 );
-const _months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const _months = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
 
 /// Reads [raw], one SMS, as a payment, or says why it isn't one. [now] is
 /// for dates: one later than tomorrow or over a year old is not believed.
@@ -220,7 +259,9 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   final amount = _amount(text);
   if (type == null || amount == null) {
     return SmsIgnored(
-      _balanceWord.hasMatch(text) ? IgnoreReason.balance : IgnoreReason.unreadable,
+      _balanceWord.hasMatch(text)
+          ? IgnoreReason.balance
+          : IgnoreReason.unreadable,
     );
   }
 
@@ -292,7 +333,9 @@ int? _toPaise(String number) {
   final parts = cleaned.split('.');
   final rupees = int.tryParse(parts[0]);
   if (rupees == null) return null;
-  final fraction = parts.length > 1 ? parts[1].padRight(2, '0').substring(0, 2) : '00';
+  final fraction = parts.length > 1
+      ? parts[1].padRight(2, '0').substring(0, 2)
+      : '00';
   return rupees * 100 + int.parse(fraction);
 }
 
@@ -313,11 +356,18 @@ _Payee? _payee(String text, TxnType type) {
         // A phone number is not a name worth keeping.
         if (RegExp(r'\d{6,}').hasMatch(local)) return null;
         final name = _titleCase(local.replaceAll(RegExp(r'[._\-]+'), ' '));
-        return (name: name, isPerson: !_business.hasMatch(name), start: start, end: end);
+        return (
+          name: name,
+          isPerson: !_business.hasMatch(name),
+          start: start,
+          end: end,
+        );
       }
       final name = _cleanName(raw);
       if (name == null) continue;
-      final isPerson = pattern != _upiPath || match.group(0)!.toLowerCase().contains('/p2a/');
+      final isPerson =
+          pattern != _upiPath ||
+          match.group(0)!.toLowerCase().contains('/p2a/');
       return (
         name: name,
         isPerson: isPerson && _looksLikePerson(name),
@@ -352,18 +402,21 @@ String _titleCase(String name) {
   final hasUpper = name.contains(RegExp('[A-Z]'));
   final hasLower = name.contains(RegExp('[a-z]'));
   if (hasUpper && hasLower) return name;
-  return name.split(' ').map((word) {
-    if (word.isEmpty) return word;
-    final upper = word.toUpperCase();
-    if (_acronyms.contains(upper)) return upper;
-    if (word.length >= 2 &&
-        !_plainWords.contains(upper) &&
-        !RegExp('[aeiouAEIOU]').hasMatch(word) &&
-        RegExp('^[A-Za-z]+\$').hasMatch(word)) {
-      return upper;
-    }
-    return word[0].toUpperCase() + word.substring(1).toLowerCase();
-  }).join(' ');
+  return name
+      .split(' ')
+      .map((word) {
+        if (word.isEmpty) return word;
+        final upper = word.toUpperCase();
+        if (_acronyms.contains(upper)) return upper;
+        if (word.length >= 2 &&
+            !_plainWords.contains(upper) &&
+            !RegExp('[aeiouAEIOU]').hasMatch(word) &&
+            RegExp('^[A-Za-z]+\$').hasMatch(word)) {
+          return upper;
+        }
+        return word[0].toUpperCase() + word.substring(1).toLowerCase();
+      })
+      .join(' ');
 }
 
 typedef _Date = ({DateTime at, bool hasTime, int start, int end});
@@ -383,18 +436,34 @@ _Date? _date(String text, DateTime now) {
     if (at.month != month || at.day != day) return;
     if (at.isAfter(now.add(const Duration(days: 1)))) return;
     if (at.isBefore(now.subtract(const Duration(days: 400)))) return;
-    candidates.add((at: at, hasTime: hasTime, start: match.start, end: match.end));
+    candidates.add((
+      at: at,
+      hasTime: hasTime,
+      start: match.start,
+      end: match.end,
+    ));
   }
 
   for (final m in _isoDate.allMatches(text)) {
-    add(m, int.parse(m.group(1)!), int.parse(m.group(2)!), int.parse(m.group(3)!));
+    add(
+      m,
+      int.parse(m.group(1)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(3)!),
+    );
   }
   for (final m in _namedDate.allMatches(text)) {
-    final month = _months.indexOf(m.group(2)!.toLowerCase().substring(0, 3)) + 1;
+    final month =
+        _months.indexOf(m.group(2)!.toLowerCase().substring(0, 3)) + 1;
     add(m, int.parse(m.group(3)!), month, int.parse(m.group(1)!));
   }
   for (final m in _numericDate.allMatches(text)) {
-    add(m, int.parse(m.group(3)!), int.parse(m.group(2)!), int.parse(m.group(1)!));
+    add(
+      m,
+      int.parse(m.group(3)!),
+      int.parse(m.group(2)!),
+      int.parse(m.group(1)!),
+    );
   }
   if (candidates.isEmpty) return null;
   candidates.sort((a, b) => a.start.compareTo(b.start));

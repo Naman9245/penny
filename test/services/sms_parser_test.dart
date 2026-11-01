@@ -6,9 +6,9 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/sms_parser.dart';
 
 // Every message in the fixtures is made up: realistic formats, fake numbers.
-final _fixtures = (jsonDecode(File('test/fixtures/sms_samples.json').readAsStringSync())
-        as List)
-    .cast<Map<String, dynamic>>();
+final _fixtures = (jsonDecode(
+  File('test/fixtures/sms_samples.json').readAsStringSync(),
+) as List).cast<Map<String, dynamic>>();
 
 final _now = DateTime(2026, 11, 5, 12);
 
@@ -48,7 +48,10 @@ void main() {
         );
         if (expected.containsKey('time')) {
           expect(txn.hasTime, isTrue);
-          expect('${_two(at!.hour)}:${_two(at.minute)}:${_two(at.second)}', expected['time']);
+          expect(
+            '${_two(at!.hour)}:${_two(at.minute)}:${_two(at.second)}',
+            expected['time'],
+          );
         }
         if (expected.containsKey('category')) {
           expect(txn.suggestedCategoryId, expected['category']);
@@ -63,12 +66,17 @@ void main() {
   group('the preview hides what it should', () {
     final payments = [
       for (final fixture in _fixtures)
-        if (parseSms(fixture['sms'] as String, now: _now) case final SmsTxn txn) txn,
+        if (parseSms(fixture['sms'] as String, now: _now) case final SmsTxn txn)
+          txn,
     ];
 
     test('no reference, phone or long number survives', () {
       for (final txn in payments) {
-        expect(txn.preview.text, isNot(matches(RegExp(r'\d{6,}'))), reason: txn.preview.text);
+        expect(
+          txn.preview.text,
+          isNot(matches(RegExp(r'\d{6,}'))),
+          reason: txn.preview.text,
+        );
       }
     });
 
@@ -78,7 +86,11 @@ void main() {
         caseSensitive: false,
       );
       for (final txn in payments) {
-        expect(account.hasMatch(txn.preview.text), isFalse, reason: txn.preview.text);
+        expect(
+          account.hasMatch(txn.preview.text),
+          isFalse,
+          reason: txn.preview.text,
+        );
       }
     });
 
@@ -96,17 +108,20 @@ void main() {
       final preview = (parseSms(
         'Received Rs.1,000.00 in your Kotak Bank AC X8899 from rohan.das@okaxis on 31-10-26.',
         now: _now,
-      ) as SmsTxn)
-          .preview
-          .text;
+      ) as SmsTxn).preview.text;
       expect(preview, contains('ro•••••••@okaxis'));
       expect(preview, isNot(contains('rohan')));
     });
 
     test('the amount stays readable and is marked', () {
       for (final txn in payments) {
-        final span = txn.preview.spans.firstWhere((s) => s.kind == SpanKind.amount);
-        expect(txn.preview.text.substring(span.start, span.end), matches(RegExp(r'\d')));
+        final span = txn.preview.spans.firstWhere(
+          (s) => s.kind == SpanKind.amount,
+        );
+        expect(
+          txn.preview.text.substring(span.start, span.end),
+          matches(RegExp(r'\d')),
+        );
       }
     });
 
@@ -121,12 +136,16 @@ void main() {
   });
 
   group('fingerprints', () {
-    const sms = 'Sent Rs.250.00\nFrom HDFC Bank A/C *4821\nTo SWIGGY\nOn 01/11/26';
+    const sms =
+        'Sent Rs.250.00\nFrom HDFC Bank A/C *4821\nTo SWIGGY\nOn 01/11/26';
 
     String key(String text) => (parseSms(text, now: _now) as SmsTxn).dedupeKey;
 
     test('ignore spacing and letter case', () {
-      expect(key(sms), key('sent  rs.250.00 from hdfc bank a/c *4821   to swiggy on 01/11/26'));
+      expect(
+        key(sms),
+        key('sent  rs.250.00 from hdfc bank a/c *4821   to swiggy on 01/11/26'),
+      );
     });
 
     test('differ when the message differs', () {
@@ -135,8 +154,14 @@ void main() {
   });
 
   test('dates in the future or over a year old are not believed', () {
-    final future = parseSms('Sent Rs.250.00 To SWIGGY On 01/12/26 from A/C *4821', now: _now);
-    final old = parseSms('Sent Rs.250.00 To SWIGGY On 01/01/24 from A/C *4821', now: _now);
+    final future = parseSms(
+      'Sent Rs.250.00 To SWIGGY On 01/12/26 from A/C *4821',
+      now: _now,
+    );
+    final old = parseSms(
+      'Sent Rs.250.00 To SWIGGY On 01/01/24 from A/C *4821',
+      now: _now,
+    );
     expect((future as SmsTxn).occurredAt, isNull);
     expect((old as SmsTxn).occurredAt, isNull);
   });

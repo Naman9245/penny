@@ -11,18 +11,11 @@ import 'package:penny/services/sms_parser.dart';
 /// existing one, or an [sms] to review before it is saved.
 @immutable
 class AddTxnArgs {
-  const AddTxnArgs.create(this.type)
-      : editing = null,
-        sms = null;
+  const AddTxnArgs.create(this.type) : editing = null, sms = null;
 
-  AddTxnArgs.edit(Txn txn)
-      : type = txn.type,
-        editing = txn,
-        sms = null;
+  AddTxnArgs.edit(Txn txn) : type = txn.type, editing = txn, sms = null;
 
-  AddTxnArgs.fromSms(SmsTxn this.sms)
-      : type = sms.type,
-        editing = null;
+  AddTxnArgs.fromSms(SmsTxn this.sms) : type = sms.type, editing = null;
 
   final TxnType type;
   final Txn? editing;
@@ -82,9 +75,12 @@ class AddTxnState {
       type: type ?? this.type,
       amountText: amountText ?? this.amountText,
       occurredAt: occurredAt ?? this.occurredAt,
-      merchant: identical(merchant, _keep) ? this.merchant : merchant as String?,
-      categoryId:
-          identical(categoryId, _keep) ? this.categoryId : categoryId as String?,
+      merchant: identical(merchant, _keep)
+          ? this.merchant
+          : merchant as String?,
+      categoryId: identical(categoryId, _keep)
+          ? this.categoryId
+          : categoryId as String?,
     );
   }
 }
@@ -148,7 +144,9 @@ class AddTxnController extends Notifier<AddTxnState> {
 
   /// Switching between Spent and Got drops a category of the other kind.
   void setType(TxnType type) {
-    if (type != state.type) state = state.copyWith(type: type, categoryId: null);
+    if (type != state.type) {
+      state = state.copyWith(type: type, categoryId: null);
+    }
   }
 
   void setDay(DateTime day) =>
@@ -171,7 +169,9 @@ class AddTxnController extends Notifier<AddTxnState> {
     if (editing == null) {
       // The review screen already checked; this covers a second copy of the
       // app importing the same SMS at the same moment.
-      final existing = sms == null ? null : await repo.findByDedupeKey(sms.dedupeKey);
+      final existing = sms == null
+          ? null
+          : await repo.findByDedupeKey(sms.dedupeKey);
       if (existing != null) return existing.id;
       return repo.add(
         amountPaise: state.amountPaise,

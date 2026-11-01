@@ -33,23 +33,26 @@ class AmountKeypad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget cell(Widget key, {int flex = 1}) => Expanded(
-          flex: flex,
-          child: Padding(padding: const EdgeInsets.all(4), child: key),
-        );
+      flex: flex,
+      child: Padding(padding: const EdgeInsets.all(4), child: key),
+    );
     Widget digit(String label, {int flex = 1}) => cell(
-          _Key(
-            key: ValueKey('key-$label'),
-            onTap: () {
-              HapticFeedback.selectionClick();
-              onKey(label);
-            },
-            child: Text(label, style: AppText.h2),
-          ),
-          flex: flex,
-        );
+      _Key(
+        key: ValueKey('key-$label'),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onKey(label);
+        },
+        child: Text(label, style: AppText.h2),
+      ),
+      flex: flex,
+    );
     Widget row(List<Widget> cells) => Expanded(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: cells),
-        );
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: cells,
+      ),
+    );
 
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,

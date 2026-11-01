@@ -5,7 +5,8 @@ import 'package:penny/services/share_inbox.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('penny/share');
-  final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
@@ -31,8 +32,9 @@ void main() {
 
     await messenger.handlePlatformMessage(
       'penny/share',
-      const StandardMethodCodec()
-          .encodeMethodCall(const MethodCall('shared', 'Received Rs.500.00')),
+      const StandardMethodCodec().encodeMethodCall(
+        const MethodCall('shared', 'Received Rs.500.00'),
+      ),
       (_) {},
     );
 

@@ -20,7 +20,10 @@ Future<AppDatabase> pumpApp(WidgetTester tester) async {
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
   final db = AppDatabase(
-    DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true),
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
   );
   await tester.pumpWidget(
     ProviderScope(

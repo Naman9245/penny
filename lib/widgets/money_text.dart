@@ -21,9 +21,9 @@ class MoneyText extends StatelessWidget {
       TxnType.debit => ('−${formatPaise(paise)}', style.color),
       TxnType.credit => ('+${formatPaise(paise)}', AppColors.positive),
       null => (
-          formatPaise(paise),
-          paise < 0 ? AppColors.negative : style.color,
-        ),
+        formatPaise(paise),
+        paise < 0 ? AppColors.negative : style.color,
+      ),
     };
     return Text(
       text,

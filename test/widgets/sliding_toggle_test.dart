@@ -13,7 +13,11 @@ void main() {
           child: StatefulBuilder(
             builder: (context, setState) => SlidingToggle<String>(
               options: const [
-                ToggleOption(value: 'spent', label: 'Spent', color: AppColors.pink),
+                ToggleOption(
+                  value: 'spent',
+                  label: 'Spent',
+                  color: AppColors.pink,
+                ),
                 ToggleOption(value: 'got', label: 'Got', color: AppColors.mint),
               ],
               value: value,
@@ -36,8 +40,9 @@ void main() {
     expect(value, 'got');
   });
 
-  testWidgets('dragging the highlight across selects the other option',
-      (tester) async {
+  testWidgets('dragging the highlight across selects the other option', (
+    tester,
+  ) async {
     await tester.pumpWidget(toggle());
 
     await tester.drag(find.text('Spent'), const Offset(90, 0));
