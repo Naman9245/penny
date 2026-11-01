@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Only for Penny's report: the month's totals go to the Edge Function
+         when Ask Penny is tapped. Everything else works offline. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Penny"
         android:name="${applicationName}"
