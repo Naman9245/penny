@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Supabase: this machine's project URL and publishable key, and CLI state
+/env/supabase.json
+/supabase/.temp/
+/supabase/.branches/
+/supabase/functions/.env

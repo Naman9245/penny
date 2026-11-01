@@ -1,0 +1,6 @@
+# Supabase CLI settings. The live project ("penny", Mumbai) was set up with
+# the dashboard; see "Backend" in the README.
+project_id = "penny"
+
+[functions.analyze-month]
+verify_jwt = true
