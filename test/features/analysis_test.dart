@@ -55,29 +55,34 @@ void main() {
       find.descendant(of: food, matching: find.text('50%')),
       findsOneWidget,
     );
+    // Before Penny has looked, the whole ₹1,000 spent is not sorted yet.
+    final split = find.byKey(const ValueKey('split-card'));
     expect(
-      find.byKey(const ValueKey('category-card-pocket_money')),
+      find.descendant(of: split, matching: find.text('Not sorted yet')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: split, matching: find.text('Ask Penny')),
       findsOneWidget,
     );
 
+    final scrollable = find.descendant(
+      of: find.byType(AnalysisScreen),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('category-card-pocket_money')),
+      300,
+      scrollable: scrollable,
+    );
     await tester.scrollUntilVisible(
       find.byType(BarChart),
       300,
-      scrollable: find.descendant(
-        of: find.byType(AnalysisScreen),
-        matching: find.byType(Scrollable),
-      ),
+      scrollable: scrollable,
     );
     expect(find.byType(BarChart), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      food,
-      -300,
-      scrollable: find.descendant(
-        of: find.byType(AnalysisScreen),
-        matching: find.byType(Scrollable),
-      ),
-    );
+    await tester.scrollUntilVisible(food, -300, scrollable: scrollable);
     await tester.tap(food);
     await tester.pumpAndSettle();
 

@@ -9,15 +9,21 @@ import 'package:penny/core/router/app_router.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/services/penny_ai.dart';
+
+import 'fake_ai.dart';
 
 /// Starts the app on a phone-sized screen with an in-memory database, empty
-/// apart from what [seed] adds.
+/// apart from what [seed] and [seedDb] add. Penny's server is [ai], or a
+/// fake that isn't set up.
 ///
 /// Seed here rather than after start-up: writing from outside the test's
 /// fake clock while the app's live queries are open deadlocks drift.
 Future<AppDatabase> pumpApp(
   WidgetTester tester, {
   Future<void> Function(TxnRepository repo)? seed,
+  Future<void> Function(AppDatabase db)? seedDb,
+  AiClient? ai,
 }) async {
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 2.75;
@@ -34,9 +40,13 @@ Future<AppDatabase> pumpApp(
     ),
   );
   if (seed != null) await tester.runAsync(() => seed(TxnRepository(db)));
+  if (seedDb != null) await tester.runAsync(() => seedDb(db));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        aiClientProvider.overrideWithValue(ai ?? FakeAiClient(isSetUp: false)),
+      ],
       child: const PennyApp(),
     ),
   );

@@ -16,10 +16,12 @@ import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/tag_split_bar.dart';
 
 /// Where a month's money went and came from, one card per category, and the
 /// six months up to it side by side.
@@ -82,6 +84,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           else ...[
             _Totals(summary: summary),
             if (spent.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _SplitCard(month: _month),
               const SizedBox(height: 28),
               const Text('Where it went', style: AppText.h2),
               const SizedBox(height: 12),
@@ -167,6 +171,44 @@ class _Totals extends StatelessWidget {
         const SizedBox(width: 14),
         stat('Got', summary.gotPaise, AppColors.mint),
       ],
+    );
+  }
+}
+
+/// The month's spending by necessary and wasteful, and the way into Penny's
+/// report.
+class _SplitCard extends ConsumerWidget {
+  const _SplitCard({required this.month});
+
+  final DateTime month;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final split = ref.watch(tagSplitProvider(month)).value;
+    final hasReport = ref.watch(insightProvider(month)).value != null;
+    if (split == null) return const SizedBox.shrink();
+    return BrutalCard(
+      key: const ValueKey('split-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Necessary vs wasteful', style: AppText.h3),
+          const SizedBox(height: 12),
+          TagSplitBar(split: split),
+          const SizedBox(height: 10),
+          TagSplitKey(split: split),
+          const SizedBox(height: 14),
+          BrutalButton(
+            key: const ValueKey('open-report'),
+            label: hasReport ? 'Wasteful report' : 'Ask Penny',
+            icon: hasReport
+                ? Icons.receipt_long_rounded
+                : Icons.auto_awesome_rounded,
+            expand: true,
+            onPressed: () => context.push(reportLocation(month)),
+          ),
+        ],
+      ),
     );
   }
 }

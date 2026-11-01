@@ -15,6 +15,7 @@ import 'package:penny/features/add_txn/category_grid.dart';
 import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/insight_math.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -280,6 +281,21 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                             (widget.args.sms?.payeeIsPerson ?? false) &&
                             state.merchant == widget.args.sms?.payee,
                       ),
+                      if (widget.args.editing case final txn?
+                          when state.type == TxnType.debit) ...[
+                        const SizedBox(height: 16),
+                        _TagChoice(
+                          tag: state.tag,
+                          penny: PennyTags(
+                            ref
+                                .watch(
+                                  insightProvider(monthStart(txn.occurredAt)),
+                                )
+                                .value,
+                          ).of(txn),
+                          onChanged: _controller.setTag,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       CategoryGrid(
                             categories: categoriesFor(state.type),
@@ -403,6 +419,81 @@ class _DayAndWhere extends StatelessWidget {
             icon: Icons.content_paste_rounded,
             onTap: paste,
           ),
+      ],
+    );
+  }
+}
+
+/// Necessary or wasteful, for a spend being edited: Penny's pick until the
+/// user makes their own.
+class _TagChoice extends StatelessWidget {
+  const _TagChoice({
+    required this.tag,
+    required this.penny,
+    required this.onChanged,
+  });
+
+  /// The user's own pick.
+  final TxnTag? tag;
+
+  /// Penny's pick, from the month's report.
+  final TxnTag? penny;
+  final ValueChanged<TxnTag?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = tag ?? penny;
+    final caption = tag != null
+        ? 'Your pick'
+        : penny != null
+        ? "Penny's pick"
+        : 'Not sorted yet';
+    return Column(
+      children: [
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          children: [
+            BrutalChip(
+              key: const ValueKey('tag-necessary'),
+              label: 'Necessary',
+              selected: shown == TxnTag.necessary,
+              selectedColor: AppColors.mint,
+              onTap: () => onChanged(TxnTag.necessary),
+            ),
+            BrutalChip(
+              key: const ValueKey('tag-wasteful'),
+              label: 'Wasteful',
+              selected: shown == TxnTag.wasteful,
+              selectedColor: AppColors.pink,
+              onTap: () => onChanged(TxnTag.wasteful),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(caption, style: AppText.small),
+            if (tag != null) ...[
+              const Text(' · ', style: AppText.small),
+              Semantics(
+                button: true,
+                child: GestureDetector(
+                  key: const ValueKey('tag-reset'),
+                  onTap: () => onChanged(null),
+                  child: Text(
+                    penny != null ? "Use Penny's" : 'Clear',
+                    style: AppText.small.copyWith(
+                      color: AppColors.ink,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

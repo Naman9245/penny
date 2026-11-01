@@ -3,19 +3,24 @@ import 'package:penny/models/txn_enums.dart';
 
 /// How much of a habit Penny suggests cutting.
 enum Cut {
-  stop('stop', 4, 'Stop it'),
-  threeQuarters('three_quarters', 3, 'Cut three quarters'),
-  half('half', 2, 'Halve it'),
-  quarter('quarter', 1, 'Cut a quarter');
+  stop('stop', 4, 'Stop it', 'Stop it'),
+  threeQuarters('three_quarters', 3, 'Cut three quarters', 'Cut ¾'),
+  half('half', 2, 'Halve it', 'Halve it'),
+  quarter('quarter', 1, 'Cut a quarter', 'Cut ¼');
 
-  const Cut(this.wire, this.quarters, this.label);
+  const Cut(this.wire, this.quarters, this.label, this.short);
 
   /// The name the server uses.
   final String wire;
 
   /// How many quarters of the spending it saves.
   final int quarters;
+
+  /// In words, for screen readers.
   final String label;
+
+  /// What the pill shows.
+  final String short;
 
   static Cut? fromWire(Object? value) {
     for (final cut in values) {

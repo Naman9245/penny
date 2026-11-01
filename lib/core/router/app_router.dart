@@ -8,6 +8,7 @@ import 'package:penny/features/calendar/calendar_screen.dart';
 import 'package:penny/features/goals/goals_screen.dart';
 import 'package:penny/features/home/home_screen.dart';
 import 'package:penny/features/import/import_screen.dart';
+import 'package:penny/features/report/report_screen.dart';
 import 'package:penny/features/transactions/txn_list_screen.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/sms_parser.dart';
@@ -88,6 +89,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AddTxnScreen(editId: state.pathParameters['id']),
       ),
+      GoRoute(
+        path: '/report',
+        // ?month=2026-10, from the Analysis tab; this month when missing.
+        builder: (context, state) => ReportScreen(
+          month:
+              _monthFromQuery(state.uri.queryParameters['month']) ??
+              monthStart(DateTime.now()),
+        ),
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -99,6 +109,12 @@ String txnsLocation(DateTime month, {String? categoryId}) {
   final params = {'month': monthKey(month), 'category': ?categoryId};
   return Uri(path: '/txns', queryParameters: params).toString();
 }
+
+/// The location of Penny's report for [month].
+String reportLocation(DateTime month) => Uri(
+  path: '/report',
+  queryParameters: {'month': monthKey(month)},
+).toString();
 
 /// "2026-11" → 1 November 2026; anything else → null.
 DateTime? _monthFromQuery(String? value) {
