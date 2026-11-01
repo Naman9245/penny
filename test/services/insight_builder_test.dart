@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 
 import '../helpers/txn_factory.dart';
@@ -11,12 +12,19 @@ void main() {
   final october = DateTime(2026, 10);
   final afterOctober = DateTime(2026, 11, 5);
 
-  InsightRequest build(List txns, {DateTime? now, DateTime? month}) =>
-      buildInsightRequest(
-        month: month ?? october,
-        txns: txns.cast(),
-        now: now ?? afterOctober,
-      );
+  InsightRequest build(
+    List txns, {
+    DateTime? now,
+    DateTime? month,
+    YourRules rules = YourRules.none,
+    String? note,
+  }) => buildInsightRequest(
+    month: month ?? october,
+    txns: txns.cast(),
+    now: now ?? afterOctober,
+    rules: rules,
+    note: note,
+  );
 
   Map<String, Object?> spendNamed(InsightRequest request, String? name) =>
       request.spends.firstWhere((s) => s['name'] == name);
@@ -238,6 +246,50 @@ void main() {
     ]);
     expect(spendNamed(request, 'Swiggy')['yourTag'], 'necessary');
     expect(spendNamed(request, 'Zomato')['yourTag'], isNull);
+  });
+
+  test('My needs rules settle a group before Penny sees it', () {
+    final txns = [
+      txn(300, DateTime(2026, 10, 2), merchant: 'Swiggy'),
+      txn(200, DateTime(2026, 10, 3), merchant: 'Swiggy'),
+      txn(900, DateTime(2026, 10, 4), categoryId: 'rent'),
+      txn(150, DateTime(2026, 10, 5), merchant: 'Zomato'),
+      txn(
+        100,
+        DateTime(2026, 10, 6),
+        merchant: 'Zomato',
+        tag: TxnTag.necessary,
+      ),
+    ];
+    const rules = YourRules(
+      categories: {'rent': TxnTag.necessary, 'food': TxnTag.wasteful},
+      shops: {'swiggy': TxnTag.necessary},
+    );
+    final request = build(txns, rules: rules);
+
+    expect(spendNamed(request, 'Swiggy')['yourTag'], 'necessary');
+    expect(spendNamed(request, null)['yourTag'], 'necessary'); // rent
+    // One Zomato order is the user's own need, the other a food rule's
+    // waste: no single call for the group.
+    expect(spendNamed(request, 'Zomato')['yourTag'], isNull);
+    // Rules are the user's calls, not money, so they don't change the
+    // fingerprint.
+    expect(request.inputHash, build(txns).inputHash);
+  });
+
+  test('the note goes along, and a new note means a new look', () {
+    final txns = [
+      txn(300, DateTime(2026, 10, 2), merchant: 'Swiggy'),
+      txn(900, DateTime(2026, 10, 4), categoryId: 'rent'),
+      txn(80, DateTime(2026, 10, 5)),
+    ];
+    final plain = build(txns);
+    expect(plain.body.containsKey('note'), isFalse);
+    expect(build(txns, note: '   ').body.containsKey('note'), isFalse);
+
+    final noted = build(txns, note: '  Student in a PG  ');
+    expect(noted.body['note'], 'Student in a PG');
+    expect(noted.inputHash, isNot(plain.inputHash));
   });
 
   test('Penny needs three spends before you can ask', () {

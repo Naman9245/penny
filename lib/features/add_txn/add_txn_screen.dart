@@ -286,6 +286,7 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                         const SizedBox(height: 16),
                         _TagChoice(
                           tag: state.tag,
+                          rule: ref.watch(yourRulesProvider).value?.of(txn),
                           penny: PennyTags(
                             ref
                                 .watch(
@@ -429,12 +430,16 @@ class _DayAndWhere extends StatelessWidget {
 class _TagChoice extends StatelessWidget {
   const _TagChoice({
     required this.tag,
+    required this.rule,
     required this.penny,
     required this.onChanged,
   });
 
-  /// The user's own pick.
+  /// The user's own pick for this entry.
   final TxnTag? tag;
+
+  /// What My needs says for its shop or category.
+  final TxnTag? rule;
 
   /// Penny's pick, from the month's report.
   final TxnTag? penny;
@@ -442,9 +447,11 @@ class _TagChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shown = tag ?? penny;
+    final shown = tag ?? rule ?? penny;
     final caption = tag != null
         ? 'Your pick'
+        : rule != null
+        ? 'Your rule'
         : penny != null
         ? "Penny's pick"
         : 'Not sorted yet';
@@ -483,7 +490,11 @@ class _TagChoice extends StatelessWidget {
                   key: const ValueKey('tag-reset'),
                   onTap: () => onChanged(null),
                   child: Text(
-                    penny != null ? "Use Penny's" : 'Clear',
+                    rule != null
+                        ? 'Use your rule'
+                        : penny != null
+                        ? "Use Penny's"
+                        : 'Clear',
                     style: AppText.small.copyWith(
                       color: AppColors.ink,
                       decoration: TextDecoration.underline,

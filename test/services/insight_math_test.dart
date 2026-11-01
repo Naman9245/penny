@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 
@@ -131,6 +132,44 @@ void main() {
     // Only some entries: the habit stays, counting the rest.
     final partly = habitViews([needed(swiggyA), swiggyB, netflix], report());
     expect(partly.first.spentPaise, 20000);
+  });
+
+  test('My needs rules come after your own tags and before Penny', () {
+    const rules = YourRules(
+      categories: {'subscriptions': TxnTag.necessary},
+      shops: {'swiggy': TxnTag.necessary},
+    );
+    final penny = PennyTags(report());
+    expect(effectiveTag(swiggyA, penny, rules), TxnTag.necessary);
+    final yours = swiggyA.copyWith(tag: const Value(TxnTag.wasteful));
+    expect(effectiveTag(yours, penny, rules), TxnTag.wasteful);
+
+    // Both of Penny's habits are now needs, so nothing is left to cut.
+    expect(habitViews(month, report(), rules: rules), isEmpty);
+    final split = splitByTag(month, report(), rules: rules);
+    expect(split.wastefulPaise, 0);
+    expect(split.necessaryPaise, 9649 * 100);
+  });
+
+  test('the chat gets a tag for each group whose entries agree', () {
+    final request = buildInsightRequest(
+      month: DateTime(2026, 10),
+      txns: month,
+      now: DateTime(2026, 11, 2),
+    );
+    String idOf(String key) =>
+        request.groupKeys.entries.firstWhere((e) => e.value.contains(key)).key;
+    final mixed = [
+      swiggyA.copyWith(tag: const Value(TxnTag.necessary)),
+      ...month.skip(1),
+    ];
+
+    final tags = groupTags(request, mixed, report());
+    expect(tags[idOf('cat|rent')], TxnTag.necessary);
+    expect(tags[idOf('shop|subscriptions|netflix')], TxnTag.wasteful);
+    // One Swiggy order is a need, the other isn't: no single tag.
+    expect(tags.containsKey(idOf('shop|food|swiggy')), isFalse);
+    expect(groupTags(request, month, null), isEmpty);
   });
 
   test('habit names are the ones on your phone, people included', () {

@@ -94,11 +94,15 @@ class InsightRequest {
 }
 
 /// The request for [month], from [txns]: entries from [insightHistoryStart]
-/// to the end of the month. [now] says how far into the month it is.
+/// to the end of the month. [now] says how far into the month it is. Groups
+/// that [rules] or the user's own tags settle go with that tag fixed, and
+/// [note] goes along when there is one.
 InsightRequest buildInsightRequest({
   required DateTime month,
   required List<Txn> txns,
   required DateTime now,
+  YourRules rules = YourRules.none,
+  String? note,
 }) {
   final start = monthStart(month);
   // 0 is [month], -1 the month before, and so on.
@@ -176,7 +180,7 @@ InsightRequest buildInsightRequest({
       'biggest': _rupees(group.biggestPaise),
       'lastMonth': _rupees(lastMonth),
       'monthsSeen': {for (final key in group.keys) ...?seenByKey[key]}.length,
-      'yourTag': group.sharedTag?.name,
+      'yourTag': group.sharedTag(rules)?.name,
     });
   }
 
@@ -214,6 +218,7 @@ InsightRequest buildInsightRequest({
     'lastMonth': {'spent': _rupees(lastSpent), 'got': _rupees(lastGot)},
     'spends': spends,
     'income': income,
+    if (note?.trim() case final text? when text.isNotEmpty) 'note': text,
   };
 
   return InsightRequest(
@@ -272,9 +277,10 @@ class _Group {
   Txn get latest =>
       txns.reduce((a, b) => b.occurredAt.isAfter(a.occurredAt) ? b : a);
 
-  /// The user's own tag, when every entry has the same one.
-  TxnTag? get sharedTag {
-    final tags = txns.map((t) => t.tag).toSet();
+  /// The user's call, from their own tags or [rules], when every entry gets
+  /// the same one.
+  TxnTag? sharedTag(YourRules rules) {
+    final tags = txns.map((t) => t.tag ?? rules.of(t)).toSet();
     return tags.length == 1 ? tags.single : null;
   }
 

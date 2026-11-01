@@ -3,11 +3,12 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 
 // Every number on the report, worked out on the phone from the entries as
-// they are now. Penny's answer only says which groups are which, so an edit
-// or a tag shows up in the numbers straight away.
+// they are now. Penny's answer only says which groups are which, so an edit,
+// a tag or a My needs rule shows up in the numbers straight away.
 
 /// Penny's tags from a saved report, looked up by entry.
 class PennyTags {
@@ -26,10 +27,16 @@ class PennyTags {
       txn.type == TxnType.debit ? _byKey[groupKeyOf(txn)] : null;
 }
 
-/// What a spend counts as: the user's own tag, else Penny's, else not
-/// sorted yet (null). Income never has one.
-TxnTag? effectiveTag(Txn txn, PennyTags penny) =>
-    txn.type == TxnType.debit ? txn.tag ?? penny.of(txn) : null;
+/// What a spend counts as. In order: the user's tag on the entry, their My
+/// needs rule for its shop or category, Penny's pick, else not sorted yet
+/// (null). Income never has one.
+TxnTag? effectiveTag(
+  Txn txn,
+  PennyTags penny, [
+  YourRules rules = YourRules.none,
+]) => txn.type == TxnType.debit
+    ? txn.tag ?? rules.of(txn) ?? penny.of(txn)
+    : null;
 
 /// A month's spending split into necessary, wasteful and not sorted yet.
 @immutable
@@ -47,12 +54,16 @@ class TagSplit {
   int get totalPaise => necessaryPaise + wastefulPaise + unsortedPaise;
 }
 
-TagSplit splitByTag(Iterable<Txn> monthTxns, SavedInsight? saved) {
+TagSplit splitByTag(
+  Iterable<Txn> monthTxns,
+  SavedInsight? saved, {
+  YourRules rules = YourRules.none,
+}) {
   final penny = PennyTags(saved);
   var necessary = 0, wasteful = 0, unsorted = 0;
   for (final txn in monthTxns) {
     if (txn.type != TxnType.debit) continue;
-    switch (effectiveTag(txn, penny)) {
+    switch (effectiveTag(txn, penny, rules)) {
       case TxnTag.necessary:
         necessary += txn.amountPaise;
       case TxnTag.wasteful:
@@ -94,8 +105,13 @@ class HabitView {
 }
 
 /// The saved report's habits that still have wasteful spending this month.
-/// A habit whose entries were all marked necessary drops out.
-List<HabitView> habitViews(Iterable<Txn> monthTxns, SavedInsight saved) {
+/// A habit whose entries were all marked necessary, by tag or by rule,
+/// drops out.
+List<HabitView> habitViews(
+  Iterable<Txn> monthTxns,
+  SavedInsight saved, {
+  YourRules rules = YourRules.none,
+}) {
   final penny = PennyTags(saved);
   final spends = monthTxns.where((t) => t.type == TxnType.debit).toList();
   final views = <HabitView>[];
@@ -104,7 +120,7 @@ List<HabitView> habitViews(Iterable<Txn> monthTxns, SavedInsight saved) {
     final members = spends.where((t) => keys.contains(groupKeyOf(t))).toList();
     final wasteful = [
       for (final txn in members)
-        if (effectiveTag(txn, penny) == TxnTag.wasteful) txn,
+        if (effectiveTag(txn, penny, rules) == TxnTag.wasteful) txn,
     ];
     if (wasteful.isEmpty) continue;
     views.add(
@@ -117,6 +133,29 @@ List<HabitView> habitViews(Iterable<Txn> monthTxns, SavedInsight saved) {
 /// What every habit together would have saved.
 int totalSavingPaise(Iterable<HabitView> habits) =>
     habits.fold(0, (sum, habit) => sum + habit.savePaise);
+
+/// Each spend group's tag in [request], when all of its entries in
+/// [monthTxns] count the same way. This is what the chat tells Penny.
+Map<String, TxnTag> groupTags(
+  InsightRequest request,
+  Iterable<Txn> monthTxns,
+  SavedInsight? saved, {
+  YourRules rules = YourRules.none,
+}) {
+  final penny = PennyTags(saved);
+  final byKey = <String, Set<TxnTag?>>{};
+  for (final txn in monthTxns) {
+    if (txn.type != TxnType.debit) continue;
+    (byKey[groupKeyOf(txn)] ??= {}).add(effectiveTag(txn, penny, rules));
+  }
+  final tags = <String, TxnTag>{};
+  for (final spend in request.spends) {
+    final id = spend['id']! as String;
+    final seen = {for (final key in request.groupKeys[id]!) ...?byKey[key]};
+    if (seen.length == 1 && seen.single != null) tags[id] = seen.single!;
+  }
+  return tags;
+}
 
 /// Shop names, biggest spend first; entries without one go by category.
 List<String> _namesOf(List<Txn> txns) {

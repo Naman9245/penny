@@ -15,6 +15,7 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 import 'package:penny/services/penny_ai.dart';
@@ -340,8 +341,9 @@ class _Report extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final txns = ref.watch(monthTxnsProvider(month)).value ?? const <Txn>[];
-    final habits = habitViews(txns, report);
-    final split = splitByTag(txns, report);
+    final rules = ref.watch(yourRulesProvider).value ?? YourRules.none;
+    final habits = habitViews(txns, report, rules: rules);
+    final split = splitByTag(txns, report, rules: rules);
     final stale = report.inputHash != request.inputHash;
     final failure = ask.asking ? null : ask.failure;
     final insight = report.insight;

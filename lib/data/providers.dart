@@ -81,9 +81,13 @@ final insightProvider = StreamProvider.autoDispose
 /// What Penny would be sent for that month, from the entries as they are
 /// now.
 final insightRequestProvider = StreamProvider.autoDispose
-    .family<InsightRequest, DateTime>((ref, month) {
+    .family<InsightRequest, DateTime>((ref, month) async* {
       final start = monthStart(month);
-      return ref
+      // Wait for My needs, so a request never goes out without the user's
+      // rules or note and then looks changed a moment later.
+      final rules = await ref.watch(yourRulesProvider.future);
+      final note = await ref.watch(pennyNoteProvider.future);
+      yield* ref
           .watch(txnRepositoryProvider)
           .watchBetween(insightHistoryStart(start), nextMonth(start))
           .map(
@@ -91,6 +95,8 @@ final insightRequestProvider = StreamProvider.autoDispose
               month: start,
               txns: txns,
               now: DateTime.now(),
+              rules: rules,
+              note: note,
             ),
           );
     });
@@ -126,7 +132,8 @@ final chatMessagesProvider = StreamProvider.autoDispose<List<ChatMessage>>(
 final tagSplitProvider = Provider.autoDispose
     .family<AsyncValue<TagSplit>, DateTime>((ref, month) {
       final saved = ref.watch(insightProvider(month)).value;
+      final rules = ref.watch(yourRulesProvider).value ?? YourRules.none;
       return ref
           .watch(monthTxnsProvider(month))
-          .whenData((txns) => splitByTag(txns, saved));
+          .whenData((txns) => splitByTag(txns, saved, rules: rules));
     });
