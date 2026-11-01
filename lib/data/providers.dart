@@ -1,9 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/insight_repository.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/analysis_totals.dart';
+import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/services/insight_builder.dart';
+import 'package:penny/services/insight_math.dart';
 
 /// One database for the app's lifetime. Tests override it with an
 /// in-memory one.
@@ -58,3 +63,39 @@ final monthlyTotalsProvider = StreamProvider.autoDispose
       (ref, month) =>
           ref.watch(txnRepositoryProvider).watchMonthlyTotals(month),
     );
+
+final insightRepositoryProvider = Provider<InsightRepository>(
+  (ref) => InsightRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// Penny's saved report for the month containing the given date, if any.
+final insightProvider = StreamProvider.autoDispose
+    .family<SavedInsight?, DateTime>(
+      (ref, month) => ref.watch(insightRepositoryProvider).watch(month),
+    );
+
+/// What Penny would be sent for that month, from the entries as they are
+/// now.
+final insightRequestProvider = StreamProvider.autoDispose
+    .family<InsightRequest, DateTime>((ref, month) {
+      final start = monthStart(month);
+      return ref
+          .watch(txnRepositoryProvider)
+          .watchBetween(insightHistoryStart(start), nextMonth(start))
+          .map(
+            (txns) => buildInsightRequest(
+              month: start,
+              txns: txns,
+              now: DateTime.now(),
+            ),
+          );
+    });
+
+/// That month's spending split into necessary, wasteful and not sorted.
+final tagSplitProvider = Provider.autoDispose
+    .family<AsyncValue<TagSplit>, DateTime>((ref, month) {
+      final saved = ref.watch(insightProvider(month)).value;
+      return ref
+          .watch(monthTxnsProvider(month))
+          .whenData((txns) => splitByTag(txns, saved));
+    });

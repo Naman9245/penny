@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:penny/core/router/app_shell.dart';
+import 'package:penny/core/utils/dates.dart';
 import 'package:penny/features/add_txn/add_txn_screen.dart';
 import 'package:penny/features/analysis/analysis_screen.dart';
 import 'package:penny/features/calendar/calendar_screen.dart';
@@ -95,10 +96,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 /// The location of [month]'s entries, optionally just one category's.
 String txnsLocation(DateTime month, {String? categoryId}) {
-  final params = {
-    'month': '${month.year}-${month.month.toString().padLeft(2, '0')}',
-    'category': ?categoryId,
-  };
+  final params = {'month': monthKey(month), 'category': ?categoryId};
   return Uri(path: '/txns', queryParameters: params).toString();
 }
 

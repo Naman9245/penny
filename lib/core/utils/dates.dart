@@ -29,3 +29,7 @@ String dayLabel(DateTime date, {DateTime? now}) {
 
 /// "November 2026".
 String monthLabel(DateTime month) => DateFormat('MMMM y').format(month);
+
+/// "2026-11": how a month appears in links and saved reports.
+String monthKey(DateTime month) =>
+    '${month.year}-${month.month.toString().padLeft(2, '0')}';

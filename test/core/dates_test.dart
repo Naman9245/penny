@@ -26,4 +26,9 @@ void main() {
   test('monthLabel spells out the month', () {
     expect(monthLabel(DateTime(2026, 11)), 'November 2026');
   });
+
+  test('monthKey pads the month', () {
+    expect(monthKey(DateTime(2026, 3, 15)), '2026-03');
+    expect(monthKey(DateTime(2026, 11)), '2026-11');
+  });
 }
