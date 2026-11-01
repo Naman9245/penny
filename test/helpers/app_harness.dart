@@ -8,9 +8,17 @@ import 'package:penny/app.dart';
 import 'package:penny/core/router/app_router.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/data/txn_repository.dart';
 
-/// Starts the app on a phone-sized screen with an empty in-memory database.
-Future<AppDatabase> pumpApp(WidgetTester tester) async {
+/// Starts the app on a phone-sized screen with an in-memory database, empty
+/// apart from what [seed] adds.
+///
+/// Seed here rather than after start-up: writing from outside the test's
+/// fake clock while the app's live queries are open deadlocks drift.
+Future<AppDatabase> pumpApp(
+  WidgetTester tester, {
+  Future<void> Function(TxnRepository repo)? seed,
+}) async {
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 2.75;
   addTearDown(tester.view.reset);
@@ -25,6 +33,7 @@ Future<AppDatabase> pumpApp(WidgetTester tester) async {
       closeStreamsSynchronously: true,
     ),
   );
+  if (seed != null) await tester.runAsync(() => seed(TxnRepository(db)));
   await tester.pumpWidget(
     ProviderScope(
       overrides: [appDatabaseProvider.overrideWithValue(db)],

@@ -13,6 +13,7 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
@@ -33,15 +34,22 @@ enum _Filter {
 }
 
 /// Every entry in a month, grouped by day. Swipe left to delete, tap to edit.
+/// Opened from an Analysis card, it starts on that month and category.
 class TxnListScreen extends ConsumerStatefulWidget {
-  const TxnListScreen({super.key});
+  const TxnListScreen({super.key, this.initialMonth, this.categoryId});
+
+  final DateTime? initialMonth;
+
+  /// Show only this category, until its chip is tapped away.
+  final String? categoryId;
 
   @override
   ConsumerState<TxnListScreen> createState() => _TxnListScreenState();
 }
 
 class _TxnListScreenState extends ConsumerState<TxnListScreen> {
-  DateTime _month = monthStart(DateTime.now());
+  late DateTime _month = widget.initialMonth ?? monthStart(DateTime.now());
+  late String? _categoryId = widget.categoryId;
   _Filter _filter = _Filter.all;
 
   // Rows swiped away but still in the database stream. Dismissible needs
@@ -50,8 +58,8 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final thisMonth = monthStart(DateTime.now());
     final txns = ref.watch(monthTxnsProvider(_month));
+    final categoryId = _categoryId;
 
     return Scaffold(
       body: SafeArea(
@@ -81,40 +89,31 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-              child: Row(
-                children: [
-                  BrutalIconButton(
-                    icon: Icons.chevron_left_rounded,
-                    semanticLabel: 'Previous month',
-                    onPressed: () => setState(() => _month = prevMonth(_month)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      monthLabel(_month),
-                      style: AppText.h2,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  BrutalIconButton(
-                    icon: Icons.chevron_right_rounded,
-                    semanticLabel: 'Next month',
-                    onPressed: _month.isBefore(thisMonth)
-                        ? () => setState(() => _month = nextMonth(_month))
-                        : null,
-                  ),
-                ],
+              child: MonthSwitcher(
+                month: _month,
+                onChanged: (month) => setState(() => _month = month),
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
               child: Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (final filter in _Filter.values)
                     BrutalChip(
                       label: filter.label,
                       selected: filter == _filter,
                       onTap: () => setState(() => _filter = filter),
+                    ),
+                  if (categoryId != null)
+                    BrutalChip(
+                      key: const ValueKey('category-filter'),
+                      label: categoryById(categoryId).label,
+                      icon: Icons.close_rounded,
+                      selected: true,
+                      selectedColor: categoryById(categoryId).color,
+                      onTap: () => setState(() => _categoryId = null),
                     ),
                 ],
               ),
@@ -140,7 +139,10 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
   Widget _days(List<Txn> all) {
     final visible = [
       for (final txn in all)
-        if (!_dismissed.contains(txn.id) && _filter.keeps(txn)) txn,
+        if (!_dismissed.contains(txn.id) &&
+            _filter.keeps(txn) &&
+            (_categoryId == null || txn.categoryId == _categoryId))
+          txn,
     ];
     if (visible.isEmpty) return _EmptyMonth(month: _month, filter: _filter);
 

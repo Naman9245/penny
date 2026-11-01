@@ -76,7 +76,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/txns',
-        builder: (context, state) => const TxnListScreen(),
+        // Optional ?month=2026-11&category=food, from an Analysis card.
+        builder: (context, state) => TxnListScreen(
+          initialMonth: _monthFromQuery(state.uri.queryParameters['month']),
+          categoryId: state.uri.queryParameters['category'],
+        ),
       ),
       GoRoute(
         path: '/txns/:id',
@@ -88,3 +92,21 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// The location of [month]'s entries, optionally just one category's.
+String txnsLocation(DateTime month, {String? categoryId}) {
+  final params = {
+    'month': '${month.year}-${month.month.toString().padLeft(2, '0')}',
+    'category': ?categoryId,
+  };
+  return Uri(path: '/txns', queryParameters: params).toString();
+}
+
+/// "2026-11" → 1 November 2026; anything else → null.
+DateTime? _monthFromQuery(String? value) {
+  final match = RegExp(r'^(\d{4})-(\d{2})$').firstMatch(value ?? '');
+  if (match == null) return null;
+  final month = int.parse(match.group(2)!);
+  if (month < 1 || month > 12) return null;
+  return DateTime(int.parse(match.group(1)!), month);
+}
