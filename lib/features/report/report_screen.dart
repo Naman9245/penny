@@ -31,13 +31,22 @@ import 'package:penny/widgets/undo_snack_bar.dart';
 /// would have saved, the necessary-or-wasteful split, and how steady the
 /// income is. Penny sorts and explains; every number here is worked out on
 /// the phone from the entries as they are now.
-class ReportScreen extends ConsumerWidget {
+class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({super.key, required this.month});
 
   final DateTime month;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends ConsumerState<ReportScreen> {
+  /// Whether this visit has decided to look again yet. Only once per visit.
+  bool _checkedFreshness = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final month = widget.month;
     final request = ref.watch(insightRequestProvider(month)).value;
     final saved = ref.watch(insightProvider(month));
     final ask = ref.watch(askPennyProvider(month));
@@ -47,6 +56,18 @@ class ReportScreen extends ConsumerWidget {
     void askPenny() {
       if (request != null) {
         ref.read(askPennyProvider(month).notifier).ask(request);
+      }
+    }
+
+    // A month Penny has looked at before, whose entries changed since: she
+    // looks again by herself when the report opens.
+    if (!_checkedFreshness && request != null && saved.hasValue) {
+      _checkedFreshness = true;
+      final stale = report != null && report.inputHash != request.inputHash;
+      if (stale && setUp && request.canAsk && !ask.asking) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) askPenny();
+        });
       }
     }
 
@@ -196,17 +217,67 @@ class _Thinking extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const BrutalCard(
+      key: ValueKey('penny-thinking'),
       color: AppColors.lavender,
       padding: EdgeInsets.fromLTRB(16, 18, 16, 18),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PennyMascot(size: 72),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text('Penny is looking at your month…', style: AppText.h3),
+          Row(
+            children: [
+              PennyMascot(size: 72),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Penny is looking at your month…',
+                  style: AppText.h3,
+                ),
+              ),
+            ],
           ),
+          SizedBox(height: 14),
+          _Waiting(),
         ],
       ),
+    );
+  }
+}
+
+/// A bar that keeps moving while Penny thinks, so a long wait doesn't look
+/// stuck. It holds still when the system asks for less motion.
+class _Waiting extends StatelessWidget {
+  const _Waiting();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 14,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(kPillRadius),
+            border: Border.all(color: AppColors.ink, width: 2),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(kPillRadius),
+            child: MediaQuery.disableAnimationsOf(context)
+                ? const SizedBox.expand()
+                : const LinearProgressIndicator(
+                    minHeight: 10,
+                    color: AppColors.ink,
+                    backgroundColor: AppColors.white,
+                    semanticsLabel: 'Penny is thinking',
+                  ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'This can take up to half a minute.',
+          style: AppText.small.copyWith(color: AppColors.ink),
+        ),
+      ],
     );
   }
 }
@@ -362,13 +433,16 @@ class _Stale extends StatelessWidget {
             style: AppText.bodyStrong,
           ),
           const SizedBox(height: 10),
-          BrutalButton(
-            key: const ValueKey('refresh-report'),
-            label: asking ? 'Looking…' : 'Refresh',
-            icon: Icons.refresh_rounded,
-            color: AppColors.white,
-            onPressed: onRefresh,
-          ),
+          if (asking)
+            const _Waiting()
+          else
+            BrutalButton(
+              key: const ValueKey('refresh-report'),
+              label: 'Refresh',
+              icon: Icons.refresh_rounded,
+              color: AppColors.white,
+              onPressed: onRefresh,
+            ),
         ],
       ),
     );

@@ -72,7 +72,7 @@ export async function analyzeMonth(
       event: "gemini_unreachable",
       reason: timedOut ? "timeout" : "network",
     });
-    return fail(503, "ai_unavailable");
+    return timedOut ? fail(504, "too_slow") : fail(503, "ai_unavailable");
   }
 
   if (!response.ok) {

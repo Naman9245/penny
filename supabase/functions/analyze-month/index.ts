@@ -2,7 +2,7 @@
 //
 // Secrets (Edge Functions → Secrets in the dashboard):
 //   GEMINI_API_KEY     required; never in the app or the repo
-//   GEMINI_MODEL       default gemini-3.8-flash
+//   GEMINI_MODEL       default gemini-3.5-flash-lite, the fastest
 //   DAILY_USER_LIMIT   calls per user per day, default 10
 //   DAILY_TOTAL_LIMIT  calls per day for everyone together, default 50
 import { withSupabase } from "npm:@supabase/server@1.9.2";
@@ -10,7 +10,7 @@ import { analyzeMonth } from "./handler.ts";
 
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
 const geminiKey = Deno.env.get("GEMINI_API_KEY") ?? "";
-const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
+const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
 const userLimit = limitFrom("DAILY_USER_LIMIT", 10);
 const totalLimit = limitFrom("DAILY_TOTAL_LIMIT", 50);
 
@@ -44,7 +44,9 @@ Deno.serve(
             "x-goog-api-key": geminiKey,
           },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(30_000),
+          // Free-tier answers can queue for a while; well within the
+          // platform's 150 s limit.
+          signal: AbortSignal.timeout(50_000),
         }),
       log: (event) =>
         console.log(JSON.stringify({ fn: "analyze-month", ...event })),

@@ -165,14 +165,17 @@ void main() {
   });
 
   testWidgets('"I need this" drops a habit until you undo it', (tester) async {
+    final ai = FakeAiClient(answer: pennyAnswer);
     final db = await pumpApp(
       tester,
       seed: seedMonth,
       seedDb: savedReport(),
-      ai: FakeAiClient(answer: pennyAnswer),
+      ai: ai,
     );
     await openReport(tester);
     expect(heroAmount('₹899'), findsOneWidget);
+    // Nothing changed since Penny looked, so she doesn't look again.
+    expect(ai.requests, isEmpty);
 
     final keep = find.widgetWithText(BrutalChip, 'I need this').first;
     await tester.ensureVisible(keep);
@@ -214,7 +217,7 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('entries changed since Penny looked: refresh asks again', (
+  testWidgets('a month that changed since Penny looked: she looks again', (
     tester,
   ) async {
     final ai = FakeAiClient(answer: pennyAnswer);
@@ -227,13 +230,39 @@ void main() {
     );
     await openReport(tester);
 
+    expect(ai.requests, hasLength(1));
+    expect(find.byKey(const ValueKey('report-stale')), findsNothing);
     expect(heroAmount('₹899'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('when that second look fails, Refresh tries again', (
+    tester,
+  ) async {
+    final ai = FakeAiClient(failure: const AiException(AiFailure.slow));
+    final db = await pumpApp(
+      tester,
+      seed: seedMonth,
+      seedDb: savedReport(dropNewest: 1),
+      ai: ai,
+    );
+    await openReport(tester);
+
+    // The old report stays up, with why the new look failed.
+    expect(heroAmount('₹899'), findsOneWidget);
+    expect(
+      find.text('Penny took too long to answer. Try again in a minute.'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('report-stale')), findsOneWidget);
 
+    ai
+      ..failure = null
+      ..answer = pennyAnswer;
     await tester.tap(find.byKey(const ValueKey('refresh-report')));
     await tester.pumpAndSettle();
 
-    expect(ai.requests, hasLength(1));
+    expect(ai.requests, hasLength(2));
     expect(find.byKey(const ValueKey('report-stale')), findsNothing);
     await closeApp(tester, db);
   });

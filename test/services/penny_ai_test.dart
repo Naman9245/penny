@@ -28,8 +28,9 @@ void main() {
     expect(aiExceptionFor(503, {'error': 'busy'}).failure, AiFailure.busy);
     expect(
       aiExceptionFor(503, {'error': 'not_configured'}).failure,
-      AiFailure.notSetUp,
+      AiFailure.serverNotReady,
     );
+    expect(aiExceptionFor(504, {'error': 'too_slow'}).failure, AiFailure.slow);
     expect(
       aiExceptionFor(502, {'error': 'bad_answer'}).failure,
       AiFailure.badAnswer,

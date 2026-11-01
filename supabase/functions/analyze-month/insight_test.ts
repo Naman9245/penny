@@ -96,6 +96,10 @@ Deno.test("the Gemini request asks for JSON in Penny's schema", () => {
   assert.deepEqual(older.generationConfig.thinkingConfig, {
     thinkingBudget: 1024,
   });
+
+  // Flash-Lite thinks minimally on its own.
+  const lite = geminiBody(request, "gemini-3.5-flash-lite");
+  assert.equal(lite.generationConfig.thinkingConfig, undefined);
 });
 
 Deno.test("reads the answer only when Gemini finished", () => {

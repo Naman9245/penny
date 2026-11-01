@@ -14,7 +14,7 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 
 ## Privacy
 
-- Penny only calls the AI when you tap Ask Penny or Refresh.
+- Penny calls the AI when you tap Ask Penny or Refresh, and by herself when you open a report for a month she has looked at before whose entries have changed since.
 - She sends one month as totals per shop: never single entries, SMS text, account numbers, or the names of people you pay (they go as "Person 1, 2"). "See what Penny sends" lists exactly what goes out.
 - Gemini sorts and explains; every rupee on screen is computed on the phone. The server drops any sentence from Gemini that contains a number.
 - The Gemini key lives only in Supabase's secrets. The server keeps nothing but a count of calls per day; reports are stored on the phone.
@@ -40,7 +40,7 @@ flutter run --dart-define-from-file=env/supabase.json
 - `migrations/`: the `ai_usage` table and the functions behind the daily limits.
 - `functions/analyze-month/`: the Edge Function. It checks the request, counts the call, asks Gemini for JSON in a fixed schema, and cleans the answer before returning it.
 
-To use your own project: create one, apply the migration, deploy the function (`supabase functions deploy analyze-month`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.8-flash`), `DAILY_USER_LIMIT` (10) and `DAILY_TOTAL_LIMIT` (50).
+To use your own project: create one, apply the migration, deploy the function (`supabase functions deploy analyze-month`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, the fastest), `DAILY_USER_LIMIT` (10) and `DAILY_TOTAL_LIMIT` (50).
 
 ## Test
 

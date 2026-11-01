@@ -123,15 +123,26 @@ Deno.test("a broken quota table fails safely", async () => {
   assert.equal(f.geminiCalls, 0);
 });
 
-Deno.test("when Gemini can't be reached the call is given back", async () => {
+Deno.test("when Gemini is too slow the call is given back", async () => {
   const f = fake({
     gemini: () => Promise.reject(new DOMException("too slow", "TimeoutError")),
+  });
+  const { status, body } = await call(f);
+  assert.equal(status, 504);
+  assert.equal(body.error, "too_slow");
+  assert.deepEqual(f.refunded, ["user-1"]);
+  assert.equal(f.logs[0].reason, "timeout");
+});
+
+Deno.test("when Gemini can't be reached the call is given back", async () => {
+  const f = fake({
+    gemini: () => Promise.reject(new TypeError("connection reset")),
   });
   const { status, body } = await call(f);
   assert.equal(status, 503);
   assert.equal(body.error, "ai_unavailable");
   assert.deepEqual(f.refunded, ["user-1"]);
-  assert.equal(f.logs[0].reason, "timeout");
+  assert.equal(f.logs[0].reason, "network");
 });
 
 Deno.test("Gemini's own quota running out reads as busy", async () => {

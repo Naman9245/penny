@@ -251,14 +251,25 @@ export function geminiBody(request: MonthRequest, model: string) {
     generationConfig: {
       responseMimeType: "application/json",
       responseJsonSchema: ANSWER_SCHEMA,
-      // Little thinking keeps the wait short; this job is sorting, not maths.
-      // The 2.5 models take a token budget instead of a level.
-      thinkingConfig: model.startsWith("gemini-2.5")
-        ? { thinkingBudget: 1024 }
-        : { thinkingLevel: "LOW" },
       maxOutputTokens: 8192,
+      ...thinkingFor(model),
     },
   };
+}
+
+/**
+ * As little thinking as [model] allows, which keeps the wait short: this
+ * job is sorting, not maths. Flash-Lite already thinks minimally by
+ * default, and the 2.5 models take a token budget instead of a level.
+ */
+function thinkingFor(
+  model: string,
+): { thinkingConfig?: Record<string, unknown> } {
+  if (model.includes("flash-lite")) return {};
+  if (model.startsWith("gemini-2.5")) {
+    return { thinkingConfig: { thinkingBudget: 1024 } };
+  }
+  return { thinkingConfig: { thinkingLevel: "LOW" } };
 }
 
 export interface Usage {

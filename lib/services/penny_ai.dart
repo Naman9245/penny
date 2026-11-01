@@ -9,11 +9,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Why Penny couldn't answer.
 enum AiFailure {
+  /// This build doesn't know where Penny's server is.
   notSetUp,
+
+  /// The server is missing its Gemini key.
+  serverNotReady,
   signInOff,
   offline,
   dailyLimit,
   busy,
+
+  /// Gemini didn't answer in time.
+  slow,
   unavailable,
   badAnswer,
 }
@@ -29,6 +36,8 @@ class AiException implements Exception {
 
   String get message => switch (failure) {
     AiFailure.notSetUp => "Penny's AI isn't set up in this build yet.",
+    AiFailure.serverNotReady =>
+      "Penny's server isn't ready yet: its Gemini key is missing.",
     AiFailure.signInOff =>
       "Penny can't sign in yet: anonymous sign-ins are off in Supabase.",
     AiFailure.offline => "You're offline. Connect and try again.",
@@ -36,6 +45,7 @@ class AiException implements Exception {
       'Penny can look ${limit ?? 'only a few'} times a day. '
           'Try again tomorrow.',
     AiFailure.busy => 'Penny is busy right now. Try again in a little while.',
+    AiFailure.slow => 'Penny took too long to answer. Try again in a minute.',
     AiFailure.unavailable => "Penny couldn't think just now. Try again soon.",
     AiFailure.badAnswer => 'Penny got muddled. Try again.',
   };
@@ -112,6 +122,8 @@ class SupabaseAiClient implements AiClient {
         ),
         _ => const AiException(AiFailure.unavailable),
       };
+    } on TimeoutException {
+      throw const AiException(AiFailure.slow);
     } on Exception {
       throw const AiException(AiFailure.unavailable);
     }
@@ -136,7 +148,8 @@ class SupabaseAiClient implements AiClient {
   ) async {
     final response = await client.functions
         .invoke('analyze-month', body: request.body)
-        .timeout(const Duration(seconds: 60));
+        // The server gives Gemini 50 seconds, then answers either way.
+        .timeout(const Duration(seconds: 70));
     return answerFrom(response.data, request) ??
         (throw const AiException(AiFailure.badAnswer));
   }
@@ -164,7 +177,8 @@ AiException aiExceptionFor(int status, Object? details) {
       },
     ),
     'busy' => const AiException(AiFailure.busy),
-    'not_configured' => const AiException(AiFailure.notSetUp),
+    'too_slow' => const AiException(AiFailure.slow),
+    'not_configured' => const AiException(AiFailure.serverNotReady),
     'bad_answer' => const AiException(AiFailure.badAnswer),
     _ => const AiException(AiFailure.unavailable),
   };
