@@ -23,7 +23,10 @@ export async function analyzeMonth(
   const text = await readBody(req, MAX_BODY_BYTES);
   if (text == null) return fail(413, "too_large");
   const request = parseWith(MonthRequest, text);
-  if (request == null) return fail(400, "bad_request");
+  // A month with no spends has nothing for Penny to sort.
+  if (request == null || request.spends.length === 0) {
+    return fail(400, "bad_request");
+  }
 
   const asked = await askGemini(userId, deps, geminiBody(request, deps.model));
   if (!asked.ok) return asked.reply;

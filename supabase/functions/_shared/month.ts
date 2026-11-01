@@ -81,7 +81,8 @@ export const MonthRequest = z
     spent: rupees,
     got: rupees,
     lastMonth: z.strictObject({ spent: rupees, got: rupees }),
-    spends: z.array(SpendGroup).min(1).max(40),
+    // Empty is fine for a chat early in a month; the report needs spends.
+    spends: z.array(SpendGroup).max(40),
     income: z.array(IncomeGroup).max(10),
     /** What the person wrote about themselves on My needs. */
     note: z.string().max(240).optional(),

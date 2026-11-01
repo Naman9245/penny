@@ -39,7 +39,6 @@ Deno.test("refuses anything the app wouldn't send", () => {
     "a bad month": (r) => (r.month = "2026-13"),
     "a negative total": (r) => (r.spends[0].total = -5),
     "a fractional amount": (r) => (r.spent = 10.5),
-    "no spends": (r) => (r.spends = []),
     "spends that aren't a list": (r) => Object.assign(r, { spends: 5 }),
     "a long note": (r) => (r.note = "x".repeat(241)),
   };

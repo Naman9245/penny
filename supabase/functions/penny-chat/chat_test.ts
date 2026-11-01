@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { parseWith } from "../_shared/month.ts";
-import { sampleRequest } from "../_shared/test_data.ts";
+import { type RequestJson, sampleRequest } from "../_shared/test_data.ts";
 import {
   CHAT_PROMPT,
   chatBody,
@@ -9,9 +9,16 @@ import {
   cleanReply,
 } from "./chat.ts";
 
+interface ChatJson {
+  v: number;
+  month: RequestJson;
+  tags: Record<string, string>;
+  messages: unknown[];
+}
+
 function chatJson(messages: unknown[] = [
   { role: "user", text: "How can I spend less on food?" },
-]) {
+]): ChatJson {
   return {
     v: 1,
     month: { ...sampleRequest(), note: "Student in a PG, metro daily" },
@@ -34,6 +41,13 @@ Deno.test("accepts a chat the app sends", () => {
   ]));
   assert.equal(chat.messages.length, 3);
   assert.equal(chat.tags.s1, "wasteful");
+});
+
+Deno.test("a month with nothing logged yet can still be chatted about", () => {
+  const json = chatJson();
+  json.month.spends = [];
+  json.tags = {};
+  assert.equal(parsed(json).month.spends.length, 0);
 });
 
 Deno.test("refuses chats the app wouldn't send", () => {

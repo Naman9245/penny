@@ -101,6 +101,11 @@ Deno.test("bad or oversized requests cost nothing", async () => {
   const f = fake();
   assert.equal((await call(f, post({ v: 2 }))).status, 400);
   assert.equal((await call(f, post("x".repeat(40 * 1024)))).status, 413);
+  // A month with no spends has nothing to sort.
+  assert.equal(
+    (await call(f, post({ ...sampleRequest(), spends: [] }))).status,
+    400,
+  );
   assert.equal(f.taken.length, 0);
   assert.equal(f.geminiCalls, 0);
 });
