@@ -43,6 +43,37 @@ void main() {
     expect(find.text('Home'), findsNothing);
   });
 
+  testWidgets('dragging the pill two tabs along selects that tab',
+      (tester) async {
+    await tester.pumpWidget(_bar());
+
+    await tester.drag(find.bySemanticsLabel('Home'), const Offset(2 * 58, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Goals'), findsOneWidget);
+    expect(find.text('Home'), findsNothing);
+  });
+
+  testWidgets('a short drag snaps back to the same tab', (tester) async {
+    await tester.pumpWidget(_bar());
+
+    await tester.drag(find.bySemanticsLabel('Home'), const Offset(20, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Analysis'), findsNothing);
+  });
+
+  testWidgets('a quick flick carries on to the next tab', (tester) async {
+    await tester.pumpWidget(_bar());
+
+    await tester.fling(find.bySemanticsLabel('Home'), const Offset(60, 0), 1000);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Analysis'), findsOneWidget);
+    expect(find.text('Home'), findsNothing);
+  });
+
   testWidgets('switching settles at a large text size', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2.0;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
