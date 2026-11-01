@@ -110,8 +110,10 @@ class _PennyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BrutalCard(
+      key: const ValueKey('penny-card'),
       color: mood.color,
       padding: const EdgeInsets.fromLTRB(10, 12, 16, 12),
+      onTap: () => context.push('/chat'),
       child: Row(
         children: [
           PennyMascot(mood: mood),
@@ -134,6 +136,36 @@ class _PennyCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(mood.line, style: AppText.h3),
+                const SizedBox(height: 10),
+                // The whole card opens the chat; this says so.
+                Container(
+                  padding: const EdgeInsets.fromLTRB(10, 5, 12, 5),
+                  decoration: brutalDecoration(
+                    color: AppColors.yellow,
+                    radius: kPillRadius,
+                    borderWidth: 2,
+                    shadow: const Offset(2, 2),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 16,
+                        color: AppColors.ink,
+                      ),
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Talk to Penny',
+                          style: AppText.chip,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

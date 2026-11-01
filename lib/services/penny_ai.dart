@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/config.dart';
+import 'package:penny/data/db/app_database.dart';
+import 'package:penny/models/chat.dart';
 import 'package:penny/models/month_insight.dart';
+import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -68,7 +71,47 @@ class AiAnswer {
   final int? callsLeftToday;
 }
 
-/// Asks Penny's server for a look at one month.
+/// One turn of the chat, as Penny is sent it.
+typedef ChatTurn = ({ChatRole role, String text});
+
+/// What goes to penny-chat: this month as the report would send it, each
+/// group's tag as the phone works it out, and the conversation so far.
+@immutable
+class ChatRequest {
+  const ChatRequest({
+    required this.month,
+    required this.tags,
+    required this.turns,
+  });
+
+  final InsightRequest month;
+  final Map<String, TxnTag> tags;
+
+  /// Oldest first, ending with the user.
+  final List<ChatTurn> turns;
+
+  Map<String, Object?> toJson() => {
+    'v': 1,
+    'month': month.body,
+    'tags': {
+      for (final MapEntry(:key, :value) in tags.entries) key: value.name,
+    },
+    'messages': [
+      for (final turn in turns) {'role': turn.role.name, 'text': turn.text},
+    ],
+  };
+}
+
+/// Penny's reply in the chat.
+@immutable
+class ChatAnswer {
+  const ChatAnswer({required this.reply, this.callsLeftToday});
+
+  final String reply;
+  final int? callsLeftToday;
+}
+
+/// Asks Penny's server for a look at one month, or for a chat reply.
 abstract interface class AiClient {
   /// Whether this build knows where Penny's server is.
   bool get isSetUp;
@@ -76,11 +119,15 @@ abstract interface class AiClient {
   /// Penny's look at [request]'s month. Throws [AiException] when there is
   /// no answer.
   Future<AiAnswer> analyzeMonth(InsightRequest request);
+
+  /// Penny's reply to the last turn in [request]. Throws [AiException] when
+  /// there is none.
+  Future<ChatAnswer> chat(ChatRequest request);
 }
 
-/// [AiClient] over the analyze-month Edge Function. Supabase starts, and
-/// the phone signs in anonymously (no email, no name), only the first time
-/// Penny is asked.
+/// [AiClient] over the analyze-month and penny-chat Edge Functions.
+/// Supabase starts, and the phone signs in anonymously (no email, no name),
+/// only the first time Penny is asked.
 class SupabaseAiClient implements AiClient {
   SupabaseAiClient({
     this._url = SupabaseConfig.url,
@@ -95,20 +142,42 @@ class SupabaseAiClient implements AiClient {
   bool get isSetUp => _url.isNotEmpty && _publishableKey.isNotEmpty;
 
   @override
-  Future<AiAnswer> analyzeMonth(InsightRequest request) async {
+  Future<AiAnswer> analyzeMonth(InsightRequest request) =>
+      _call('analyze-month', request.body, (data) => answerFrom(data, request));
+
+  @override
+  Future<ChatAnswer> chat(ChatRequest request) =>
+      _call('penny-chat', request.toJson(), chatAnswerFrom);
+
+  /// Calls [function] with [body] and reads its reply with [read], which
+  /// returns null for a reply that makes no sense.
+  Future<T> _call<T>(
+    String function,
+    Map<String, Object?> body,
+    T? Function(Object? data) read,
+  ) async {
     if (!isSetUp) throw const AiException(AiFailure.notSetUp);
     try {
       final client = await (_client ??= _start());
       if (client.auth.currentSession == null) {
         await client.auth.signInAnonymously();
       }
+      Future<T> invoke() async {
+        final response = await client.functions
+            .invoke(function, body: body)
+            // The server gives Gemini 50 seconds, then answers either way.
+            .timeout(const Duration(seconds: 70));
+        return read(response.data) ??
+            (throw const AiException(AiFailure.badAnswer));
+      }
+
       try {
-        return await _invoke(client, request);
+        return await invoke();
       } on FunctionException catch (error) {
         if (error.status != 401) rethrow;
         // An expired or revoked session: sign in again and retry once.
         await _renewSession(client);
-        return await _invoke(client, request);
+        return await invoke();
       }
     } on AiException {
       rethrow;
@@ -140,18 +209,6 @@ class SupabaseAiClient implements AiClient {
       _client = null;
       rethrow;
     }
-  }
-
-  Future<AiAnswer> _invoke(
-    SupabaseClient client,
-    InsightRequest request,
-  ) async {
-    final response = await client.functions
-        .invoke('analyze-month', body: request.body)
-        // The server gives Gemini 50 seconds, then answers either way.
-        .timeout(const Duration(seconds: 70));
-    return answerFrom(response.data, request) ??
-        (throw const AiException(AiFailure.badAnswer));
   }
 
   Future<void> _renewSession(SupabaseClient client) async {
@@ -202,6 +259,49 @@ AiAnswer? answerFrom(Object? data, InsightRequest request) {
       _ => null,
     },
   );
+}
+
+/// The reply in an answer from penny-chat, or null when it isn't one.
+ChatAnswer? chatAnswerFrom(Object? data) {
+  if (data is! Map) return null;
+  final reply = data['reply'];
+  if (reply is! String || reply.trim().isEmpty) return null;
+  return ChatAnswer(
+    reply: reply.trim(),
+    callsLeftToday: switch (data['callsLeftToday']) {
+      final int left => left,
+      _ => null,
+    },
+  );
+}
+
+/// The chat as Penny is sent it: the last [max] turns, the user's
+/// back-to-back messages joined, starting with the user and each cut to
+/// what the server takes.
+List<ChatTurn> chatTurns(Iterable<ChatMessage> history, {int max = 12}) {
+  final turns = <ChatTurn>[];
+  for (final message in history) {
+    final text = message.body.trim();
+    if (text.isEmpty) continue;
+    if (turns.isNotEmpty && turns.last.role == message.role) {
+      turns.last = (role: message.role, text: '${turns.last.text}\n$text');
+    } else {
+      turns.add((role: message.role, text: text));
+    }
+  }
+  var recent = turns.length > max ? turns.sublist(turns.length - max) : turns;
+  while (recent.isNotEmpty && recent.first.role == ChatRole.penny) {
+    recent = recent.sublist(1);
+  }
+  return [
+    for (final turn in recent)
+      (
+        role: turn.role,
+        text: turn.text.length > 1000
+            ? turn.text.substring(0, 1000)
+            : turn.text,
+      ),
+  ];
 }
 
 final aiClientProvider = Provider<AiClient>((ref) => SupabaseAiClient());

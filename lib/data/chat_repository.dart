@@ -13,9 +13,10 @@ class ChatRepository {
 
   static const _uuid = Uuid();
 
+  // In the order they were said. Stored times keep whole seconds only, so a
+  // quick reply could tie with its question, and the phone's clock can move.
   static final _oldestFirst = <OrderClauseGenerator<$ChatMessagesTable>>[
-    (m) => OrderingTerm.asc(m.createdAt),
-    (m) => OrderingTerm.asc(m.id),
+    (m) => OrderingTerm.asc(m.rowId),
   ];
 
   /// Every message, oldest first.
@@ -27,10 +28,7 @@ class ChatRepository {
   /// The last [count] messages, oldest first.
   Future<List<ChatMessage>> recent(int count) async {
     final query = _db.select(_db.chatMessages)
-      ..orderBy([
-        (m) => OrderingTerm.desc(m.createdAt),
-        (m) => OrderingTerm.desc(m.id),
-      ])
+      ..orderBy([(m) => OrderingTerm.desc(m.rowId)])
       ..limit(count);
     return (await query.get()).reversed.toList();
   }

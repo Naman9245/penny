@@ -389,6 +389,18 @@ class _Report extends ConsumerWidget {
             _HabitCard(habit: habit, onKeep: () => keep(habit)),
           ],
         ],
+        // The chat knows this month only.
+        if (month == monthStart(DateTime.now())) ...[
+          const SizedBox(height: 16),
+          Center(
+            child: BrutalChip(
+              key: const ValueKey('report-chat'),
+              label: 'Ask Penny about this',
+              icon: Icons.chat_bubble_outline_rounded,
+              onTap: () => context.push('/chat'),
+            ),
+          ),
+        ],
         const SizedBox(height: 28),
         const Text('Necessary vs wasteful', style: AppText.h2),
         const SizedBox(height: 12),

@@ -58,6 +58,27 @@ void main() {
       expect(recent.map((m) => m.body), ['message 4', 'message 5']);
     });
 
+    test(
+      'messages from the same second keep the order they were said',
+      () async {
+        final chat = ChatRepository(db, clock: () => clock);
+        for (var i = 1; i <= 6; i++) {
+          await chat.add(
+            i.isOdd ? ChatRole.user : ChatRole.penny,
+            'message $i',
+          );
+        }
+
+        expect((await chat.watch().first).map((m) => m.body), [
+          for (var i = 1; i <= 6; i++) 'message $i',
+        ]);
+        expect((await chat.recent(2)).map((m) => m.body), [
+          'message 5',
+          'message 6',
+        ]);
+      },
+    );
+
     test('clear empties it', () async {
       final chat = ChatRepository(db, clock: () => clock);
       await chat.add(ChatRole.user, 'Hi Penny');

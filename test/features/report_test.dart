@@ -5,6 +5,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/insight_repository.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/features/chat/chat_screen.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -291,6 +292,24 @@ void main() {
     expect(find.text('Swiggy'), findsOneWidget);
     expect(find.text('Asha Rao'), findsNothing);
     expect(find.text('Pocket money'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('"Ask Penny about this" opens the chat', (tester) async {
+    final db = await pumpApp(
+      tester,
+      seed: seedMonth,
+      seedDb: savedReport(),
+      ai: FakeAiClient(answer: pennyAnswer),
+    );
+    await openReport(tester);
+
+    final chat = find.byKey(const ValueKey('report-chat'));
+    await tester.ensureVisible(chat);
+    await tester.pumpAndSettle();
+    await tester.tap(chat);
+    await tester.pumpAndSettle();
+    expect(find.byType(ChatScreen), findsOneWidget);
     await closeApp(tester, db);
   });
 

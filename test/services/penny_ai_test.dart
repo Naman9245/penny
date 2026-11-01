@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:penny/data/db/app_database.dart';
+import 'package:penny/models/chat.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -85,15 +87,99 @@ void main() {
   test('a build without the server says so before trying', () async {
     final client = SupabaseAiClient(url: '', publishableKey: '');
     expect(client.isSetUp, isFalse);
-    await expectLater(
-      client.analyzeMonth(request),
-      throwsA(
-        isA<AiException>().having(
-          (e) => e.failure,
-          'failure',
-          AiFailure.notSetUp,
-        ),
+    final notSetUp = throwsA(
+      isA<AiException>().having(
+        (e) => e.failure,
+        'failure',
+        AiFailure.notSetUp,
       ),
     );
+    await expectLater(client.analyzeMonth(request), notSetUp);
+    await expectLater(
+      client.chat(
+        ChatRequest(
+          month: request,
+          tags: const {},
+          turns: const [(role: ChatRole.user, text: 'Hi')],
+        ),
+      ),
+      notSetUp,
+    );
+  });
+
+  group('the chat', () {
+    ChatMessage said(ChatRole role, String body) => ChatMessage(
+      id: body,
+      role: role,
+      body: body,
+      createdAt: DateTime(2026, 11, 2),
+    );
+
+    test('sends the month as the report would, tags by name, and turns', () {
+      final json = ChatRequest(
+        month: request,
+        tags: {'s1': TxnTag.wasteful, 's2': TxnTag.necessary},
+        turns: const [(role: ChatRole.user, text: 'How do I save?')],
+      ).toJson();
+
+      expect(json, {
+        'v': 1,
+        'month': request.body,
+        'tags': {'s1': 'wasteful', 's2': 'necessary'},
+        'messages': [
+          {'role': 'user', 'text': 'How do I save?'},
+        ],
+      });
+    });
+
+    test('turns: back-to-back messages join, and Penny never goes first', () {
+      expect(
+        chatTurns([
+          said(ChatRole.penny, 'Hello!'),
+          said(ChatRole.user, 'Hi'),
+          said(ChatRole.user, 'How do I save?'),
+          said(ChatRole.penny, 'Cook more.'),
+          said(ChatRole.user, '   '),
+          said(ChatRole.user, 'Thanks'),
+        ]),
+        [
+          (role: ChatRole.user, text: 'Hi\nHow do I save?'),
+          (role: ChatRole.penny, text: 'Cook more.'),
+          (role: ChatRole.user, text: 'Thanks'),
+        ],
+      );
+    });
+
+    test('turns: only the last few, each cut to what the server takes', () {
+      final turns = chatTurns([
+        for (var i = 0; i < 20; i++)
+          said(i.isEven ? ChatRole.user : ChatRole.penny, 'm$i'),
+        said(ChatRole.user, 'x' * 1500),
+      ]);
+
+      // The last 12 start with Penny's m9, so that one goes too.
+      expect(turns, hasLength(11));
+      expect(turns.first, (role: ChatRole.user, text: 'm10'));
+      expect(turns.last.text, hasLength(1000));
+    });
+
+    test('reads a reply, and nothing else', () {
+      final answer = chatAnswerFrom({
+        'reply': '  Cook twice a week.  ',
+        'model': 'gemini-3.5-flash-lite',
+        'callsLeftToday': 28,
+      })!;
+      expect(answer.reply, 'Cook twice a week.');
+      expect(answer.callsLeftToday, 28);
+
+      expect(
+        chatAnswerFrom({'reply': 'Hi', 'callsLeftToday': 'many'})!
+            .callsLeftToday,
+        isNull,
+      );
+      expect(chatAnswerFrom({'reply': '   '}), isNull);
+      expect(chatAnswerFrom({'reply': 5}), isNull);
+      expect(chatAnswerFrom('Cook twice a week.'), isNull);
+    });
   });
 }

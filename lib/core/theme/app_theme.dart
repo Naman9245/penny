@@ -59,6 +59,17 @@ ThemeData buildAppTheme() {
         side: inkBorder,
       ),
     ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: AppColors.cream,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      titleTextStyle: AppText.h3,
+      contentTextStyle: AppText.body,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: inkBorder,
+      ),
+    ),
     datePickerTheme: DatePickerThemeData(
       backgroundColor: AppColors.cream,
       surfaceTintColor: Colors.transparent,
