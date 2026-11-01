@@ -96,6 +96,10 @@ void main() {
       ],
       summary: 'A cosy month with lots of delivery!',
       incomeNote: 'Your pocket money shows up every month.',
+      earnIdeas: const [
+        'Tutor juniors in a subject you are good at.',
+        'Freelance your design skills.',
+      ],
     );
   }
 
@@ -154,6 +158,8 @@ void main() {
     expect(find.text('A cosy month with lots of delivery!'), findsOneWidget);
     expect(find.text('Every month'), findsNothing, reason: 'too early');
     expect(find.text('9 more looks today'), findsOneWidget);
+    expect(find.text('Earn a little extra'), findsOneWidget);
+    expect(find.text('Freelance your design skills.'), findsOneWidget);
 
     // Back on Analysis, the split now has Penny's tags.
     await tester.tap(find.bySemanticsLabel('Back'));

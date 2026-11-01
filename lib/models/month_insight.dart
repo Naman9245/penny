@@ -79,12 +79,17 @@ class MonthInsight {
     required this.habits,
     required this.summary,
     required this.incomeNote,
+    this.earnIdeas = const [],
   });
 
   final Map<String, TxnTag> tags;
   final List<InsightHabit> habits;
   final String summary;
   final String incomeNote;
+
+  /// Up to three ways to earn a little extra. Reports from before Penny gave
+  /// these have none.
+  final List<String> earnIdeas;
 
   /// Reads an answer, keeping only what makes sense: tags and habits for
   /// [groupIds] when given, known tags and cuts, and text. Null when [json]
@@ -129,6 +134,11 @@ class MonthInsight {
       habits: habits,
       summary: _text(json['summary']),
       incomeNote: _text(json['incomeNote']),
+      earnIdeas: [
+        if (json['earnIdeas'] case final List ideas)
+          for (final idea in ideas.take(3))
+            if (_text(idea).isNotEmpty) _text(idea),
+      ],
     );
   }
 
@@ -147,6 +157,7 @@ class MonthInsight {
     ],
     'summary': summary,
     'incomeNote': incomeNote,
+    'earnIdeas': earnIdeas,
   };
 
   static String _text(Object? value) => value is String ? value.trim() : '';

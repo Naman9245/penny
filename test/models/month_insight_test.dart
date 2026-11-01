@@ -66,12 +66,25 @@ void main() {
       ],
       summary: 'Nice!',
       incomeNote: 'Steady as ever.',
+      earnIdeas: ['Tutor juniors.', 'Freelance design.'],
     );
     final back = MonthInsight.fromJson(insight.toJson())!;
     expect(back.tags, insight.tags);
     expect(back.habits.single.cut, Cut.threeQuarters);
     expect(back.habits.single.title, 'Stacked subscriptions');
     expect(back.incomeNote, 'Steady as ever.');
+    expect(back.earnIdeas, ['Tutor juniors.', 'Freelance design.']);
+  });
+
+  test('earning ideas: three at most, blanks and non-text dropped', () {
+    final insight = MonthInsight.fromJson({
+      'earnIdeas': ['  Tutor juniors.  ', '', 5, 'Freelance.', 'Campus job.'],
+    })!;
+    expect(insight.earnIdeas, ['Tutor juniors.']);
+    expect(
+      MonthInsight.fromJson(const <String, Object?>{})!.earnIdeas,
+      isEmpty,
+    );
   });
 
   test('cuts save whole quarters', () {

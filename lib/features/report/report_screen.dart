@@ -401,11 +401,26 @@ class _Report extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        Center(
+          child: BrutalChip(
+            key: const ValueKey('report-needs'),
+            label: 'Edit my needs',
+            icon: Icons.tune_rounded,
+            onTap: () => context.push('/needs'),
+          ),
+        ),
         if (request.income.isNotEmpty) ...[
           const SizedBox(height: 28),
           const Text('Where your money came from', style: AppText.h2),
           const SizedBox(height: 12),
           _Income(txns: txns, request: request, note: insight.incomeNote),
+        ],
+        if (insight.earnIdeas.isNotEmpty) ...[
+          const SizedBox(height: 28),
+          const Text('Earn a little extra', style: AppText.h2),
+          const SizedBox(height: 12),
+          _EarnIdeas(ideas: insight.earnIdeas),
         ],
         const SizedBox(height: 24),
         _Footer(report: report, request: request, ask: ask),
@@ -677,6 +692,37 @@ class _Income extends StatelessWidget {
                 const PennyMascot(size: 30, bob: false),
                 const SizedBox(width: 8),
                 Expanded(child: Text(note, style: AppText.body)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Penny's ideas for earning a little more. Words only: no amounts.
+class _EarnIdeas extends StatelessWidget {
+  const _EarnIdeas({required this.ideas});
+
+  final List<String> ideas;
+
+  @override
+  Widget build(BuildContext context) {
+    return BrutalCard(
+      key: const ValueKey('earn-ideas'),
+      color: AppColors.mint,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, idea) in ideas.indexed) ...[
+            if (i > 0) const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('•', style: AppText.h3),
+                const SizedBox(width: 10),
+                Expanded(child: Text(idea, style: AppText.body)),
               ],
             ),
           ],
