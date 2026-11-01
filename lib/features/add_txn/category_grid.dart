@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/widgets/category_avatar.dart';
 
-/// Category tiles, up to four to a row. While adding, a tap saves the entry;
-/// while editing, it selects.
+/// Category tiles, up to four to a row. A tap picks one; ✓ on the keypad
+/// saves.
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({
     super.key,
@@ -48,8 +50,8 @@ class CategoryGrid extends StatelessWidget {
                 width: width,
                 child: _Tile(
                   category: category,
-                  // Nothing is selected while adding, so every tile is raised
-                  // and looks tappable.
+                  // Until one is picked, every tile is raised and looks
+                  // tappable; after, only the pick stands up.
                   raised: selectedId == null || category.id == selectedId,
                   selected: category.id == selectedId,
                   onTap: () => onTap(category),
@@ -91,7 +93,14 @@ class _Tile extends StatelessWidget {
             AnimatedScale(
               scale: selected ? 1.1 : 1,
               duration: const Duration(milliseconds: 120),
-              child: CategoryAvatar(category: category, size: 54, raised: raised),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CategoryAvatar(category: category, size: 54, raised: raised),
+                  if (selected)
+                    const Positioned(top: -7, right: -7, child: _PickedBadge()),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -105,5 +114,28 @@ class _Tile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The ✓ on the picked tile. Pops in when it appears.
+class _PickedBadge extends StatelessWidget {
+  const _PickedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: AppColors.ink,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.white, width: 2),
+      ),
+      child: const Icon(Icons.check_rounded, size: 15, color: AppColors.white),
+    ).animate().scale(
+          begin: const Offset(0.3, 0.3),
+          duration: 220.ms,
+          curve: Curves.easeOutBack,
+        );
   }
 }

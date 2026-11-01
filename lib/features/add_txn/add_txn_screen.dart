@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
-import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
@@ -18,11 +17,11 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/sliding_toggle.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
-/// Adds an entry, or edits one when [editId] is set.
-///
-/// Adding is built for speed: type the amount, tap a category, done.
+/// Adds an entry, or edits one when [editId] is set: type the amount, pick a
+/// category, tap ✓.
 class AddTxnScreen extends ConsumerWidget {
   const AddTxnScreen({super.key, this.initialType = TxnType.debit, this.editId});
 
@@ -52,8 +51,17 @@ class AddTxnView extends ConsumerStatefulWidget {
 }
 
 class _AddTxnViewState extends ConsumerState<AddTxnView>
-    with SingleTickerProviderStateMixin {
-  late final _shake = AnimationController(
+    with TickerProviderStateMixin {
+  static const _types = <ToggleOption<TxnType>>[
+    ToggleOption(value: TxnType.debit, label: 'Spent', color: AppColors.pink),
+    ToggleOption(value: TxnType.credit, label: 'Got', color: AppColors.mint),
+  ];
+
+  late final _shakeAmount = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final _shakeCategories = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 420),
   );
@@ -66,57 +74,52 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
 
   @override
   void dispose() {
-    _shake.dispose();
+    _shakeAmount.dispose();
+    _shakeCategories.dispose();
     super.dispose();
   }
 
-  /// Shakes the amount: there's nothing to save yet.
-  void _nudge() {
+  /// Shakes whatever ✓ is still waiting for.
+  void _nudge(AnimationController shake) {
     HapticFeedback.heavyImpact();
-    _shake.forward(from: 0);
+    shake.forward(from: 0);
   }
 
-  Future<void> _onCategory(Category category) async {
-    if (_editing) {
-      _controller.selectCategory(category.id);
+  void _pick(Category category) {
+    HapticFeedback.selectionClick();
+    _controller.selectCategory(category.id);
+  }
+
+  Future<void> _save() async {
+    final state = ref.read(addTxnControllerProvider(widget.args));
+    if (state.amountPaise <= 0) {
+      _nudge(_shakeAmount);
       return;
     }
-    final amount = ref.read(addTxnControllerProvider(widget.args)).amountPaise;
-    if (amount <= 0) {
-      _nudge();
+    final categoryId = state.categoryId;
+    if (categoryId == null) {
+      _nudge(_shakeCategories);
       return;
     }
     if (_busy) return;
     _busy = true;
     try {
       final repo = ref.read(txnRepositoryProvider);
-      final id = await _controller.saveNew(category.id);
+      final id = await _controller.save();
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      showUndoSnackBar(
-        context,
-        message: 'Added ${formatPaise(amount)} · ${category.label}',
-        onUndo: () => repo.softDelete(id),
-      );
-      context.pop();
-    } finally {
-      _busy = false;
-    }
-  }
-
-  Future<void> _saveEdit() async {
-    if (ref.read(addTxnControllerProvider(widget.args)).amountPaise <= 0) {
-      _nudge();
-      return;
-    }
-    if (_busy) return;
-    _busy = true;
-    try {
-      await _controller.saveEdit();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Saved')));
+      if (_editing) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Saved')));
+      } else {
+        showUndoSnackBar(
+          context,
+          message: 'Added ${formatPaise(state.amountPaise)} · '
+              '${categoryById(categoryId).label}',
+          onUndo: () => repo.softDelete(id),
+        );
+      }
       context.pop();
     } finally {
       _busy = false;
@@ -162,14 +165,22 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     if (result != null && mounted) _controller.setMerchant(result);
   }
 
+  /// Walks through the steps: amount, then category, then ✓.
+  String _prompt(AddTxnState state) {
+    if (_editing) return 'Edit this entry';
+    final spent = state.type == TxnType.debit;
+    if (state.amountPaise <= 0) {
+      return spent ? 'How much did you spend?' : 'How much did you get?';
+    }
+    if (state.categoryId == null) {
+      return spent ? 'What was it for?' : 'Where did it come from?';
+    }
+    return 'Tap the tick to save';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(addTxnControllerProvider(widget.args));
-    final prompt = _editing
-        ? 'Edit this entry'
-        : state.type == TxnType.debit
-            ? 'How much did you spend?'
-            : 'How much did you get?';
 
     return Scaffold(
       body: SafeArea(
@@ -186,14 +197,23 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                   ),
                   Expanded(
                     child: Center(
-                      child: _TypeToggle(
-                        type: state.type,
+                      child: SlidingToggle<TxnType>(
+                        options: _types,
+                        value: state.type,
                         onChanged: _controller.setType,
                       ),
                     ),
                   ),
-                  // Balances the close button so the toggle sits centred.
-                  const SizedBox(width: 48),
+                  if (_editing)
+                    BrutalIconButton(
+                      icon: Icons.delete_outline_rounded,
+                      semanticLabel: 'Delete',
+                      color: AppColors.pink,
+                      onPressed: _delete,
+                    )
+                  else
+                    // Balances the close button so the toggle sits centred.
+                    const SizedBox(width: 48),
                 ],
               ),
             ),
@@ -202,9 +222,9 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                 padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
                 child: Column(
                   children: [
-                    Text(prompt, style: AppText.bodyMuted),
+                    Text(_prompt(state), style: AppText.bodyMuted),
                     const SizedBox(height: 2),
-                    _AmountDisplay(text: state.amountText, shake: _shake),
+                    _AmountDisplay(text: state.amountText, shake: _shakeAmount),
                     const SizedBox(height: 14),
                     _DayAndWhere(
                       state: state,
@@ -215,9 +235,11 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                     const SizedBox(height: 24),
                     CategoryGrid(
                       categories: categoriesFor(state.type),
-                      selectedId: _editing ? state.categoryId : null,
-                      onTap: _onCategory,
-                    ),
+                      selectedId: state.categoryId,
+                      onTap: _pick,
+                    )
+                        .animate(controller: _shakeCategories, autoPlay: false)
+                        .shakeX(hz: 5, amount: 6),
                   ],
                 ),
               ),
@@ -226,81 +248,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
               onKey: _controller.press,
               onBackspace: _controller.backspace,
               onClear: _controller.clear,
+              onDone: _save,
+              ready: state.canSave,
             ),
-            if (_editing)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: BrutalButton(
-                        label: 'Delete',
-                        icon: Icons.delete_outline_rounded,
-                        color: AppColors.pink,
-                        expand: true,
-                        onPressed: _delete,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: BrutalButton(
-                        label: 'Save',
-                        icon: Icons.check_rounded,
-                        expand: true,
-                        onPressed: state.categoryId == null ? null : _saveEdit,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeToggle extends StatelessWidget {
-  const _TypeToggle({required this.type, required this.onChanged});
-
-  final TxnType type;
-  final ValueChanged<TxnType> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: brutalDecoration(color: AppColors.white, radius: kPillRadius),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _segment('Spent', TxnType.debit, AppColors.pink),
-          _segment('Got', TxnType.credit, AppColors.mint),
-        ],
-      ),
-    );
-  }
-
-  Widget _segment(String label, TxnType value, Color color) {
-    final selected = value == type;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onChanged(value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? color : AppColors.white,
-            borderRadius: BorderRadius.circular(kPillRadius),
-            border: Border.all(
-              color: selected ? AppColors.ink : AppColors.white,
-              width: 2,
-            ),
-          ),
-          child: Text(label, style: AppText.label),
         ),
       ),
     );

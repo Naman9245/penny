@@ -48,10 +48,13 @@ class AddTxnState {
   final DateTime occurredAt;
   final String? merchant;
 
-  /// Only used while editing. Adding saves on the category tap itself.
+  /// The picked category. Nothing saves until ✓ is tapped.
   final String? categoryId;
 
   int get amountPaise => amountTextToPaise(amountText);
+
+  /// What ✓ needs before it will save.
+  bool get canSave => amountPaise > 0 && categoryId != null;
 
   static const _keep = Object();
 
@@ -124,25 +127,28 @@ class AddTxnController extends Notifier<AddTxnState> {
   void selectCategory(String categoryId) =>
       state = state.copyWith(categoryId: categoryId);
 
-  /// Saves a new entry under [categoryId] and returns its id.
-  Future<String> saveNew(String categoryId) {
-    return ref.read(txnRepositoryProvider).add(
-          amountPaise: state.amountPaise,
-          type: state.type,
-          categoryId: categoryId,
-          occurredAt: state.occurredAt,
-          merchant: state.merchant,
-        );
-  }
-
-  Future<void> saveEdit() {
-    return ref.read(txnRepositoryProvider).update(
-          args.editing!.id,
-          amountPaise: state.amountPaise,
-          type: state.type,
-          categoryId: state.categoryId!,
-          occurredAt: state.occurredAt,
-          merchant: state.merchant,
-        );
+  /// Adds the entry, or updates the one being edited, and returns its id.
+  /// Call only when [AddTxnState.canSave].
+  Future<String> save() async {
+    final repo = ref.read(txnRepositoryProvider);
+    final editing = args.editing;
+    if (editing == null) {
+      return repo.add(
+        amountPaise: state.amountPaise,
+        type: state.type,
+        categoryId: state.categoryId!,
+        occurredAt: state.occurredAt,
+        merchant: state.merchant,
+      );
+    }
+    await repo.update(
+      editing.id,
+      amountPaise: state.amountPaise,
+      type: state.type,
+      categoryId: state.categoryId!,
+      occurredAt: state.occurredAt,
+      merchant: state.merchant,
+    );
+    return editing.id;
   }
 }

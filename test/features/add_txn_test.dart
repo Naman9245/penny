@@ -30,7 +30,7 @@ Future<AppDatabase> pumpApp(WidgetTester tester) async {
   return db;
 }
 
-/// Home → Add → 2, 5, 0 → Food.
+/// Home → Add → 2, 5, 0 → Food → ✓.
 Future<void> addFood250(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('home-add')));
   await tester.pumpAndSettle();
@@ -40,6 +40,10 @@ Future<void> addFood250(WidgetTester tester) async {
   }
   expect(find.text('₹250'), findsOneWidget);
   await tester.tap(find.text('Food'));
+  await tester.pumpAndSettle();
+  // Picking a category only selects it.
+  expect(find.text('Tap the tick to save'), findsOneWidget);
+  await tester.tap(find.byKey(const ValueKey('key-done')));
   await tester.pumpAndSettle();
 }
 
@@ -65,6 +69,25 @@ void main() {
 
     expect(find.text('−₹250'), findsNothing);
     expect(find.textContaining('Nothing logged yet'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('the tick waits for an amount and a category', (tester) async {
+    final db = await pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('home-add')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('key-done')));
+    await tester.pumpAndSettle();
+    expect(find.text('How much did you spend?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('key-5')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('key-done')));
+    await tester.pumpAndSettle();
+    // Still on the Add screen, asking for the category.
+    expect(find.text('What was it for?'), findsOneWidget);
+
     await closeApp(tester, db);
   });
 
