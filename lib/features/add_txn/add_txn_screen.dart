@@ -219,43 +219,45 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  BrutalIconButton(
-                    icon: Icons.close_rounded,
-                    semanticLabel: 'Close',
-                    onPressed: () => context.pop(),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: SlidingToggle<TxnType>(
-                        options: _types,
-                        value: state.type,
-                        onChanged: _controller.setType,
-                      ),
-                    ),
-                  ),
-                  if (_editing)
-                    BrutalIconButton(
-                      icon: Icons.delete_outline_rounded,
-                      semanticLabel: 'Delete',
-                      color: AppColors.pink,
-                      onPressed: _delete,
-                    )
-                  else
-                    // Balances the close button so the toggle sits centred.
-                    const SizedBox(width: 48),
-                ],
-              ),
-            ),
+            // Everything but the keypad scrolls together, header included,
+            // so nothing ever slides underneath a pinned bar.
             Expanded(
               child: EdgeFade(
+                size: 16,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   child: Column(
                     children: [
+                      Row(
+                        children: [
+                          BrutalIconButton(
+                            icon: Icons.close_rounded,
+                            semanticLabel: 'Close',
+                            onPressed: () => context.pop(),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: SlidingToggle<TxnType>(
+                                options: _types,
+                                value: state.type,
+                                onChanged: _controller.setType,
+                              ),
+                            ),
+                          ),
+                          if (_editing)
+                            BrutalIconButton(
+                              icon: Icons.delete_outline_rounded,
+                              semanticLabel: 'Delete',
+                              color: AppColors.pink,
+                              onPressed: _delete,
+                            )
+                          else
+                            // Balances the close button so the toggle sits
+                            // centred.
+                            const SizedBox(width: 48),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       if (widget.args.sms case final sms?) ...[
                         SmsCard(preview: sms.preview),
                         const SizedBox(height: 18),
