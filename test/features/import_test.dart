@@ -68,6 +68,23 @@ void main() {
     await closeApp(tester, db);
   });
 
+  testWidgets('an SMS shared from Messages opens straight into its review',
+      (tester) async {
+    final messenger = tester.binding.defaultBinaryMessenger;
+    const channel = MethodChannel('penny/share');
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'takeSharedText') return _hdfcSwiggy;
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    final db = await pumpApp(tester);
+
+    expect(find.text('From your SMS'), findsOneWidget);
+    expect(find.text('₹250'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
   testWidgets('Paste SMS turns a copied message into a review', (tester) async {
     final messenger = tester.binding.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
