@@ -5,30 +5,43 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/sms_parser.dart';
 
-/// What the Add screen opens with: a fresh entry of [type], or [editing].
+/// What the Add screen opens with: a fresh entry of [type], [editing] an
+/// existing one, or an [sms] to review before it is saved.
 @immutable
 class AddTxnArgs {
-  const AddTxnArgs.create(this.type) : editing = null;
+  const AddTxnArgs.create(this.type)
+      : editing = null,
+        sms = null;
 
   AddTxnArgs.edit(Txn txn)
       : type = txn.type,
-        editing = txn;
+        editing = txn,
+        sms = null;
+
+  AddTxnArgs.fromSms(SmsTxn this.sms)
+      : type = sms.type,
+        editing = null;
 
   final TxnType type;
   final Txn? editing;
 
+  /// An SMS already read and masked on the phone.
+  final SmsTxn? sms;
+
   bool get isEditing => editing != null;
 
-  // Keyed by which entry is being edited, not by its current field values.
+  // Keyed by which entry or SMS this is, not by its current field values.
   @override
   bool operator ==(Object other) =>
       other is AddTxnArgs &&
       other.type == type &&
-      other.editing?.id == editing?.id;
+      other.editing?.id == editing?.id &&
+      other.sms?.dedupeKey == sms?.dedupeKey;
 
   @override
-  int get hashCode => Object.hash(type, editing?.id);
+  int get hashCode => Object.hash(type, editing?.id, sms?.dedupeKey);
 }
 
 @immutable
@@ -86,6 +99,8 @@ class AddTxnController extends Notifier<AddTxnState> {
 
   @override
   AddTxnState build() {
+    final sms = args.sms;
+    if (sms != null) return _fromSms(sms);
     final txn = args.editing;
     if (txn == null) {
       return AddTxnState(
@@ -100,6 +115,26 @@ class AddTxnController extends Notifier<AddTxnState> {
       occurredAt: txn.occurredAt,
       merchant: txn.merchant,
       categoryId: txn.categoryId,
+    );
+  }
+
+  AddTxnState _fromSms(SmsTxn sms) {
+    final now = DateTime.now();
+    final at = sms.occurredAt;
+    // A date without a time takes the current time of day; today's date
+    // simply means now.
+    final occurredAt = switch (at) {
+      null => now,
+      _ when sms.hasTime => at,
+      _ when dayStart(at) == dayStart(now) => now,
+      _ => onDay(at, now),
+    };
+    return AddTxnState(
+      type: sms.type,
+      amountText: paiseToAmountText(sms.amountPaise),
+      occurredAt: occurredAt,
+      merchant: sms.payee,
+      categoryId: sms.suggestedCategoryId,
     );
   }
 
@@ -132,13 +167,20 @@ class AddTxnController extends Notifier<AddTxnState> {
   Future<String> save() async {
     final repo = ref.read(txnRepositoryProvider);
     final editing = args.editing;
+    final sms = args.sms;
     if (editing == null) {
+      // The review screen already checked; this covers a second copy of the
+      // app importing the same SMS at the same moment.
+      final existing = sms == null ? null : await repo.findByDedupeKey(sms.dedupeKey);
+      if (existing != null) return existing.id;
       return repo.add(
         amountPaise: state.amountPaise,
         type: state.type,
         categoryId: state.categoryId!,
         occurredAt: state.occurredAt,
         merchant: state.merchant,
+        source: sms == null ? TxnSource.manual : TxnSource.share,
+        dedupeKey: sms?.dedupeKey,
       );
     }
     await repo.update(

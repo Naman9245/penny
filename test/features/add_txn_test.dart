@@ -1,34 +1,7 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:penny/app.dart';
-import 'package:penny/data/db/app_database.dart';
-import 'package:penny/data/providers.dart';
 
-/// Starts the app on a phone-sized screen with an empty in-memory database.
-Future<AppDatabase> pumpApp(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1080, 2340);
-  tester.view.devicePixelRatio = 2.75;
-  addTearDown(tester.view.reset);
-  // No idle animations, so the test can settle.
-  tester.platformDispatcher.accessibilityFeaturesTestValue =
-      const FakeAccessibilityFeatures(disableAnimations: true);
-  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-
-  final db = AppDatabase(
-    DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true),
-  );
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
-      child: const PennyApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-  return db;
-}
+import '../helpers/app_harness.dart';
 
 /// Home → Add → 2, 5, 0 → Food → ✓.
 Future<void> addFood250(WidgetTester tester) async {
@@ -45,11 +18,6 @@ Future<void> addFood250(WidgetTester tester) async {
   expect(find.text('Tap the tick to save'), findsOneWidget);
   await tester.tap(find.byKey(const ValueKey('key-done')));
   await tester.pumpAndSettle();
-}
-
-Future<void> closeApp(WidgetTester tester, AppDatabase db) async {
-  await tester.pumpWidget(const SizedBox());
-  await db.close();
 }
 
 void main() {

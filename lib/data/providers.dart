@@ -35,6 +35,11 @@ final txnByIdProvider = FutureProvider.autoDispose.family<Txn?, String>(
   (ref, id) => ref.watch(txnRepositoryProvider).findById(id),
 );
 
+/// The live entry an SMS with this fingerprint was already imported as.
+final txnByDedupeKeyProvider = FutureProvider.autoDispose.family<Txn?, String>(
+  (ref, key) => ref.watch(txnRepositoryProvider).findByDedupeKey(key),
+);
+
 /// Penny's current mood. Neutral until budgets arrive in Milestone 4; then
 /// it comes from spending pace against the caps.
 final pennyMoodProvider = Provider<PennyMood>((ref) => PennyMood.neutral);

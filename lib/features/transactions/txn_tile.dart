@@ -4,6 +4,7 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/category.dart';
+import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/money_text.dart';
 
@@ -25,6 +26,11 @@ class TxnTile extends StatelessWidget {
     final when = showDay
         ? dayLabel(txn.occurredAt)
         : DateFormat('h:mm a').format(txn.occurredAt);
+    final subtitle = [
+      if (merchant != null) category.label,
+      when,
+      if (txn.source != TxnSource.manual) 'SMS',
+    ].join(' · ');
 
     return MergeSemantics(
       child: Semantics(
@@ -51,7 +57,7 @@ class TxnTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          merchant == null ? when : '${category.label} · $when',
+                          subtitle,
                           style: AppText.small,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

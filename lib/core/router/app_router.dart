@@ -6,8 +6,10 @@ import 'package:penny/features/analysis/analysis_screen.dart';
 import 'package:penny/features/calendar/calendar_screen.dart';
 import 'package:penny/features/goals/goals_screen.dart';
 import 'package:penny/features/home/home_screen.dart';
+import 'package:penny/features/import/import_screen.dart';
 import 'package:penny/features/transactions/txn_list_screen.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/sms_parser.dart';
 
 /// A provider, so Milestone 5 can add sign-in redirects that watch auth state.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -59,6 +61,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           initialType: state.uri.queryParameters['type'] == 'credit'
               ? TxnType.credit
               : TxnType.debit,
+        ),
+      ),
+      // A shared or pasted SMS, already read and masked. It travels as an
+      // in-memory object, never as text in the location.
+      GoRoute(
+        path: '/import',
+        builder: (context, state) => ImportScreen(
+          sms: switch (state.extra) {
+            final SmsParse sms => sms,
+            _ => null,
+          },
         ),
       ),
       GoRoute(

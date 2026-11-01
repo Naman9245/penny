@@ -12,8 +12,10 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/features/add_txn/add_txn_controller.dart';
 import 'package:penny/features/add_txn/amount_keypad.dart';
 import 'package:penny/features/add_txn/category_grid.dart';
+import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
@@ -71,6 +73,8 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
       ref.read(addTxnControllerProvider(widget.args).notifier);
 
   bool get _editing => widget.args.isEditing;
+
+  bool get _importing => widget.args.sms != null;
 
   @override
   void dispose() {
@@ -165,6 +169,22 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     if (result != null && mounted) _controller.setMerchant(result);
   }
 
+  /// Reads a copied bank SMS and swaps this screen for its review.
+  Future<void> _paste() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final text = data?.text?.trim() ?? '';
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Copy a bank SMS first, then tap Paste SMS.')),
+        );
+      return;
+    }
+    context.pushReplacement('/import', extra: parseSms(text));
+  }
+
   /// Walks through the steps: amount, then category, then ✓.
   String _prompt(AddTxnState state) {
     if (_editing) return 'Edit this entry';
@@ -175,7 +195,9 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     if (state.categoryId == null) {
       return spent ? 'What was it for?' : 'Where did it come from?';
     }
-    return 'Tap the tick to save';
+    return _importing
+        ? 'Check what Penny read, then tap the tick'
+        : 'Tap the tick to save';
   }
 
   @override
@@ -222,6 +244,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                 padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
                 child: Column(
                   children: [
+                    if (widget.args.sms case final sms?) ...[
+                      SmsCard(preview: sms.preview),
+                      const SizedBox(height: 18),
+                    ],
                     Text(_prompt(state), style: AppText.bodyMuted),
                     const SizedBox(height: 2),
                     _AmountDisplay(text: state.amountText, shake: _shakeAmount),
@@ -231,6 +257,7 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                       onDay: _controller.setDay,
                       onPickDay: () => _pickDay(state.occurredAt),
                       onWhere: () => _editWhere(state.merchant),
+                      onPaste: _editing || _importing ? null : _paste,
                     ),
                     const SizedBox(height: 24),
                     CategoryGrid(
@@ -293,12 +320,16 @@ class _DayAndWhere extends StatelessWidget {
     required this.onDay,
     required this.onPickDay,
     required this.onWhere,
+    this.onPaste,
   });
 
   final AddTxnState state;
   final ValueChanged<DateTime> onDay;
   final VoidCallback onPickDay;
   final VoidCallback onWhere;
+
+  /// Offered only for a new, hand-typed entry.
+  final VoidCallback? onPaste;
 
   @override
   Widget build(BuildContext context) {
@@ -336,6 +367,13 @@ class _DayAndWhere extends StatelessWidget {
           selectedColor: AppColors.sky,
           onTap: onWhere,
         ),
+        if (onPaste case final paste?)
+          BrutalChip(
+            key: const ValueKey('paste-sms'),
+            label: 'Paste SMS',
+            icon: Icons.content_paste_rounded,
+            onTap: paste,
+          ),
       ],
     );
   }
