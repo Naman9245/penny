@@ -8,6 +8,7 @@ import 'package:penny/features/calendar/calendar_screen.dart';
 import 'package:penny/features/goals/goals_screen.dart';
 import 'package:penny/features/home/home_screen.dart';
 import 'package:penny/features/import/import_screen.dart';
+import 'package:penny/features/needs/needs_screen.dart';
 import 'package:penny/features/report/report_screen.dart';
 import 'package:penny/features/transactions/txn_list_screen.dart';
 import 'package:penny/models/txn_enums.dart';
@@ -89,6 +90,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             AddTxnScreen(editId: state.pathParameters['id']),
       ),
+      GoRoute(path: '/needs', builder: (context, state) => const NeedsScreen()),
       GoRoute(
         path: '/report',
         // ?month=2026-10, from the Analysis tab; this month when missing.

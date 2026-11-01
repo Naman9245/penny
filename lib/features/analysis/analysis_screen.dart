@@ -18,6 +18,7 @@ import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
@@ -206,6 +207,15 @@ class _SplitCard extends ConsumerWidget {
                 : Icons.auto_awesome_rounded,
             expand: true,
             onPressed: () => context.push(reportLocation(month)),
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: BrutalChip(
+              key: const ValueKey('open-needs'),
+              label: 'Edit my needs',
+              icon: Icons.tune_rounded,
+              onTap: () => context.push('/needs'),
+            ),
           ),
         ],
       ),

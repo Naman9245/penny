@@ -73,6 +73,15 @@ class _SentSheet extends StatelessWidget {
               ],
             ),
           ],
+          if (request.body['note'] case final String note) ...[
+            const SizedBox(height: 16),
+            const Text('Your note', style: AppText.label),
+            const SizedBox(height: 8),
+            BrutalCard(
+              padding: const EdgeInsets.all(14),
+              child: Text(note, style: AppText.body),
+            ),
+          ],
           const SizedBox(height: 16),
           const Text(
             'Never sent: your SMS, account numbers, single entries, or who '
