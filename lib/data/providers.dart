@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 
@@ -43,3 +44,17 @@ final txnByDedupeKeyProvider = FutureProvider.autoDispose.family<Txn?, String>(
 /// Penny's current mood. Neutral until budgets arrive in Milestone 4; then
 /// it comes from spending pace against the caps.
 final pennyMoodProvider = Provider<PennyMood>((ref) => PennyMood.neutral);
+
+/// Per-category totals for the month containing the given date.
+final categoryTotalsProvider = StreamProvider.autoDispose
+    .family<List<CategoryTotal>, DateTime>(
+      (ref, month) =>
+          ref.watch(txnRepositoryProvider).watchCategoryTotals(month),
+    );
+
+/// The six months ending with the one containing the given date.
+final monthlyTotalsProvider = StreamProvider.autoDispose
+    .family<List<MonthTotals>, DateTime>(
+      (ref, month) =>
+          ref.watch(txnRepositoryProvider).watchMonthlyTotals(month),
+    );

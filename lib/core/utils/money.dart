@@ -17,6 +17,19 @@ String formatPaise(int paise) {
   return '$sign₹$rupees.${rest.toString().padLeft(2, '0')}';
 }
 
+/// Short ₹ for chart axes: ₹950, ₹12.5K, ₹1.2L, ₹3.4Cr.
+String compactRupees(int paise) {
+  final rupees = paise / 100;
+  if (rupees < 1000) return '₹${rupees.round()}';
+  if (rupees < 100000) return '₹${_short(rupees / 1000)}K';
+  if (rupees < 10000000) return '₹${_short(rupees / 100000)}L';
+  return '₹${_short(rupees / 10000000)}Cr';
+}
+
+String _short(double value) => value >= 100
+    ? value.round().toString()
+    : value.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '');
+
 /// The keypad buffer as shown while typing: "123456.5" → "₹1,23,456.5".
 String formatAmountText(String text) {
   if (text.isEmpty) return '₹0';
