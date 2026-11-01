@@ -241,8 +241,18 @@ class _DayHeader extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(child: Text(dayLabel(day), style: AppText.h3)),
-        Text(totals, style: AppText.small),
+        Text(dayLabel(day), style: AppText.h3),
+        const SizedBox(width: 12),
+        // The totals shrink before the day's name gets squeezed.
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(totals, style: AppText.small),
+            ),
+          ),
+        ),
       ],
     );
   }

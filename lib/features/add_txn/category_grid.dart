@@ -1,9 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/widgets/category_avatar.dart';
 
-/// Category tiles, four to a row. While adding, a tap saves the entry;
+/// Category tiles, up to four to a row. While adding, a tap saves the entry;
 /// while editing, it selects.
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({
@@ -17,15 +19,25 @@ class CategoryGrid extends StatelessWidget {
   final ValueChanged<Category> onTap;
   final String? selectedId;
 
-  static const _columns = 4;
   static const _gap = 8.0;
+
+  // "Subscriptions", the longest single word, needs about 80 px at the normal
+  // text size. Columns drop from four to two as text grows or the screen
+  // narrows, so a label never breaks mid-word.
+  static const _minTileWidth = 86.0;
 
   @override
   Widget build(BuildContext context) {
+    final captionSize = AppText.caption.fontSize!;
+    final growth =
+        MediaQuery.textScalerOf(context).scale(captionSize) / captionSize;
     return LayoutBuilder(
       builder: (context, constraints) {
+        final fits =
+            (constraints.maxWidth + _gap) ~/ (_minTileWidth * growth + _gap);
+        final columns = math.max(2, math.min(4, fits));
         final width =
-            ((constraints.maxWidth - _gap * (_columns - 1)) / _columns)
+            ((constraints.maxWidth - _gap * (columns - 1)) / columns)
                 .floorToDouble();
         return Wrap(
           spacing: _gap,

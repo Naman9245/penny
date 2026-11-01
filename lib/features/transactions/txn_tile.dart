@@ -34,33 +34,43 @@ class TxnTile extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              children: [
-                CategoryAvatar(category: category),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        merchant ?? category.label,
-                        style: AppText.bodyStrong,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        merchant == null ? when : '${category.label} · $when',
-                        style: AppText.small,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+            child: LayoutBuilder(
+              builder: (context, constraints) => Row(
+                children: [
+                  CategoryAvatar(category: category),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          merchant ?? category.label,
+                          style: AppText.bodyStrong,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          merchant == null ? when : '${category.label} · $when',
+                          style: AppText.small,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                MoneyText(txn.amountPaise, type: txn.type),
-              ],
+                  const SizedBox(width: 8),
+                  // A huge amount shrinks instead of squeezing out the title.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.4),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: MoneyText(txn.amountPaise, type: txn.type),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
