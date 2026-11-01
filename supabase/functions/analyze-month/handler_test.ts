@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { geminiReply, sampleRequest } from "../_shared/test_data.ts";
 import { analyzeMonth, type Deps } from "./handler.ts";
-import { geminiReply, sampleAnswer, sampleRequest } from "./test_data.ts";
+import { sampleAnswer } from "./test_data.ts";
 
 interface Fake {
   deps: Deps;

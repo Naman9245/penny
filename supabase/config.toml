@@ -4,3 +4,6 @@ project_id = "penny"
 
 [functions.analyze-month]
 verify_jwt = true
+
+[functions.penny-chat]
+verify_jwt = true
