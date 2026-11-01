@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:penny/data/db/app_database.steps.dart';
 import 'package:penny/data/db/tables.dart';
 import 'package:penny/models/txn_enums.dart';
 
@@ -15,9 +16,17 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
-  MigrationStrategy get migration =>
-      MigrationStrategy(onCreate: (m) => m.createAll());
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: stepByStep(
+          // v2: fingerprints of imported SMS, unique among live entries.
+          from1To2: (m, schema) async {
+            await m.addColumn(schema.txns, schema.txns.dedupeKey);
+            await m.createIndex(schema.txnsDedupeKey);
+          },
+        ),
+      );
 }

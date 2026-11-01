@@ -26,6 +26,7 @@ class TxnRepository {
     required DateTime occurredAt,
     String? merchant,
     TxnSource source = TxnSource.manual,
+    String? dedupeKey,
   }) async {
     _checkAmount(amountPaise);
     final id = _uuid.v7();
@@ -41,9 +42,17 @@ class TxnRepository {
             source: source,
             createdAt: now,
             updatedAt: now,
+            dedupeKey: Value(dedupeKey),
           ),
         );
     return id;
+  }
+
+  /// The live entry imported from the SMS with this fingerprint, if any.
+  Future<Txn?> findByDedupeKey(String dedupeKey) {
+    final query = _db.select(_txns)
+      ..where((t) => t.dedupeKey.equals(dedupeKey) & t.deletedAt.isNull());
+    return query.getSingleOrNull();
   }
 
   Future<void> update(
@@ -69,7 +78,23 @@ class TxnRepository {
 
   Future<void> softDelete(String id) => _setDeletedAt(id, _clock());
 
-  Future<void> restore(String id) => _setDeletedAt(id, null);
+  Future<void> restore(String id) {
+    return _db.transaction(() async {
+      final row = await (_db.select(_txns)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+      final key = row?.dedupeKey;
+      // If the same SMS was imported again meanwhile, that entry keeps the
+      // fingerprint and this one comes back without it.
+      final clash = key != null && await findByDedupeKey(key) != null;
+      await (_db.update(_txns)..where((t) => t.id.equals(id))).write(
+        TxnsCompanion(
+          deletedAt: const Value(null),
+          updatedAt: Value(_clock()),
+          dedupeKey: clash ? const Value(null) : const Value.absent(),
+        ),
+      );
+    });
+  }
 
   Future<Txn?> findById(String id) {
     final query = _db.select(_txns)

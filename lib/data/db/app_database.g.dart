@@ -122,6 +122,17 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dedupeKeyMeta = const VerificationMeta(
+    'dedupeKey',
+  );
+  @override
+  late final GeneratedColumn<String> dedupeKey = GeneratedColumn<String>(
+    'dedupe_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -135,6 +146,7 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     createdAt,
     updatedAt,
     deletedAt,
+    dedupeKey,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -208,6 +220,12 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('dedupe_key')) {
+      context.handle(
+        _dedupeKeyMeta,
+        dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta),
+      );
+    }
     return context;
   }
 
@@ -267,6 +285,10 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
       ),
+      dedupeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dedupe_key'],
+      ),
     );
   }
 
@@ -297,6 +319,10 @@ class Txn extends DataClass implements Insertable<Txn> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+
+  /// Fingerprint of the SMS this entry came from, if any. Stays on the
+  /// phone: sync must never upload it.
+  final String? dedupeKey;
   const Txn({
     required this.id,
     required this.amountPaise,
@@ -309,6 +335,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.dedupeKey,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -336,6 +363,9 @@ class Txn extends DataClass implements Insertable<Txn> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    if (!nullToAbsent || dedupeKey != null) {
+      map['dedupe_key'] = Variable<String>(dedupeKey);
+    }
     return map;
   }
 
@@ -356,6 +386,9 @@ class Txn extends DataClass implements Insertable<Txn> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      dedupeKey: dedupeKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dedupeKey),
     );
   }
 
@@ -382,6 +415,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      dedupeKey: serializer.fromJson<String?>(json['dedupeKey']),
     );
   }
   @override
@@ -401,6 +435,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'dedupeKey': serializer.toJson<String?>(dedupeKey),
     };
   }
 
@@ -416,6 +451,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
+    Value<String?> dedupeKey = const Value.absent(),
   }) => Txn(
     id: id ?? this.id,
     amountPaise: amountPaise ?? this.amountPaise,
@@ -428,6 +464,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    dedupeKey: dedupeKey.present ? dedupeKey.value : this.dedupeKey,
   );
   Txn copyWithCompanion(TxnsCompanion data) {
     return Txn(
@@ -448,6 +485,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
     );
   }
 
@@ -464,7 +502,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           ..write('tag: $tag, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('dedupeKey: $dedupeKey')
           ..write(')'))
         .toString();
   }
@@ -482,6 +521,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     createdAt,
     updatedAt,
     deletedAt,
+    dedupeKey,
   );
   @override
   bool operator ==(Object other) =>
@@ -497,7 +537,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           other.tag == this.tag &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt);
+          other.deletedAt == this.deletedAt &&
+          other.dedupeKey == this.dedupeKey);
 }
 
 class TxnsCompanion extends UpdateCompanion<Txn> {
@@ -512,6 +553,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
+  final Value<String?> dedupeKey;
   final Value<int> rowid;
   const TxnsCompanion({
     this.id = const Value.absent(),
@@ -525,6 +567,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.dedupeKey = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TxnsCompanion.insert({
@@ -539,6 +582,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
+    this.dedupeKey = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        amountPaise = Value(amountPaise),
@@ -560,6 +604,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
+    Expression<String>? dedupeKey,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -574,6 +619,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (dedupeKey != null) 'dedupe_key': dedupeKey,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -590,6 +636,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
+    Value<String?>? dedupeKey,
     Value<int>? rowid,
   }) {
     return TxnsCompanion(
@@ -604,6 +651,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      dedupeKey: dedupeKey ?? this.dedupeKey,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -648,6 +696,9 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
+    if (dedupeKey.present) {
+      map['dedupe_key'] = Variable<String>(dedupeKey.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -668,6 +719,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('dedupeKey: $dedupeKey, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -682,11 +734,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'txns_occurred_at',
     'CREATE INDEX txns_occurred_at ON txns (occurred_at)',
   );
+  late final Index txnsDedupeKey = Index(
+    'txns_dedupe_key',
+    'CREATE UNIQUE INDEX txns_dedupe_key ON txns (dedupe_key) WHERE deleted_at IS NULL',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [txns, txnsOccurredAt];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    txns,
+    txnsOccurredAt,
+    txnsDedupeKey,
+  ];
 }
 
 typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
@@ -701,6 +761,7 @@ typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
+  Value<String?> dedupeKey,
   Value<int> rowid,
 });
 typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
@@ -715,6 +776,7 @@ typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
+  Value<String?> dedupeKey,
   Value<int> rowid,
 });
 
@@ -783,6 +845,11 @@ class $$TxnsTableFilterComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
@@ -847,6 +914,11 @@ class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TxnsTableAnnotationComposer
@@ -896,6 +968,9 @@ class $$TxnsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get dedupeKey =>
+      $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
 }
 
 class $$TxnsTableTableManager
@@ -937,6 +1012,7 @@ class $$TxnsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> dedupeKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion(
                 id: id,
@@ -950,6 +1026,7 @@ class $$TxnsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                dedupeKey: dedupeKey,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -965,6 +1042,7 @@ class $$TxnsTableTableManager
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String?> dedupeKey = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion.insert(
                 id: id,
@@ -978,6 +1056,7 @@ class $$TxnsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                dedupeKey: dedupeKey,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

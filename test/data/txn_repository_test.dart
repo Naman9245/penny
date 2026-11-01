@@ -116,4 +116,45 @@ void main() {
     await expectLater(add(0, DateTime(2026, 11, 1)), throwsArgumentError);
     await expectLater(add(-500, DateTime(2026, 11, 1)), throwsArgumentError);
   });
+
+  group('SMS fingerprints', () {
+    Future<String> importSms(String key) => repo.add(
+          amountPaise: 25000,
+          type: TxnType.debit,
+          categoryId: 'food',
+          occurredAt: DateTime(2026, 11, 1, 9),
+          source: TxnSource.share,
+          dedupeKey: key,
+        );
+
+    test('find the live entry an SMS became', () async {
+      final id = await importSms('abc');
+      expect((await repo.findByDedupeKey('abc'))?.id, id);
+      expect((await repo.findById(id))?.source, TxnSource.share);
+      expect(await repo.findByDedupeKey('other'), isNull);
+    });
+
+    test('the same SMS cannot be imported twice', () async {
+      await importSms('abc');
+      await expectLater(importSms('abc'), throwsA(anything));
+    });
+
+    test('deleting an import frees its SMS to be imported again', () async {
+      final first = await importSms('abc');
+      await repo.softDelete(first);
+      final second = await importSms('abc');
+      expect((await repo.findByDedupeKey('abc'))?.id, second);
+    });
+
+    test('undoing that delete leaves the new import as the owner', () async {
+      final first = await importSms('abc');
+      await repo.softDelete(first);
+      final second = await importSms('abc');
+      await repo.restore(first);
+      expect((await repo.findByDedupeKey('abc'))?.id, second);
+      final restored = await repo.findById(first);
+      expect(restored, isNotNull);
+      expect(restored!.dedupeKey, isNull);
+    });
+  });
 }
