@@ -9,6 +9,7 @@ import 'generated/schema.dart';
 
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -79,6 +80,56 @@ void main() {
       },
       validateItems: (newDb) async {
         expect(expectedNewTxnsData, await newDb.select(newDb.txns).get());
+      },
+    );
+  });
+
+  // A v2 import keeps every field; whether its payee is a person stays
+  // unknown, and there are no reports yet.
+  test('migration from v2 to v3 does not corrupt data', () async {
+    const id = '0192f0c0-0000-7000-8000-000000000002';
+    const at = 1793500000;
+    final oldTxnsData = <v2.TxnsData>[
+      const v2.TxnsData(
+        id: id,
+        amountPaise: 34900,
+        type: 'debit',
+        categoryId: 'food',
+        merchant: 'Swiggy',
+        occurredAt: at,
+        source: 'share',
+        createdAt: at,
+        updatedAt: at,
+        dedupeKey: 'abc',
+      ),
+    ];
+    final expectedNewTxnsData = <v3.TxnsData>[
+      const v3.TxnsData(
+        id: id,
+        amountPaise: 34900,
+        type: 'debit',
+        categoryId: 'food',
+        merchant: 'Swiggy',
+        occurredAt: at,
+        source: 'share',
+        createdAt: at,
+        updatedAt: at,
+        dedupeKey: 'abc',
+      ),
+    ];
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.txns, oldTxnsData);
+      },
+      validateItems: (newDb) async {
+        expect(expectedNewTxnsData, await newDb.select(newDb.txns).get());
+        expect(await newDb.select(newDb.insights).get(), isEmpty);
       },
     );
   });

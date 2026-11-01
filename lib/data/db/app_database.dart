@@ -6,7 +6,7 @@ import 'package:penny/models/txn_enums.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Txns])
+@DriftDatabase(tables: [Txns, Insights])
 class AppDatabase extends _$AppDatabase {
   /// Opens `penny.sqlite` in the app's documents folder. Tests pass an
   /// in-memory executor instead.
@@ -16,7 +16,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -26,6 +26,11 @@ class AppDatabase extends _$AppDatabase {
       from1To2: (m, schema) async {
         await m.addColumn(schema.txns, schema.txns.dedupeKey);
         await m.createIndex(schema.txnsDedupeKey);
+      },
+      // v3: whether an imported payee is a person, and Penny's reports.
+      from2To3: (m, schema) async {
+        await m.addColumn(schema.txns, schema.txns.payeeIsPerson);
+        await m.createTable(schema.insights);
       },
     ),
   );

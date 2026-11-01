@@ -91,6 +91,8 @@ void main() {
       categoryId: 'travel',
       occurredAt: DateTime(2026, 10, 31, 9),
       merchant: 'Metro',
+      tag: TxnTag.necessary,
+      payeeIsPerson: false,
     );
 
     final txn = (await repo.findById(id))!;
@@ -98,8 +100,55 @@ void main() {
     expect(txn.categoryId, 'travel');
     expect(txn.merchant, 'Metro');
     expect(txn.occurredAt, DateTime(2026, 10, 31, 9));
+    expect(txn.tag, TxnTag.necessary);
+    expect(txn.payeeIsPerson, isFalse);
     expect(txn.createdAt, DateTime(2026, 11, 1, 10));
     expect(txn.updatedAt, DateTime(2026, 11, 1, 11));
+  });
+
+  test('setTags tags several entries at once, and can clear them', () async {
+    final a = await add(100, DateTime(2026, 11, 1, 9));
+    final b = await add(200, DateTime(2026, 11, 2, 9));
+    final c = await add(300, DateTime(2026, 11, 3, 9));
+    clock = DateTime(2026, 11, 3, 12);
+
+    await repo.setTags({a: TxnTag.necessary, b: TxnTag.wasteful});
+    expect((await repo.findById(a))!.tag, TxnTag.necessary);
+    expect((await repo.findById(b))!.tag, TxnTag.wasteful);
+    expect((await repo.findById(b))!.updatedAt, clock);
+    expect((await repo.findById(c))!.tag, isNull);
+
+    await repo.setTags({a: null});
+    expect((await repo.findById(a))!.tag, isNull);
+    expect((await repo.findById(b))!.tag, TxnTag.wasteful);
+  });
+
+  test('watchBetween covers its start but not its end', () async {
+    await add(100, DateTime(2026, 8, 31, 23, 59));
+    await add(200, DateTime(2026, 9, 1));
+    await add(300, DateTime(2026, 10, 15));
+    await add(400, DateTime(2026, 11, 1));
+
+    final rows = await repo
+        .watchBetween(DateTime(2026, 9), DateTime(2026, 11))
+        .first;
+
+    expect(rows.map((t) => t.amountPaise), [300, 200]);
+  });
+
+  test('an import remembers whether its payee is a person', () async {
+    final id = await repo.add(
+      amountPaise: 50000,
+      type: TxnType.debit,
+      categoryId: 'other',
+      occurredAt: DateTime(2026, 11, 1, 9),
+      merchant: 'Asha Rao',
+      source: TxnSource.share,
+      payeeIsPerson: true,
+    );
+    expect((await repo.findById(id))!.payeeIsPerson, isTrue);
+    final typed = await add(100, DateTime(2026, 11, 1, 9));
+    expect((await repo.findById(typed))!.payeeIsPerson, isNull);
   });
 
   test('watchRecent lists the newest first, up to the limit', () async {

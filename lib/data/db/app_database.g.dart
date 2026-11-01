@@ -133,6 +133,20 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _payeeIsPersonMeta = const VerificationMeta(
+    'payeeIsPerson',
+  );
+  @override
+  late final GeneratedColumn<bool> payeeIsPerson = GeneratedColumn<bool>(
+    'payee_is_person',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("payee_is_person" IN (0, 1))',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -147,6 +161,7 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     updatedAt,
     deletedAt,
     dedupeKey,
+    payeeIsPerson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -226,6 +241,15 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta),
       );
     }
+    if (data.containsKey('payee_is_person')) {
+      context.handle(
+        _payeeIsPersonMeta,
+        payeeIsPerson.isAcceptableOrUnknown(
+          data['payee_is_person']!,
+          _payeeIsPersonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -289,6 +313,10 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         DriftSqlType.string,
         data['${effectivePrefix}dedupe_key'],
       ),
+      payeeIsPerson: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}payee_is_person'],
+      ),
     );
   }
 
@@ -315,6 +343,9 @@ class Txn extends DataClass implements Insertable<Txn> {
   final String? merchant;
   final DateTime occurredAt;
   final TxnSource source;
+
+  /// The user's own call on a spend: necessary or wasteful. Penny's picks
+  /// live in the month's insight, so a new report never overwrites this.
   final TxnTag? tag;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -323,6 +354,11 @@ class Txn extends DataClass implements Insertable<Txn> {
   /// Fingerprint of the SMS this entry came from, if any. Stays on the
   /// phone: sync must never upload it.
   final String? dedupeKey;
+
+  /// Whether the SMS showed the payee is a person rather than a shop. Null
+  /// for typed entries and older imports, where Penny can only guess.
+  /// People's names never reach the AI either way.
+  final bool? payeeIsPerson;
   const Txn({
     required this.id,
     required this.amountPaise,
@@ -336,6 +372,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     required this.updatedAt,
     this.deletedAt,
     this.dedupeKey,
+    this.payeeIsPerson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -366,6 +403,9 @@ class Txn extends DataClass implements Insertable<Txn> {
     if (!nullToAbsent || dedupeKey != null) {
       map['dedupe_key'] = Variable<String>(dedupeKey);
     }
+    if (!nullToAbsent || payeeIsPerson != null) {
+      map['payee_is_person'] = Variable<bool>(payeeIsPerson);
+    }
     return map;
   }
 
@@ -389,6 +429,9 @@ class Txn extends DataClass implements Insertable<Txn> {
       dedupeKey: dedupeKey == null && nullToAbsent
           ? const Value.absent()
           : Value(dedupeKey),
+      payeeIsPerson: payeeIsPerson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payeeIsPerson),
     );
   }
 
@@ -416,6 +459,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       dedupeKey: serializer.fromJson<String?>(json['dedupeKey']),
+      payeeIsPerson: serializer.fromJson<bool?>(json['payeeIsPerson']),
     );
   }
   @override
@@ -436,6 +480,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'dedupeKey': serializer.toJson<String?>(dedupeKey),
+      'payeeIsPerson': serializer.toJson<bool?>(payeeIsPerson),
     };
   }
 
@@ -452,6 +497,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<String?> dedupeKey = const Value.absent(),
+    Value<bool?> payeeIsPerson = const Value.absent(),
   }) => Txn(
     id: id ?? this.id,
     amountPaise: amountPaise ?? this.amountPaise,
@@ -465,6 +511,9 @@ class Txn extends DataClass implements Insertable<Txn> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     dedupeKey: dedupeKey.present ? dedupeKey.value : this.dedupeKey,
+    payeeIsPerson: payeeIsPerson.present
+        ? payeeIsPerson.value
+        : this.payeeIsPerson,
   );
   Txn copyWithCompanion(TxnsCompanion data) {
     return Txn(
@@ -486,6 +535,9 @@ class Txn extends DataClass implements Insertable<Txn> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
+      payeeIsPerson: data.payeeIsPerson.present
+          ? data.payeeIsPerson.value
+          : this.payeeIsPerson,
     );
   }
 
@@ -503,7 +555,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('dedupeKey: $dedupeKey')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('payeeIsPerson: $payeeIsPerson')
           ..write(')'))
         .toString();
   }
@@ -522,6 +575,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     updatedAt,
     deletedAt,
     dedupeKey,
+    payeeIsPerson,
   );
   @override
   bool operator ==(Object other) =>
@@ -538,7 +592,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
-          other.dedupeKey == this.dedupeKey);
+          other.dedupeKey == this.dedupeKey &&
+          other.payeeIsPerson == this.payeeIsPerson);
 }
 
 class TxnsCompanion extends UpdateCompanion<Txn> {
@@ -554,6 +609,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String?> dedupeKey;
+  final Value<bool?> payeeIsPerson;
   final Value<int> rowid;
   const TxnsCompanion({
     this.id = const Value.absent(),
@@ -568,6 +624,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.dedupeKey = const Value.absent(),
+    this.payeeIsPerson = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TxnsCompanion.insert({
@@ -583,6 +640,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.dedupeKey = const Value.absent(),
+    this.payeeIsPerson = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        amountPaise = Value(amountPaise),
@@ -605,6 +663,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? dedupeKey,
+    Expression<bool>? payeeIsPerson,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -620,6 +679,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (dedupeKey != null) 'dedupe_key': dedupeKey,
+      if (payeeIsPerson != null) 'payee_is_person': payeeIsPerson,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -637,6 +697,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String?>? dedupeKey,
+    Value<bool?>? payeeIsPerson,
     Value<int>? rowid,
   }) {
     return TxnsCompanion(
@@ -652,6 +713,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       dedupeKey: dedupeKey ?? this.dedupeKey,
+      payeeIsPerson: payeeIsPerson ?? this.payeeIsPerson,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -699,6 +761,9 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     if (dedupeKey.present) {
       map['dedupe_key'] = Variable<String>(dedupeKey.value);
     }
+    if (payeeIsPerson.present) {
+      map['payee_is_person'] = Variable<bool>(payeeIsPerson.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -720,6 +785,425 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('dedupeKey: $dedupeKey, ')
+          ..write('payeeIsPerson: $payeeIsPerson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InsightsTable extends Insights
+    with TableInfo<$InsightsTable, InsightRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InsightsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<String> month = GeneratedColumn<String>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputHashMeta = const VerificationMeta(
+    'inputHash',
+  );
+  @override
+  late final GeneratedColumn<String> inputHash = GeneratedColumn<String>(
+    'input_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupKeysMeta = const VerificationMeta(
+    'groupKeys',
+  );
+  @override
+  late final GeneratedColumn<String> groupKeys = GeneratedColumn<String>(
+    'group_keys',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
+  @override
+  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
+    'answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    month,
+    inputHash,
+    groupKeys,
+    answer,
+    model,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'insights';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InsightRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('input_hash')) {
+      context.handle(
+        _inputHashMeta,
+        inputHash.isAcceptableOrUnknown(data['input_hash']!, _inputHashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputHashMeta);
+    }
+    if (data.containsKey('group_keys')) {
+      context.handle(
+        _groupKeysMeta,
+        groupKeys.isAcceptableOrUnknown(data['group_keys']!, _groupKeysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_groupKeysMeta);
+    }
+    if (data.containsKey('answer')) {
+      context.handle(
+        _answerMeta,
+        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answerMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {month};
+  @override
+  InsightRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InsightRow(
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}month'],
+      )!,
+      inputHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_hash'],
+      )!,
+      groupKeys: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_keys'],
+      )!,
+      answer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answer'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $InsightsTable createAlias(String alias) {
+    return $InsightsTable(attachedDatabase, alias);
+  }
+}
+
+class InsightRow extends DataClass implements Insertable<InsightRow> {
+  /// The month, as "2026-10".
+  final String month;
+
+  /// Fingerprint of the money data that was sent. A different one now means
+  /// entries have changed since Penny looked.
+  final String inputHash;
+
+  /// JSON object from the group ids Penny saw ("s1", "i1"…) to this phone's
+  /// group keys, which turn the answer back into entries.
+  final String groupKeys;
+
+  /// The cleaned answer, as JSON.
+  final String answer;
+  final String model;
+  final DateTime createdAt;
+  const InsightRow({
+    required this.month,
+    required this.inputHash,
+    required this.groupKeys,
+    required this.answer,
+    required this.model,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['month'] = Variable<String>(month);
+    map['input_hash'] = Variable<String>(inputHash);
+    map['group_keys'] = Variable<String>(groupKeys);
+    map['answer'] = Variable<String>(answer);
+    map['model'] = Variable<String>(model);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  InsightsCompanion toCompanion(bool nullToAbsent) {
+    return InsightsCompanion(
+      month: Value(month),
+      inputHash: Value(inputHash),
+      groupKeys: Value(groupKeys),
+      answer: Value(answer),
+      model: Value(model),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory InsightRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InsightRow(
+      month: serializer.fromJson<String>(json['month']),
+      inputHash: serializer.fromJson<String>(json['inputHash']),
+      groupKeys: serializer.fromJson<String>(json['groupKeys']),
+      answer: serializer.fromJson<String>(json['answer']),
+      model: serializer.fromJson<String>(json['model']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'month': serializer.toJson<String>(month),
+      'inputHash': serializer.toJson<String>(inputHash),
+      'groupKeys': serializer.toJson<String>(groupKeys),
+      'answer': serializer.toJson<String>(answer),
+      'model': serializer.toJson<String>(model),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  InsightRow copyWith({
+    String? month,
+    String? inputHash,
+    String? groupKeys,
+    String? answer,
+    String? model,
+    DateTime? createdAt,
+  }) => InsightRow(
+    month: month ?? this.month,
+    inputHash: inputHash ?? this.inputHash,
+    groupKeys: groupKeys ?? this.groupKeys,
+    answer: answer ?? this.answer,
+    model: model ?? this.model,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  InsightRow copyWithCompanion(InsightsCompanion data) {
+    return InsightRow(
+      month: data.month.present ? data.month.value : this.month,
+      inputHash: data.inputHash.present ? data.inputHash.value : this.inputHash,
+      groupKeys: data.groupKeys.present ? data.groupKeys.value : this.groupKeys,
+      answer: data.answer.present ? data.answer.value : this.answer,
+      model: data.model.present ? data.model.value : this.model,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InsightRow(')
+          ..write('month: $month, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('groupKeys: $groupKeys, ')
+          ..write('answer: $answer, ')
+          ..write('model: $model, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(month, inputHash, groupKeys, answer, model, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InsightRow &&
+          other.month == this.month &&
+          other.inputHash == this.inputHash &&
+          other.groupKeys == this.groupKeys &&
+          other.answer == this.answer &&
+          other.model == this.model &&
+          other.createdAt == this.createdAt);
+}
+
+class InsightsCompanion extends UpdateCompanion<InsightRow> {
+  final Value<String> month;
+  final Value<String> inputHash;
+  final Value<String> groupKeys;
+  final Value<String> answer;
+  final Value<String> model;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const InsightsCompanion({
+    this.month = const Value.absent(),
+    this.inputHash = const Value.absent(),
+    this.groupKeys = const Value.absent(),
+    this.answer = const Value.absent(),
+    this.model = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  InsightsCompanion.insert({
+    required String month,
+    required String inputHash,
+    required String groupKeys,
+    required String answer,
+    required String model,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : month = Value(month),
+       inputHash = Value(inputHash),
+       groupKeys = Value(groupKeys),
+       answer = Value(answer),
+       model = Value(model),
+       createdAt = Value(createdAt);
+  static Insertable<InsightRow> custom({
+    Expression<String>? month,
+    Expression<String>? inputHash,
+    Expression<String>? groupKeys,
+    Expression<String>? answer,
+    Expression<String>? model,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (month != null) 'month': month,
+      if (inputHash != null) 'input_hash': inputHash,
+      if (groupKeys != null) 'group_keys': groupKeys,
+      if (answer != null) 'answer': answer,
+      if (model != null) 'model': model,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  InsightsCompanion copyWith({
+    Value<String>? month,
+    Value<String>? inputHash,
+    Value<String>? groupKeys,
+    Value<String>? answer,
+    Value<String>? model,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return InsightsCompanion(
+      month: month ?? this.month,
+      inputHash: inputHash ?? this.inputHash,
+      groupKeys: groupKeys ?? this.groupKeys,
+      answer: answer ?? this.answer,
+      model: model ?? this.model,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (month.present) {
+      map['month'] = Variable<String>(month.value);
+    }
+    if (inputHash.present) {
+      map['input_hash'] = Variable<String>(inputHash.value);
+    }
+    if (groupKeys.present) {
+      map['group_keys'] = Variable<String>(groupKeys.value);
+    }
+    if (answer.present) {
+      map['answer'] = Variable<String>(answer.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InsightsCompanion(')
+          ..write('month: $month, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('groupKeys: $groupKeys, ')
+          ..write('answer: $answer, ')
+          ..write('model: $model, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -730,6 +1214,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TxnsTable txns = $TxnsTable(this);
+  late final $InsightsTable insights = $InsightsTable(this);
   late final Index txnsOccurredAt = Index(
     'txns_occurred_at',
     'CREATE INDEX txns_occurred_at ON txns (occurred_at)',
@@ -744,6 +1229,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     txns,
+    insights,
     txnsOccurredAt,
     txnsDedupeKey,
   ];
@@ -762,6 +1248,7 @@ typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<String?> dedupeKey,
+  Value<bool?> payeeIsPerson,
   Value<int> rowid,
 });
 typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
@@ -777,6 +1264,7 @@ typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<String?> dedupeKey,
+  Value<bool?> payeeIsPerson,
   Value<int> rowid,
 });
 
@@ -850,6 +1338,11 @@ class $$TxnsTableFilterComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.dedupeKey,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
@@ -919,6 +1412,11 @@ class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.dedupeKey,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TxnsTableAnnotationComposer
@@ -971,6 +1469,11 @@ class $$TxnsTableAnnotationComposer
 
   GeneratedColumn<String> get dedupeKey =>
       $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
+
+  GeneratedColumn<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => column,
+  );
 }
 
 class $$TxnsTableTableManager
@@ -1013,6 +1516,7 @@ class $$TxnsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String?> dedupeKey = const Value.absent(),
+                Value<bool?> payeeIsPerson = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion(
                 id: id,
@@ -1027,6 +1531,7 @@ class $$TxnsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 dedupeKey: dedupeKey,
+                payeeIsPerson: payeeIsPerson,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -1043,6 +1548,7 @@ class $$TxnsTableTableManager
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String?> dedupeKey = const Value.absent(),
+                Value<bool?> payeeIsPerson = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion.insert(
                 id: id,
@@ -1057,6 +1563,7 @@ class $$TxnsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 dedupeKey: dedupeKey,
+                payeeIsPerson: payeeIsPerson,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -1086,9 +1593,234 @@ typedef $$TxnsTableProcessedTableManager =
       Txn,
       PrefetchHooks Function()
     >;
+typedef $$InsightsTableCreateCompanionBuilder = InsightsCompanion Function({
+  required String month,
+  required String inputHash,
+  required String groupKeys,
+  required String answer,
+  required String model,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$InsightsTableUpdateCompanionBuilder = InsightsCompanion Function({
+  Value<String> month,
+  Value<String> inputHash,
+  Value<String> groupKeys,
+  Value<String> answer,
+  Value<String> model,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$InsightsTableFilterComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inputHash => $composableBuilder(
+    column: $table.inputHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupKeys => $composableBuilder(
+    column: $table.groupKeys,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InsightsTableOrderingComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inputHash => $composableBuilder(
+    column: $table.inputHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupKeys => $composableBuilder(
+    column: $table.groupKeys,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InsightsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<String> get inputHash =>
+      $composableBuilder(column: $table.inputHash, builder: (column) => column);
+
+  GeneratedColumn<String> get groupKeys =>
+      $composableBuilder(column: $table.groupKeys, builder: (column) => column);
+
+  GeneratedColumn<String> get answer =>
+      $composableBuilder(column: $table.answer, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$InsightsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InsightsTable,
+          InsightRow,
+          $$InsightsTableFilterComposer,
+          $$InsightsTableOrderingComposer,
+          $$InsightsTableAnnotationComposer,
+          $$InsightsTableCreateCompanionBuilder,
+          $$InsightsTableUpdateCompanionBuilder,
+          (
+            InsightRow,
+            BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>,
+          ),
+          InsightRow,
+          PrefetchHooks Function()
+        > {
+  $$InsightsTableTableManager(_$AppDatabase db, $InsightsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InsightsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InsightsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InsightsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> month = const Value.absent(),
+                Value<String> inputHash = const Value.absent(),
+                Value<String> groupKeys = const Value.absent(),
+                Value<String> answer = const Value.absent(),
+                Value<String> model = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InsightsCompanion(
+                month: month,
+                inputHash: inputHash,
+                groupKeys: groupKeys,
+                answer: answer,
+                model: model,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String month,
+                required String inputHash,
+                required String groupKeys,
+                required String answer,
+                required String model,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => InsightsCompanion.insert(
+                month: month,
+                inputHash: inputHash,
+                groupKeys: groupKeys,
+                answer: answer,
+                model: model,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$InsightsTable, InsightRow>(table),
+                  BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InsightsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InsightsTable,
+      InsightRow,
+      $$InsightsTableFilterComposer,
+      $$InsightsTableOrderingComposer,
+      $$InsightsTableAnnotationComposer,
+      $$InsightsTableCreateCompanionBuilder,
+      $$InsightsTableUpdateCompanionBuilder,
+      (InsightRow, BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>),
+      InsightRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$TxnsTableTableManager get txns => $$TxnsTableTableManager(_db, _db.txns);
+  $$InsightsTableTableManager get insights =>
+      $$InsightsTableTableManager(_db, _db.insights);
 }

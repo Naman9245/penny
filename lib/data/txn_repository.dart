@@ -28,6 +28,7 @@ class TxnRepository {
     String? merchant,
     TxnSource source = TxnSource.manual,
     String? dedupeKey,
+    bool? payeeIsPerson,
   }) async {
     _checkAmount(amountPaise);
     final id = _uuid.v7();
@@ -46,6 +47,7 @@ class TxnRepository {
             createdAt: now,
             updatedAt: now,
             dedupeKey: Value(dedupeKey),
+            payeeIsPerson: Value(payeeIsPerson),
           ),
         );
     return id;
@@ -58,6 +60,8 @@ class TxnRepository {
     return query.getSingleOrNull();
   }
 
+  /// Rewrites an entry. [tag] and [payeeIsPerson] are required so an edit
+  /// can't drop them by accident.
   Future<void> update(
     String id, {
     required int amountPaise,
@@ -65,6 +69,8 @@ class TxnRepository {
     required String categoryId,
     required DateTime occurredAt,
     String? merchant,
+    required TxnTag? tag,
+    required bool? payeeIsPerson,
   }) async {
     _checkAmount(amountPaise);
     await (_db.update(_txns)..where((t) => t.id.equals(id))).write(
@@ -74,9 +80,26 @@ class TxnRepository {
         categoryId: Value(categoryId),
         merchant: Value(merchant),
         occurredAt: Value(occurredAt),
+        tag: Value(tag),
+        payeeIsPerson: Value(payeeIsPerson),
         updatedAt: Value(_clock()),
       ),
     );
+  }
+
+  /// Sets the user's own tag on each entry at once, for "I need this" on a
+  /// habit and for its undo. Null clears it back to Penny's pick.
+  Future<void> setTags(Map<String, TxnTag?> tags) {
+    final now = _clock();
+    return _db.batch((batch) {
+      for (final MapEntry(key: id, value: tag) in tags.entries) {
+        batch.update(
+          _txns,
+          TxnsCompanion(tag: Value(tag), updatedAt: Value(now)),
+          where: (t) => t.id.equals(id),
+        );
+      }
+    });
   }
 
   Future<void> softDelete(String id) => _setDeletedAt(id, _clock());
@@ -110,6 +133,19 @@ class TxnRepository {
   Stream<List<Txn>> watchMonth(DateTime month) {
     final query = _db.select(_txns)
       ..where((t) => _inMonth(t, month))
+      ..orderBy(_newestFirst);
+    return query.watch();
+  }
+
+  /// Entries from [from] up to, not including, [to], newest first.
+  Stream<List<Txn>> watchBetween(DateTime from, DateTime to) {
+    final query = _db.select(_txns)
+      ..where(
+        (t) =>
+            t.deletedAt.isNull() &
+            t.occurredAt.isBiggerOrEqualValue(from) &
+            t.occurredAt.isSmallerThanValue(to),
+      )
       ..orderBy(_newestFirst);
     return query.watch();
   }

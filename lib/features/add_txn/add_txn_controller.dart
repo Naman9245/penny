@@ -45,6 +45,7 @@ class AddTxnState {
     required this.occurredAt,
     this.merchant,
     this.categoryId,
+    this.tag,
   });
 
   final TxnType type;
@@ -56,6 +57,10 @@ class AddTxnState {
 
   /// The picked category. Nothing saves until ✓ is tapped.
   final String? categoryId;
+
+  /// The user's own necessary-or-wasteful call on a spend; null leaves it
+  /// to Penny.
+  final TxnTag? tag;
 
   int get amountPaise => amountTextToPaise(amountText);
 
@@ -70,6 +75,7 @@ class AddTxnState {
     DateTime? occurredAt,
     Object? merchant = _keep,
     Object? categoryId = _keep,
+    Object? tag = _keep,
   }) {
     return AddTxnState(
       type: type ?? this.type,
@@ -81,6 +87,7 @@ class AddTxnState {
       categoryId: identical(categoryId, _keep)
           ? this.categoryId
           : categoryId as String?,
+      tag: identical(tag, _keep) ? this.tag : tag as TxnTag?,
     );
   }
 }
@@ -111,6 +118,7 @@ class AddTxnController extends Notifier<AddTxnState> {
       occurredAt: txn.occurredAt,
       merchant: txn.merchant,
       categoryId: txn.categoryId,
+      tag: txn.tag,
     );
   }
 
@@ -142,12 +150,16 @@ class AddTxnController extends Notifier<AddTxnState> {
 
   void clear() => state = state.copyWith(amountText: '');
 
-  /// Switching between Spent and Got drops a category of the other kind.
+  /// Switching between Spent and Got drops a category of the other kind, and
+  /// any tag, since only spends have one.
   void setType(TxnType type) {
     if (type != state.type) {
-      state = state.copyWith(type: type, categoryId: null);
+      state = state.copyWith(type: type, categoryId: null, tag: null);
     }
   }
+
+  /// Null hands the call back to Penny.
+  void setTag(TxnTag? tag) => state = state.copyWith(tag: tag);
 
   void setDay(DateTime day) =>
       state = state.copyWith(occurredAt: onDay(day, state.occurredAt));
@@ -181,6 +193,12 @@ class AddTxnController extends Notifier<AddTxnState> {
         merchant: state.merchant,
         source: sms == null ? TxnSource.manual : TxnSource.share,
         dedupeKey: sms?.dedupeKey,
+        payeeIsPerson: sms == null
+            ? null
+            : _payeeIsPerson(
+                wasPerson: sms.payeeIsPerson,
+                renamed: state.merchant != sms.payee,
+              ),
       );
     }
     await repo.update(
@@ -190,7 +208,26 @@ class AddTxnController extends Notifier<AddTxnState> {
       categoryId: state.categoryId!,
       occurredAt: state.occurredAt,
       merchant: state.merchant,
+      tag: state.type == TxnType.debit ? state.tag : null,
+      payeeIsPerson: switch (editing.payeeIsPerson) {
+        null => null,
+        final bool wasPerson => _payeeIsPerson(
+          wasPerson: wasPerson,
+          renamed: state.merchant != editing.merchant,
+        ),
+      },
     );
     return editing.id;
+  }
+
+  /// Once a person, always a person: a renamed payee might still be one.
+  /// A renamed shop becomes unknown, so its new name is checked again before
+  /// anything reaches the AI.
+  static bool? _payeeIsPerson({
+    required bool wasPerson,
+    required bool renamed,
+  }) {
+    if (wasPerson) return true;
+    return renamed ? null : false;
   }
 }
