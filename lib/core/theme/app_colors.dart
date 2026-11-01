@@ -26,4 +26,8 @@ abstract final class AppColors {
 
   /// The inner ring that makes Penny read as a coin.
   static const coinRim = Color(0xFFEFC139);
+
+  /// Penny's headphones: deeper than lavender, so they stand out on her
+  /// lavender (neutral) card.
+  static const headphones = Color(0xFF8E78F0);
 }

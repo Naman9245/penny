@@ -41,6 +41,7 @@ class PillNavBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(kPillRadius),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < items.length; i++) ...[
                   if (i > 0) const SizedBox(width: 6),

@@ -75,7 +75,7 @@ class _PennyPainter extends CustomPainter {
     const start = 195 * math.pi / 180;
     const sweep = 150 * math.pi / 180;
     canvas.drawArc(rect, start, sweep, false, _stroke(AppColors.ink, 11));
-    canvas.drawArc(rect, start, sweep, false, _stroke(AppColors.lavender, 5.5));
+    canvas.drawArc(rect, start, sweep, false, _stroke(AppColors.headphones, 5.5));
   }
 
   void _drawCups(Canvas canvas, Paint outline, {required bool withRupee}) {
@@ -84,7 +84,7 @@ class _PennyPainter extends CustomPainter {
         Rect.fromCenter(center: Offset(x, 58), width: 13, height: 25),
         const Radius.circular(6.5),
       );
-      canvas.drawRRect(cup, Paint()..color = AppColors.lavender);
+      canvas.drawRRect(cup, Paint()..color = AppColors.headphones);
       canvas.drawRRect(cup, outline);
     }
     if (!withRupee) return;

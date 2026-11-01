@@ -144,6 +144,7 @@ class _MonthBento extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _StatCard(
           label: 'Spent in ${DateFormat('MMMM').format(month)}',
