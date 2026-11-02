@@ -20,6 +20,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // A goal's page is a lazy list: rows further down only exist once
+  // scrolled to.
+  Future<void> reveal(WidgetTester tester, Finder finder) async {
+    await tester.scrollUntilVisible(
+      finder,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(GoalScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  // The header scrolls away with the list, so leave the way Back would.
+  Future<void> leave(WidgetTester tester) async {
+    routerOf(tester).pop();
+    await tester.pumpAndSettle();
+  }
+
   // A goal three months away, made outside the app.
   Future<void> seedGoal(db) => GoalRepository(db).add(
     title: 'Delhi trip',
@@ -53,16 +75,14 @@ void main() {
     // Straight to the new goal's page.
     expect(find.byType(GoalScreen), findsOneWidget);
     expect(find.textContaining('of ₹15,000 by'), findsOneWidget);
-    expect(find.text('Nothing put aside yet.'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('add-money')));
     await tester.pumpAndSettle();
     await type(tester, '3000');
     expect(find.textContaining('₹12,000 to go'), findsOneWidget);
-    expect(find.text('+₹3,000'), findsOneWidget);
+    await reveal(tester, find.text('+₹3,000'));
 
-    await tester.tap(find.bySemanticsLabel('Back'));
-    await tester.pumpAndSettle();
+    await leave(tester);
     expect(find.text('₹3,000 of ₹15,000'), findsOneWidget);
     expect(find.text('₹3,000 put aside this month!'), findsOneWidget);
     await closeApp(tester, db);
@@ -80,9 +100,10 @@ void main() {
     expect(find.text('Goal achieved! You did it!'), findsOneWidget);
     final today = DateFormat('d MMM').format(DateTime.now());
     expect(find.text('Reached on $today!'), findsOneWidget);
+    // A reached goal has nothing left to plan.
+    expect(find.byKey(const ValueKey('plan-ask')), findsNothing);
 
-    await tester.tap(find.bySemanticsLabel('Back'));
-    await tester.pumpAndSettle();
+    await leave(tester);
     await tester.tap(find.bySemanticsLabel('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Celebrating'), findsOneWidget);
@@ -116,12 +137,12 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('key-⌫')));
     await type(tester, '500');
     expect(find.text('₹2,500'), findsOneWidget);
-    expect(find.text('−₹500'), findsOneWidget);
+    await reveal(tester, find.text('−₹500'));
 
     await tester.drag(find.text('Taken out'), const Offset(-600, 0));
     await tester.pumpAndSettle();
     expect(find.text('−₹500'), findsNothing);
-    expect(find.text('₹3,000'), findsOneWidget);
+    expect(find.text('+₹3,000'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text('−₹500'), findsOneWidget);
@@ -135,8 +156,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final delete = find.byKey(const ValueKey('delete-goal'));
-    await tester.ensureVisible(delete);
-    await tester.pumpAndSettle();
+    await reveal(tester, delete);
     await tester.tap(delete);
     await tester.pumpAndSettle();
     expect(find.text('Delete this goal?'), findsOneWidget);

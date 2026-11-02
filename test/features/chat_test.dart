@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/chat_repository.dart';
+import 'package:penny/data/goal_repository.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/rules_repository.dart';
 import 'package:penny/data/txn_repository.dart';
@@ -72,6 +73,43 @@ void main() {
     ]);
     expect(sent.month.month, month);
     expect(sent.tags, {groupId(sent.month, shop: 'Swiggy'): TxnTag.wasteful});
+    await closeApp(tester, db);
+  });
+
+  testWidgets('Penny hears about the goals too', (tester) async {
+    final ai = FakeAiClient(reply: (_) => 'You can do it!');
+    final db = await pumpApp(
+      tester,
+      seed: seedMonth,
+      seedDb: (db) async {
+        final goals = GoalRepository(db);
+        final id = await goals.add(
+          title: 'Delhi trip',
+          targetPaise: 1500000,
+          deadline: DateTime.now().add(const Duration(days: 70)),
+        );
+        await goals.deposit(id, 300000);
+      },
+      ai: ai,
+    );
+    await openChat(tester);
+    await say(tester, 'How do I reach my Delhi trip?');
+
+    final goal = ai.chats.single.goals.single;
+    expect(goal.title, 'Delhi trip');
+    expect(goal.targetPaise, 1500000);
+    expect(goal.savedPaise, 300000);
+    expect(goal.reached, isFalse);
+    expect(goal.perWeekPaise, greaterThan(0));
+
+    // And "See what Penny sends" lists them.
+    final seeSent = find.byKey(const ValueKey('chat-see-sent'));
+    await tester.ensureVisible(seeSent);
+    await tester.pumpAndSettle();
+    await tester.tap(seeSent);
+    await tester.pumpAndSettle();
+    expect(find.text('Your goals'), findsOneWidget);
+    expect(find.byKey(const ValueKey('sent-goals-0')), findsOneWidget);
     await closeApp(tester, db);
   });
 

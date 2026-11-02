@@ -8,6 +8,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/goals/goal_widgets.dart';
+import 'package:penny/features/goals/plan_card.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/widgets/amount_sheet.dart';
@@ -103,6 +104,13 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
                 ),
               ],
             ),
+            // Nothing to plan once it's reached or its date has passed.
+            if (!progress.reached && !progress.isMissed(now)) ...[
+              const SizedBox(height: 28),
+              const Text("Penny's plan", style: AppText.h2),
+              const SizedBox(height: 12),
+              PlanCard(progress: progress, today: now),
+            ],
             const SizedBox(height: 28),
             const Text('Money in', style: AppText.h2),
             const SizedBox(height: 12),

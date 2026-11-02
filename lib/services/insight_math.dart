@@ -124,7 +124,7 @@ List<HabitView> habitViews(
     ];
     if (wasteful.isEmpty) continue;
     views.add(
-      HabitView(habit: habit, names: _namesOf(members), wasteful: wasteful),
+      HabitView(habit: habit, names: namesOf(members), wasteful: wasteful),
     );
   }
   return views;
@@ -158,7 +158,9 @@ Map<String, TxnTag> groupTags(
 }
 
 /// Shop names, biggest spend first; entries without one go by category.
-List<String> _namesOf(List<Txn> txns) {
+/// The shops (or categories, for entries with no shop) of [txns], as the
+/// user knows them, biggest first.
+List<String> namesOf(List<Txn> txns) {
   final totals = <String, int>{};
   for (final txn in txns) {
     final name = txn.merchant?.trim();

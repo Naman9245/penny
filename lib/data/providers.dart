@@ -111,10 +111,11 @@ final insightProvider = StreamProvider.autoDispose
 final insightRequestProvider = StreamProvider.autoDispose
     .family<InsightRequest, DateTime>((ref, month) async* {
       final start = monthStart(month);
-      // Wait for My needs, so a request never goes out without the user's
-      // rules or note and then looks changed a moment later.
+      // Wait for My needs and the budget, so a request never goes out
+      // without them and then looks changed a moment later.
       final rules = await ref.watch(yourRulesProvider.future);
       final note = await ref.watch(pennyNoteProvider.future);
+      final budget = await ref.watch(budgetProvider.future);
       yield* ref
           .watch(txnRepositoryProvider)
           .watchBetween(insightHistoryStart(start), nextMonth(start))
@@ -125,6 +126,7 @@ final insightRequestProvider = StreamProvider.autoDispose
               now: DateTime.now(),
               rules: rules,
               note: note,
+              budget: budget,
             ),
           );
     });

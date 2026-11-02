@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:penny/core/config.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/chat.dart';
+import 'package:penny/models/goal_plan.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/goal_math.dart';
+import 'package:penny/services/goal_plan.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -74,14 +79,36 @@ class AiAnswer {
 /// One turn of the chat, as Penny is sent it.
 typedef ChatTurn = ({ChatRole role, String text});
 
+/// A goal as the chat tells Penny about it.
+typedef ChatGoal = ({
+  String title,
+  int targetPaise,
+  int savedPaise,
+  DateTime deadline,
+  int perWeekPaise,
+  bool reached,
+});
+
+/// [progress] as the chat tells Penny about it, as of [today].
+ChatGoal chatGoalOf(GoalProgress progress, DateTime today) => (
+  title: progress.goal.title,
+  targetPaise: progress.goal.targetPaise,
+  savedPaise: math.max(0, progress.savedPaise),
+  deadline: progress.goal.deadline,
+  perWeekPaise: progress.perWeekPaise(today),
+  reached: progress.reached,
+);
+
 /// What goes to penny-chat: this month as the report would send it, each
-/// group's tag as the phone works it out, and the conversation so far.
+/// group's tag as the phone works it out, the goals, and the conversation
+/// so far.
 @immutable
 class ChatRequest {
   const ChatRequest({
     required this.month,
     required this.tags,
     required this.turns,
+    this.goals = const [],
   });
 
   final InsightRequest month;
@@ -89,6 +116,7 @@ class ChatRequest {
 
   /// Oldest first, ending with the user.
   final List<ChatTurn> turns;
+  final List<ChatGoal> goals;
 
   Map<String, Object?> toJson() => {
     'v': 1,
@@ -96,10 +124,36 @@ class ChatRequest {
     'tags': {
       for (final MapEntry(:key, :value) in tags.entries) key: value.name,
     },
+    if (goals.isNotEmpty)
+      'goals': [
+        for (final goal in goals)
+          {
+            'title': goal.title,
+            'target': _rupees(goal.targetPaise),
+            'saved': _rupees(goal.savedPaise),
+            'deadline': DateFormat('yyyy-MM-dd').format(goal.deadline),
+            'perWeek': _rupees(goal.perWeekPaise),
+            'reached': goal.reached,
+          },
+      ],
     'messages': [
       for (final turn in turns) {'role': turn.role.name, 'text': turn.text},
     ],
   };
+}
+
+/// What came back for a goal's plan.
+@immutable
+class PlanAnswer {
+  const PlanAnswer({
+    required this.plan,
+    required this.model,
+    this.callsLeftToday,
+  });
+
+  final GoalPlan plan;
+  final String model;
+  final int? callsLeftToday;
 }
 
 /// Penny's reply in the chat.
@@ -123,6 +177,10 @@ abstract interface class AiClient {
   /// Penny's reply to the last turn in [request]. Throws [AiException] when
   /// there is none.
   Future<ChatAnswer> chat(ChatRequest request);
+
+  /// Penny's plan for [request]'s goal. Throws [AiException] when there is
+  /// none.
+  Future<PlanAnswer> planGoal(GoalPlanRequest request);
 }
 
 /// [AiClient] over the analyze-month and penny-chat Edge Functions.
@@ -148,6 +206,13 @@ class SupabaseAiClient implements AiClient {
   @override
   Future<ChatAnswer> chat(ChatRequest request) =>
       _call('penny-chat', request.toJson(), chatAnswerFrom);
+
+  @override
+  Future<PlanAnswer> planGoal(GoalPlanRequest request) => _call(
+    'plan-goal',
+    request.toJson(),
+    (data) => planAnswerFrom(data, request),
+  );
 
   /// Calls [function] with [body] and reads its reply with [read], which
   /// returns null for a reply that makes no sense.
@@ -261,6 +326,26 @@ AiAnswer? answerFrom(Object? data, InsightRequest request) {
   );
 }
 
+/// The plan in an answer from plan-goal, or null when it isn't one. Cuts of
+/// groups that [request] didn't send are dropped.
+PlanAnswer? planAnswerFrom(Object? data, GoalPlanRequest request) {
+  if (data is! Map) return null;
+  final plan = GoalPlan.fromJson(
+    data['plan'],
+    groupIds: request.month.groupKeys.keys.toSet(),
+  );
+  final model = data['model'];
+  if (plan == null || model is! String) return null;
+  return PlanAnswer(
+    plan: plan,
+    model: model,
+    callsLeftToday: switch (data['callsLeftToday']) {
+      final int left => left,
+      _ => null,
+    },
+  );
+}
+
 /// The reply in an answer from penny-chat, or null when it isn't one.
 ChatAnswer? chatAnswerFrom(Object? data) {
   if (data is! Map) return null;
@@ -303,5 +388,7 @@ List<ChatTurn> chatTurns(Iterable<ChatMessage> history, {int max = 12}) {
       ),
   ];
 }
+
+int _rupees(int paise) => (paise / 100).round();
 
 final aiClientProvider = Provider<AiClient>((ref) => SupabaseAiClient());

@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/models/budget.dart';
+import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
@@ -96,13 +99,14 @@ class InsightRequest {
 /// The request for [month], from [txns]: entries from [insightHistoryStart]
 /// to the end of the month. [now] says how far into the month it is. Groups
 /// that [rules] or the user's own tags settle go with that tag fixed, and
-/// [note] goes along when there is one.
+/// [note] and [budget] go along when there are any.
 InsightRequest buildInsightRequest({
   required DateTime month,
   required List<Txn> txns,
   required DateTime now,
   YourRules rules = YourRules.none,
   String? note,
+  Budget budget = Budget.none,
 }) {
   final start = monthStart(month);
   // 0 is [month], -1 the month before, and so on.
@@ -219,6 +223,18 @@ InsightRequest buildInsightRequest({
     'spends': spends,
     'income': income,
     if (note?.trim() case final text? when text.isNotEmpty) 'note': text,
+    if (!budget.isEmpty)
+      'budget': {
+        'everyday': switch (budget.everydayPaise) {
+          final paise? => _someRupees(paise),
+          null => null,
+        },
+        'caps': [
+          for (final category in spendCategories)
+            if (budget.caps[category.id] case final cap?)
+              {'category': category.id, 'cap': _someRupees(cap)},
+        ],
+      },
   };
 
   return InsightRequest(
@@ -257,6 +273,9 @@ String _fingerprint(Map<String, Object?> body) {
 }
 
 int _rupees(int paise) => (paise / 100).round();
+
+/// Whole rupees, at least one: a budget of a few paise is still a budget.
+int _someRupees(int paise) => math.max(1, _rupees(paise));
 
 int _byTotal(_Group a, _Group b) {
   final byTotal = b.totalPaise.compareTo(a.totalPaise);

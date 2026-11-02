@@ -73,7 +73,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final messages =
         ref.watch(chatMessagesProvider).value ?? const <ChatMessage>[];
-    final month = ref.watch(chatMonthProvider).value?.month;
+    // What goes along with each message.
+    final sent = ref.watch(chatMonthProvider).value;
     final chat = ref.watch(chatControllerProvider);
     final setUp = ref.watch(aiClientProvider).isSetUp;
     final failure = chat.sending ? null : chat.failure;
@@ -90,7 +91,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (messages.isEmpty)
         _Welcome(ideas: _ideas, onIdea: setUp ? _send : null),
       _AboutChat(
-        onSeeSent: month == null ? null : () => showSentSheet(context, month),
+        onSeeSent: sent == null
+            ? null
+            : () => showSentSheet(context, sent.month, goals: sent.goals),
       ),
     ];
 

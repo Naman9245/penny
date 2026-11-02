@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:penny/models/budget.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
@@ -290,6 +291,41 @@ void main() {
     final noted = build(txns, note: '  Student in a PG  ');
     expect(noted.body['note'], 'Student in a PG');
     expect(noted.inputHash, isNot(plain.inputHash));
+  });
+
+  test('the budget goes along in rupees, and a new one means a new look', () {
+    final txns = [
+      txn(300, DateTime(2026, 10, 2), merchant: 'Swiggy'),
+      txn(900, DateTime(2026, 10, 4), categoryId: 'rent'),
+      txn(80, DateTime(2026, 10, 5)),
+    ];
+    InsightRequest withBudget(Budget budget) => buildInsightRequest(
+      month: october,
+      txns: txns,
+      now: afterOctober,
+      budget: budget,
+    );
+    final plain = build(txns);
+    expect(plain.body.containsKey('budget'), isFalse);
+
+    final budgeted = withBudget(
+      const Budget(everydayPaise: 800050, caps: {'rent': 900000, 'food': 40}),
+    );
+    // Caps in the categories' own order; a cap of paise is still a rupee.
+    expect(budgeted.body['budget'], {
+      'everyday': 8001,
+      'caps': [
+        {'category': 'food', 'cap': 1},
+        {'category': 'rent', 'cap': 9000},
+      ],
+    });
+    expect(budgeted.inputHash, isNot(plain.inputHash));
+    expect(withBudget(const Budget(caps: {'food': 300000})).body['budget'], {
+      'everyday': null,
+      'caps': [
+        {'category': 'food', 'cap': 3000},
+      ],
+    });
   });
 
   test('Penny needs three spends before you can ask', () {

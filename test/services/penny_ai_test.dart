@@ -3,6 +3,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/chat.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/goal_plan.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/penny_ai.dart';
 
@@ -104,6 +105,97 @@ void main() {
         ),
       ),
       notSetUp,
+    );
+  });
+
+  group('goal plans', () {
+    final planRequest = GoalPlanRequest(
+      goalId: 'g1',
+      month: request,
+      tags: const {},
+      goal: const {
+        'title': 'Delhi trip',
+        'target': 15000,
+        'saved': 3000,
+        'weeksLeft': 15,
+        'perWeek': 800,
+        'perMonth': 3477,
+      },
+      inputHash: 'hash',
+    );
+
+    test('a plan comes back with only the groups that were sent', () {
+      final answer = planAnswerFrom({
+        'plan': {
+          'cuts': [
+            {
+              'title': 'Fewer delivery nights',
+              'groups': ['s1', 's9'],
+              'cut': 'half',
+              'tip': 'Cook twice a week.',
+            },
+          ],
+          'summary': 'Delhi is within reach!',
+        },
+        'model': 'gemini-3.5-flash-lite',
+        'callsLeftToday': 8,
+      }, planRequest)!;
+
+      expect(answer.plan.cuts.single.groupIds, ['s1']);
+      expect(answer.plan.summary, 'Delhi is within reach!');
+      expect(answer.callsLeftToday, 8);
+      expect(planAnswerFrom({'model': 'm'}, planRequest), isNull);
+      expect(planAnswerFrom('plan', planRequest), isNull);
+    });
+
+    test('a build without the server says so before trying', () async {
+      final client = SupabaseAiClient(url: '', publishableKey: '');
+      await expectLater(
+        client.planGoal(planRequest),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.failure,
+            'failure',
+            AiFailure.notSetUp,
+          ),
+        ),
+      );
+    });
+  });
+
+  test('goals go to the chat in rupees, with their date', () {
+    final chat = ChatRequest(
+      month: request,
+      tags: const {},
+      turns: const [(role: ChatRole.user, text: 'Hi')],
+      goals: [
+        (
+          title: 'Delhi trip',
+          targetPaise: 1500000,
+          savedPaise: 300050,
+          deadline: DateTime(2027, 2, 15),
+          perWeekPaise: 80000,
+          reached: false,
+        ),
+      ],
+    );
+    expect(chat.toJson()['goals'], [
+      {
+        'title': 'Delhi trip',
+        'target': 15000,
+        'saved': 3001,
+        'deadline': '2027-02-15',
+        'perWeek': 800,
+        'reached': false,
+      },
+    ]);
+    expect(
+      ChatRequest(
+        month: request,
+        tags: const {},
+        turns: const [(role: ChatRole.user, text: 'Hi')],
+      ).toJson().containsKey('goals'),
+      isFalse,
     );
   });
 

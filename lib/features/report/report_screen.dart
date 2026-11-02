@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
-import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
@@ -23,10 +22,12 @@ import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/brutal_pill.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/tag_split_bar.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
+import 'package:penny/widgets/waiting_bar.dart';
 
 /// Penny's look at one month: habits worth cutting and what cutting them
 /// would have saved, the necessary-or-wasteful split, and how steady the
@@ -237,7 +238,7 @@ class _Thinking extends StatelessWidget {
             ],
           ),
           SizedBox(height: 14),
-          _Waiting(),
+          WaitingBar(),
         ],
       ),
     );
@@ -246,43 +247,6 @@ class _Thinking extends StatelessWidget {
 
 /// A bar that keeps moving while Penny thinks, so a long wait doesn't look
 /// stuck. It holds still when the system asks for less motion.
-class _Waiting extends StatelessWidget {
-  const _Waiting();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 14,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(kPillRadius),
-            border: Border.all(color: AppColors.ink, width: 2),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(kPillRadius),
-            child: MediaQuery.disableAnimationsOf(context)
-                ? const SizedBox.expand()
-                : const LinearProgressIndicator(
-                    minHeight: 10,
-                    color: AppColors.ink,
-                    backgroundColor: AppColors.white,
-                    semanticsLabel: 'Penny is thinking',
-                  ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'This can take up to half a minute.',
-          style: AppText.small.copyWith(color: AppColors.ink),
-        ),
-      ],
-    );
-  }
-}
-
 class _Problem extends StatelessWidget {
   const _Problem({required this.failure, required this.onRetry});
 
@@ -463,7 +427,7 @@ class _Stale extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (asking)
-            const _Waiting()
+            const WaitingBar()
           else
             BrutalButton(
               key: const ValueKey('refresh-report'),
@@ -591,9 +555,9 @@ class _HabitCard extends StatelessWidget {
               Semantics(
                 label: cut.label,
                 excludeSemantics: true,
-                child: _Pill(label: cut.short, color: AppColors.white),
+                child: BrutalPill(label: cut.short, color: AppColors.white),
               ),
-              _Pill(
+              BrutalPill(
                 label: 'Save ${formatPaise(habit.savePaise)}',
                 color: AppColors.mint,
               ),
@@ -621,26 +585,6 @@ class _HabitCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(kPillRadius),
-        border: Border.all(color: AppColors.ink, width: 1.5),
-      ),
-      child: Text(label, style: AppText.chip),
     );
   }
 }
