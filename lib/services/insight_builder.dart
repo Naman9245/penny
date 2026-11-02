@@ -223,16 +223,17 @@ InsightRequest buildInsightRequest({
     'spends': spends,
     'income': income,
     if (note?.trim() case final text? when text.isNotEmpty) 'note': text,
+    // Each category's amount goes as a cap, and the everyday part of their
+    // total as the everyday budget.
     if (!budget.isEmpty)
       'budget': {
-        'everyday': switch (budget.everydayPaise) {
-          final paise? => _someRupees(paise),
-          null => null,
-        },
+        'everyday': budget.everydayPaise > 0
+            ? _someRupees(budget.everydayPaise)
+            : null,
         'caps': [
           for (final category in spendCategories)
-            if (budget.caps[category.id] case final cap?)
-              {'category': category.id, 'cap': _someRupees(cap)},
+            if (budget.byCategory[category.id] case final amount?)
+              {'category': category.id, 'cap': _someRupees(amount)},
         ],
       },
   };

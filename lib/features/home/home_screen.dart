@@ -50,7 +50,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 18),
           _PennyCard(mood: mood, status: status),
-          if (status.budget.everydayPaise == null) ...[
+          if (status.budget.isEmpty) ...[
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
@@ -125,7 +125,7 @@ class _PennyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final budget = status.budget.everydayPaise;
+    final everyday = status.budget.everydayPaise;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
@@ -153,15 +153,15 @@ class _PennyCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(mood.line, style: AppText.h3),
-                if (status.capNote case final note?) ...[
+                if (status.categoryNote case final note?) ...[
                   const SizedBox(height: 4),
                   Text(note, style: AppText.bodyStrong),
                 ],
-                if (budget != null) ...[
+                if (everyday > 0) ...[
                   const SizedBox(height: 4),
                   Text(
                     '${formatPaise(status.everydaySpentPaise)} of '
-                    '${formatPaise(budget)} · '
+                    '${formatPaise(everyday)} · '
                     '${daysLeftLabel(status.daysLeft)}',
                     key: const ValueKey('budget-line'),
                     style: AppText.bodyStrong,

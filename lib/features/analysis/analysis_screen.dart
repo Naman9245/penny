@@ -67,7 +67,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       for (final t in totals)
         if (t.type == TxnType.credit) t,
     ];
-    final caps = ref.watch(budgetProvider).value?.caps ?? const <String, int>{};
+    final budgets =
+        ref.watch(budgetProvider).value?.byCategory ?? const <String, int>{};
 
     return SafeArea(
       bottom: false,
@@ -95,7 +96,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                 totals: spent,
                 outOf: summary.spentPaise,
                 month: _month,
-                caps: caps,
+                budgets: budgets,
               ),
             ],
             if (got.isNotEmpty) ...[
@@ -242,7 +243,7 @@ class _CategoryCards extends StatelessWidget {
     required this.totals,
     required this.outOf,
     required this.month,
-    this.caps = const {},
+    this.budgets = const {},
   });
 
   final List<CategoryTotal> totals;
@@ -251,8 +252,8 @@ class _CategoryCards extends StatelessWidget {
   final int outOf;
   final DateTime month;
 
-  /// Category id → the user's monthly cap for it.
-  final Map<String, int> caps;
+  /// Category id → what the user means to spend on it a month.
+  final Map<String, int> budgets;
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +283,7 @@ class _CategoryCards extends StatelessWidget {
   Widget _card(BuildContext context, CategoryTotal total) {
     final category = categoryById(total.categoryId);
     final share = outOf <= 0 ? 0.0 : total.totalPaise / outOf;
-    final cap = caps[category.id];
+    final budget = budgets[category.id];
     return BrutalCard(
       key: ValueKey('category-card-${category.id}'),
       color: category.color,
@@ -316,20 +317,20 @@ class _CategoryCards extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: MoneyText(total.totalPaise, style: AppText.amount),
           ),
-          Text(switch (cap) {
+          Text(switch (budget) {
             null when total.count == 1 => '1 entry',
             null => '${total.count} entries',
             final limit when total.totalPaise > limit =>
-              '${formatPaise(total.totalPaise - limit)} over your cap',
+              '${formatPaise(total.totalPaise - limit)} over budget',
             final limit => 'of ${formatPaise(limit)}',
           }, style: AppText.small.copyWith(color: AppColors.ink)),
           const Spacer(),
           const SizedBox(height: 10),
-          // With a cap, the bar shows how much of it is used.
-          if (cap != null)
+          // With a budget, the bar shows how much of it is used.
+          if (budget != null)
             _ShareBar(
-              key: ValueKey('cap-bar-${category.id}'),
-              share: total.totalPaise / cap,
+              key: ValueKey('budget-bar-${category.id}'),
+              share: total.totalPaise / budget,
             )
           else
             _ShareBar(share: share),
@@ -339,8 +340,8 @@ class _CategoryCards extends StatelessWidget {
   }
 }
 
-/// How much of the month, or of a cap, this category is, as a chunky bar.
-/// Past a cap the bar is full and pink.
+/// How much of the month, or of its budget, this category is, as a chunky
+/// bar. Past its budget the bar is full and pink.
 class _ShareBar extends StatelessWidget {
   const _ShareBar({super.key, required this.share});
 

@@ -40,7 +40,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('setting a budget changes Penny on Home', (tester) async {
+  Finder inTotal(String text) => find.descendant(
+    of: find.byKey(const ValueKey('monthly-budget')),
+    matching: find.text(text),
+  );
+
+  testWidgets('category budgets add up, and Penny goes by them', (
+    tester,
+  ) async {
     final db = await pumpApp(tester, seed: seedMonth);
     expect(find.text("All good! You're on track."), findsOneWidget);
     expect(find.byKey(const ValueKey('budget-line')), findsNothing);
@@ -50,41 +57,51 @@ void main() {
     expect(find.byType(BudgetScreen), findsOneWidget);
     expect(find.text('Not set yet'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('everyday-budget')));
+    await tester.tap(find.byKey(const ValueKey('budget-food')));
     await tester.pumpAndSettle();
-    await type(tester, '7000');
-    expect(find.textContaining('₹6,000 spent this month'), findsOneWidget);
+    await type(tester, '5000+2000');
+    final rent = find.byKey(const ValueKey('budget-rent'));
+    await tester.ensureVisible(rent);
+    await tester.pumpAndSettle();
+    await tester.tap(rent);
+    await tester.pumpAndSettle();
+    await type(tester, '9000');
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('monthly-budget')),
+      -300,
+    );
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsLabel('Back'));
+    // Food's ₹7,000 and rent's ₹9,000 add up to the monthly budget.
+    expect(inTotal('₹16,000'), findsOneWidget);
+    expect(inTotal('Everyday ₹7,000 · Paid in one go ₹9,000'), findsOneWidget);
+    expect(find.text('₹6,000 of ₹7,000 this month'), findsOneWidget);
+
+    // The header scrolled away with the list, so leave the way Back would.
+    routerOf(tester).pop();
     await tester.pumpAndSettle();
-    // ₹6,000 of ₹7,000 is past 85%, and rent doesn't count.
+    // ₹6,000 of ₹7,000 everyday is past 85%; rent doesn't count.
     expect(find.text("You're close to your spending cap."), findsOneWidget);
+    expect(find.text('Food is near its budget'), findsOneWidget);
     expect(find.text('₹6,000 of ₹7,000 · $left'), findsOneWidget);
     expect(find.byKey(const ValueKey('set-budget')), findsNothing);
     await closeApp(tester, db);
   });
 
-  testWidgets('a cap shows on its category card, and clears', (tester) async {
+  testWidgets('a budget shows on its category card, and clears', (
+    tester,
+  ) async {
     final db = await pumpApp(
       tester,
       seed: seedMonth,
-      seedDb: (db) => BudgetRepository(db).setEveryday(2000000),
+      seedDb: (db) => BudgetRepository(db).setAmount('food', 500000),
     );
-    routerOf(tester).push('/budget');
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('cap-food')));
-    await tester.pumpAndSettle();
-    await type(tester, '5000');
-    expect(find.text('₹6,000 of ₹5,000 this month'), findsOneWidget);
-
-    await tester.tap(find.bySemanticsLabel('Back'));
-    await tester.pumpAndSettle();
     expect(
       find.text("You've gone over budget. Let's plan a quick fix!"),
       findsOneWidget,
     );
-    expect(find.text('Food is over its cap'), findsOneWidget);
+    expect(find.text('Food is over its budget'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Analysis'));
     await tester.pumpAndSettle();
@@ -92,19 +109,20 @@ void main() {
     await tester.scrollUntilVisible(card, 300);
     await tester.pumpAndSettle();
     expect(
-      find.descendant(of: card, matching: find.text('₹1,000 over your cap')),
+      find.descendant(of: card, matching: find.text('₹1,000 over budget')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('cap-bar-food')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget-bar-food')), findsOneWidget);
 
-    // Clearing the cap takes it off the card.
+    // Clearing it takes it off the page's total.
     routerOf(tester).push('/budget');
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('cap-food')));
+    await tester.tap(find.byKey(const ValueKey('budget-food')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('amount-clear')));
     await tester.pumpAndSettle();
-    expect(find.text('₹6,000 this month'), findsOneWidget);
+    expect(find.text('₹6,000 this month · no budget'), findsOneWidget);
+    expect(find.text('Not set yet'), findsOneWidget);
     await closeApp(tester, db);
   });
 }

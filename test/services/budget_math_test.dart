@@ -23,18 +23,22 @@ void main() {
 
   PennyMood mood(Budget budget, List<Txn> txns) => status(budget, txns).mood;
 
-  const budget = Budget(everydayPaise: 900000); // ₹9,000
+  // ₹9,000 of everyday budget, all of it for food.
+  const budget = Budget(byCategory: {'food': 900000});
 
-  test('everyday spending leaves out what is paid in one go, and income', () {
-    final month = status(Budget.none, [
-      txn(400, on(2)),
-      txn(150, on(3), categoryId: 'travel'),
-      txn(8000, on(1), categoryId: 'rent'),
-      txn(299, on(4), categoryId: 'subscriptions'),
-      txn(15000, on(1), type: TxnType.credit, categoryId: 'pocket_money'),
-    ]);
-    expect(month.everydaySpentPaise, 55000);
+  test('only budgeted everyday categories count, never one-go ones', () {
+    final month = status(
+      const Budget(byCategory: {'food': 600000, 'rent': 800000}),
+      [
+        txn(400, on(2)),
+        txn(150, on(3), categoryId: 'travel'), // No budget.
+        txn(8000, on(1), categoryId: 'rent'),
+        txn(15000, on(1), type: TxnType.credit, categoryId: 'pocket_money'),
+      ],
+    );
+    expect(month.everydaySpentPaise, 40000);
     expect(month.spentIn('rent'), 800000);
+    expect(month.spentIn('travel'), 15000);
     expect(month.spentIn('pocket_money'), 0);
     expect(month.daysLeft, 20);
   });
@@ -50,45 +54,45 @@ void main() {
     expect(mood(budget, const []), PennyMood.happy);
   });
 
-  test('85% of the budget is worried, over it sad', () {
+  test('85% of the everyday budget is worried, over it sad', () {
     expect(mood(budget, [txn(7649, on(4))]), PennyMood.neutral);
     expect(mood(budget, [txn(7650, on(4))]), PennyMood.worried);
     expect(mood(budget, [txn(9001, on(4))]), PennyMood.sad);
   });
 
-  test('a cap near its limit worries Penny, over it saddens her', () {
-    const caps = Budget(everydayPaise: 900000, caps: {'food': 200000});
-    expect(mood(caps, [txn(1700, on(4))]), PennyMood.worried);
-    expect(mood(caps, [txn(2001, on(4))]), PennyMood.sad);
-    // Caps alone, all well under: happy.
-    expect(
-      mood(const Budget(caps: {'food': 200000}), [txn(500, on(4))]),
-      PennyMood.happy,
-    );
+  test("a category near its own budget worries Penny, over it sad", () {
+    const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
+    expect(mood(split, [txn(1700, on(4))]), PennyMood.worried);
+    expect(mood(split, [txn(2001, on(4))]), PennyMood.sad);
   });
 
-  test('the cap behind the mood is named', () {
-    const caps = Budget(caps: {'food': 200000, 'fun': 100000, 'rent': 800000});
-    expect(status(caps, [txn(500, on(4))]).capNote, isNull);
-    expect(status(caps, [txn(1800, on(4))]).capNote, 'Food is near its cap');
+  test('the category behind the mood is named', () {
+    const split = Budget(
+      byCategory: {'food': 200000, 'fun': 100000, 'rent': 800000},
+    );
+    expect(status(split, [txn(500, on(4))]).categoryNote, isNull);
     expect(
-      status(caps, [
+      status(split, [txn(1800, on(4))]).categoryNote,
+      'Food is near its budget',
+    );
+    expect(
+      status(split, [
         txn(1800, on(4)),
         txn(1200, on(5), categoryId: 'fun'),
-      ]).capNote,
-      'Fun is over its cap',
+      ]).categoryNote,
+      'Fun is over its budget',
     );
-    // Rent at its cap is no worry.
+    // Rent using all of its budget is no worry.
     expect(
-      status(caps, [txn(8000, on(1), categoryId: 'rent')]).capNote,
+      status(split, [txn(8000, on(1), categoryId: 'rent')]).categoryNote,
       isNull,
     );
   });
 
-  test('rent using its whole cap is fine; only going over it counts', () {
-    const caps = Budget(everydayPaise: 900000, caps: {'rent': 800000});
-    expect(mood(caps, [txn(8000, on(1), categoryId: 'rent')]), PennyMood.happy);
-    expect(mood(caps, [txn(8500, on(1), categoryId: 'rent')]), PennyMood.sad);
+  test('rent using its whole budget is fine; only going over it counts', () {
+    const rent = Budget(byCategory: {'rent': 800000});
+    expect(mood(rent, [txn(8000, on(1), categoryId: 'rent')]), PennyMood.happy);
+    expect(mood(rent, [txn(8500, on(1), categoryId: 'rent')]), PennyMood.sad);
   });
 
   test('a month that is over counts every day', () {
@@ -122,14 +126,17 @@ void main() {
         txn(450, on(4)),
         txn(451, on(5)),
         txn(8000, on(7), categoryId: 'rent'),
+        txn(5000, on(8), categoryId: 'shopping'),
       ]);
       expect(days[2], PennyMood.happy);
       expect(days[3], PennyMood.worried);
       expect(days[4], PennyMood.worried);
       expect(days[5], PennyMood.sad);
-      // Nothing spent is a good day, and rent stays out.
+      // Nothing spent is a good day; rent and categories without a budget
+      // stay out.
       expect(days[6], PennyMood.happy);
       expect(days[7], PennyMood.happy);
+      expect(days[8], PennyMood.happy);
     });
 
     test('no mood before the first entry or after today', () {

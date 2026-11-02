@@ -15,8 +15,9 @@ import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/money_text.dart';
 
-/// The budget: what the user means to spend on everyday things each month,
-/// and caps for single categories. Penny's mood and the calendar go by it.
+/// The budget: what the user means to spend on each category a month. The
+/// monthly budget is their total; Penny's mood and the calendar go by its
+/// everyday part.
 class BudgetScreen extends ConsumerWidget {
   const BudgetScreen({super.key});
 
@@ -25,24 +26,14 @@ class BudgetScreen extends ConsumerWidget {
     final status = ref.watch(budgetStatusProvider);
     final repo = ref.read(budgetRepositoryProvider);
 
-    Future<void> editEveryday() async {
+    Future<void> edit(Category category) async {
       final paise = await showAmountSheet(
         context,
-        title: 'Monthly budget',
-        hint: 'What you mean to spend on everyday things each month.',
-        initialPaise: status.budget.everydayPaise,
+        title: '${category.label} budget',
+        hint: 'What you mean to spend on it each month.',
+        initialPaise: status.budget.byCategory[category.id],
       );
-      if (paise != null) await repo.setEveryday(paise);
-    }
-
-    Future<void> editCap(Category category) async {
-      final paise = await showAmountSheet(
-        context,
-        title: '${category.label} cap',
-        hint: 'The most you mean to spend on it each month.',
-        initialPaise: status.budget.caps[category.id],
-      );
-      if (paise != null) await repo.setCap(category.id, paise);
+      if (paise != null) await repo.setAmount(category.id, paise);
     }
 
     return Scaffold(
@@ -73,12 +64,13 @@ class BudgetScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 22),
-            _Everyday(status: status, onTap: editEveryday),
+            _Total(status: status),
             const SizedBox(height: 28),
-            const Text('Caps', style: AppText.h2),
+            const Text('Budget by category', style: AppText.h2),
             const SizedBox(height: 4),
             const Text(
-              'Optional limits for single categories, every month.',
+              'Give the categories you care about an amount. They add up to '
+              'your monthly budget, and Penny watches the ones that have one.',
               style: AppText.small,
             ),
             const SizedBox(height: 12),
@@ -89,11 +81,11 @@ class BudgetScreen extends ConsumerWidget {
                 children: [
                   for (final (i, category) in spendCategories.indexed) ...[
                     if (i > 0) const RowDivider(),
-                    _CapRow(
+                    _CategoryRow(
                       category: category,
                       spentPaise: status.spentIn(category.id),
-                      capPaise: status.budget.caps[category.id],
-                      onTap: () => editCap(category),
+                      amountPaise: status.budget.byCategory[category.id],
+                      onTap: () => edit(category),
                     ),
                   ],
                 ],
@@ -106,55 +98,61 @@ class BudgetScreen extends ConsumerWidget {
   }
 }
 
-class _Everyday extends StatelessWidget {
-  const _Everyday({required this.status, required this.onTap});
+/// The monthly budget: the categories' total, and how the everyday part of
+/// it is going.
+class _Total extends StatelessWidget {
+  const _Total({required this.status});
 
   final BudgetStatus status;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final budget = status.budget.everydayPaise;
+    final budget = status.budget;
+    final everyday = budget.everydayPaise;
     final spent = status.everydaySpentPaise;
     return BrutalCard(
-      key: const ValueKey('everyday-budget'),
+      key: const ValueKey('monthly-budget'),
       color: AppColors.yellow,
-      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Monthly budget', style: AppText.label),
-              ),
-              Text(budget == null ? 'Set' : 'Edit', style: AppText.chip),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.ink),
-            ],
-          ),
+          const Text('Monthly budget', style: AppText.label),
           const SizedBox(height: 4),
-          if (budget == null)
-            const Text('Not set yet', style: AppText.h2)
-          else ...[
+          if (budget.isEmpty) ...[
+            const Text('Not set yet', style: AppText.h2),
+            const SizedBox(height: 4),
+            const Text(
+              'Give the categories below a budget. They add up here.',
+              style: AppText.bodyStrong,
+            ),
+          ] else ...[
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: MoneyText(budget, style: AppText.hero),
+              child: MoneyText(budget.totalPaise, style: AppText.hero),
             ),
-            const SizedBox(height: 2),
             Text(
-              '${formatPaise(spent)} spent this month · '
-              '${daysLeftLabel(status.daysLeft)}',
+              'Everyday ${formatPaise(everyday)} · Paid in one go '
+              '${formatPaise(budget.oneGoPaise)}',
+              key: const ValueKey('budget-split'),
               style: AppText.bodyStrong,
             ),
-            const SizedBox(height: 10),
-            _UsedBar(used: spent / budget),
+            if (everyday > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${formatPaise(spent)} of ${formatPaise(everyday)} everyday '
+                'spent · ${daysLeftLabel(status.daysLeft)}',
+                style: AppText.small.copyWith(color: AppColors.ink),
+              ),
+              const SizedBox(height: 8),
+              _UsedBar(used: spent / everyday),
+            ],
           ],
           const SizedBox(height: 10),
           const Text(
-            'For everyday spending. Rent & PG, Bills & recharge, '
-            'Subscriptions and Education are paid in one go, so they stay '
-            'out.',
+            'Rent & PG, Bills & recharge, Subscriptions and Education are paid '
+            'in one go, so Penny\'s mood and the calendar go by everyday '
+            'spending.',
             style: AppText.small,
           ),
         ],
@@ -163,24 +161,24 @@ class _Everyday extends StatelessWidget {
   }
 }
 
-class _CapRow extends StatelessWidget {
-  const _CapRow({
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({
     required this.category,
     required this.spentPaise,
-    required this.capPaise,
+    required this.amountPaise,
     required this.onTap,
   });
 
   final Category category;
   final int spentPaise;
-  final int? capPaise;
+  final int? amountPaise;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final cap = capPaise;
+    final amount = amountPaise;
     return InkWell(
-      key: ValueKey('cap-${category.id}'),
+      key: ValueKey('budget-${category.id}'),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 10, 12),
@@ -200,9 +198,9 @@ class _CapRow extends StatelessWidget {
                 children: [
                   Text(category.label, style: AppText.label),
                   Text(
-                    cap == null
-                        ? '${formatPaise(spentPaise)} this month'
-                        : '${formatPaise(spentPaise)} of ${formatPaise(cap)} '
+                    amount == null
+                        ? '${formatPaise(spentPaise)} this month · no budget'
+                        : '${formatPaise(spentPaise)} of ${formatPaise(amount)} '
                               'this month',
                     style: AppText.small,
                   ),
@@ -210,7 +208,7 @@ class _CapRow extends StatelessWidget {
               ),
             ),
             Text(
-              cap == null ? 'No cap' : formatPaise(cap),
+              amount == null ? 'Add' : formatPaise(amount),
               style: AppText.chip,
             ),
             const Icon(Icons.chevron_right_rounded, color: AppColors.ink),
@@ -221,7 +219,8 @@ class _CapRow extends StatelessWidget {
   }
 }
 
-/// How much of a budget or cap is used, as a chunky bar.
+/// How much of a budget is used, as a chunky bar. Past it, the bar is full
+/// and pink.
 class _UsedBar extends StatelessWidget {
   const _UsedBar({required this.used});
 

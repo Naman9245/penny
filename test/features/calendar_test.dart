@@ -47,7 +47,7 @@ void main() {
     final db = await pumpApp(
       tester,
       seed: seedMonth,
-      seedDb: (db) => BudgetRepository(db).setEveryday(3000000),
+      seedDb: (db) => BudgetRepository(db).setAmount('food', 3000000),
     );
     await openLastMonth(tester);
 

@@ -35,7 +35,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final budget = ref.watch(budgetProvider).value ?? Budget.none;
     final txns = ref.watch(monthTxnsProvider(_month)).value ?? const <Txn>[];
     final everyday = budget.everydayPaise;
-    final share = everyday == null ? null : dailySharePaise(everyday, _month);
+    final share = everyday == 0 ? null : dailySharePaise(everyday, _month);
     final moods = dayMoods(
       budget: budget,
       monthTxns: txns,
@@ -109,7 +109,8 @@ class _SetBudget extends StatelessWidget {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Set a monthly budget and every day gets my mood.',
+                  'Give your everyday categories a budget and every day '
+                  'gets my mood.',
                   style: AppText.h3,
                 ),
               ),

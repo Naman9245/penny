@@ -9,8 +9,14 @@ import 'package:penny/models/txn_enums.dart';
 // Penny's mood, worked out on the phone from the budget and the month's
 // entries. Never stored, as the brief's DailyMood rule says.
 
-/// The share of a budget or cap, in percent, at which Penny starts to worry.
+/// The share of a budget, in percent, at which Penny starts to worry.
 const _worriedAtPercent = 85;
+
+/// Whether [categoryId]'s spending counts towards the everyday budget: it
+/// has an amount of its own, and isn't paid in one go.
+bool _everyday(Budget budget, String categoryId) =>
+    budget.byCategory.containsKey(categoryId) &&
+    !categoryById(categoryId).oneGo;
 
 /// Where a month stands against the budget.
 @immutable
@@ -34,58 +40,59 @@ class BudgetStatus {
 
   int spentIn(String categoryId) => spentByCategory[categoryId] ?? 0;
 
-  /// Spending outside the categories paid in one go.
+  /// Spending in the everyday categories that have a budget. Categories
+  /// without one aren't counted.
   int get everydaySpentPaise => spentByCategory.entries
-      .where((entry) => !categoryById(entry.key).oneGo)
+      .where((entry) => _everyday(budget, entry.key))
       .fold(0, (sum, entry) => sum + entry.value);
 
   int get daysLeft => daysInMonth - day;
 
-  /// The cap Penny's mood is about, in words, when one is over or near.
-  String? get capNote {
-    final caps = budget.caps.entries;
-    for (final cap in caps) {
-      if (spentIn(cap.key) > cap.value) {
-        return '${categoryById(cap.key).label} is over its cap';
+  /// The category Penny's mood is about, in words, when one is over its
+  /// budget or near it.
+  String? get categoryNote {
+    final amounts = budget.byCategory.entries;
+    for (final amount in amounts) {
+      if (spentIn(amount.key) > amount.value) {
+        return '${categoryById(amount.key).label} is over its budget';
       }
     }
-    for (final cap in caps) {
-      final category = categoryById(cap.key);
+    for (final amount in amounts) {
+      final category = categoryById(amount.key);
       if (!category.oneGo &&
-          spentIn(cap.key) * 100 >= cap.value * _worriedAtPercent) {
-        return '${category.label} is near its cap';
+          spentIn(amount.key) * 100 >= amount.value * _worriedAtPercent) {
+        return '${category.label} is near its budget';
       }
     }
     return null;
   }
 
-  /// The first of these that holds: over a limit, near one, under the
-  /// budget's pace, or none of those.
+  /// The first of these that holds: over a budget, near one, under the
+  /// everyday budget's pace, or none of those.
   PennyMood get mood {
+    if (budget.isEmpty) return PennyMood.neutral;
     final everyday = budget.everydayPaise;
     final spent = everydaySpentPaise;
-    final caps = budget.caps.entries;
+    final amounts = budget.byCategory.entries;
 
     final over =
-        (everyday != null && spent > everyday) ||
-        caps.any((cap) => spentIn(cap.key) > cap.value);
+        spent > everyday ||
+        amounts.any((amount) => spentIn(amount.key) > amount.value);
     if (over) return PennyMood.sad;
 
-    // Rent or a bill uses its whole cap in one go, which is no worry.
+    // Rent or a bill uses its whole budget in one go, which is no worry.
     final near =
-        (everyday != null && spent * 100 >= everyday * _worriedAtPercent) ||
-        caps.any(
-          (cap) =>
-              !categoryById(cap.key).oneGo &&
-              spentIn(cap.key) * 100 >= cap.value * _worriedAtPercent,
+        (everyday > 0 && spent * 100 >= everyday * _worriedAtPercent) ||
+        amounts.any(
+          (amount) =>
+              !categoryById(amount.key).oneGo &&
+              spentIn(amount.key) * 100 >= amount.value * _worriedAtPercent,
         );
     if (near) return PennyMood.worried;
 
-    if (everyday != null) {
-      final onPace = spent * daysInMonth <= everyday * day;
-      return onPace ? PennyMood.happy : PennyMood.neutral;
-    }
-    return caps.isEmpty ? PennyMood.neutral : PennyMood.happy;
+    if (everyday == 0) return PennyMood.happy;
+    final onPace = spent * daysInMonth <= everyday * day;
+    return onPace ? PennyMood.happy : PennyMood.neutral;
   }
 }
 
@@ -123,11 +130,11 @@ int dailySharePaise(int everydayPaise, DateTime month) {
 }
 
 /// Penny's mood on each day of [month] that has one, by day of the month.
-/// It is that day's everyday spending against the day's share of the
-/// everyday budget: happy at or under it, worried up to one and a half
-/// times it, sad above that. A day a goal was reached is celebrating.
-/// Days after [now] or before [firstEntry] have none, and without an
-/// everyday budget only goal days do.
+/// It is that day's spending in the budgeted everyday categories against
+/// the day's share of their budget: happy at or under it, worried up to
+/// one and a half times it, sad above that. A day a goal was reached is
+/// celebrating. Days after [now] or before [firstEntry] have none, and
+/// without an everyday budget only goal days do.
 Map<int, PennyMood> dayMoods({
   required Budget budget,
   required Iterable<Txn> monthTxns,
@@ -142,7 +149,7 @@ Map<int, PennyMood> dayMoods({
   for (final txn in monthTxns) {
     final at = txn.occurredAt;
     if (txn.type != TxnType.debit ||
-        categoryById(txn.categoryId).oneGo ||
+        !_everyday(budget, txn.categoryId) ||
         monthStart(at) != start) {
       continue;
     }
@@ -160,7 +167,7 @@ Map<int, PennyMood> dayMoods({
       moods[day] = PennyMood.celebrating;
       continue;
     }
-    if (everyday == null || first == null || date.isBefore(first)) continue;
+    if (everyday == 0 || first == null || date.isBefore(first)) continue;
     // The day's share is everyday ÷ days in the month; compare without
     // dividing.
     final scaled = spent[day] * daysInMonth;

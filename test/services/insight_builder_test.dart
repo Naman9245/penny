@@ -309,21 +309,24 @@ void main() {
     expect(plain.body.containsKey('budget'), isFalse);
 
     final budgeted = withBudget(
-      const Budget(everydayPaise: 800050, caps: {'rent': 900000, 'food': 40}),
+      const Budget(byCategory: {'rent': 900000, 'food': 300040, 'fun': 100000}),
     );
-    // Caps in the categories' own order; a cap of paise is still a rupee.
+    // Each category's amount as a cap, in the categories' own order, and
+    // the everyday part of their total as the everyday budget.
     expect(budgeted.body['budget'], {
-      'everyday': 8001,
+      'everyday': 4000,
       'caps': [
-        {'category': 'food', 'cap': 1},
+        {'category': 'food', 'cap': 3000},
         {'category': 'rent', 'cap': 9000},
+        {'category': 'fun', 'cap': 1000},
       ],
     });
     expect(budgeted.inputHash, isNot(plain.inputHash));
-    expect(withBudget(const Budget(caps: {'food': 300000})).body['budget'], {
+    // Only rent: nothing everyday, and a budget of paise is still a rupee.
+    expect(withBudget(const Budget(byCategory: {'rent': 40})).body['budget'], {
       'everyday': null,
       'caps': [
-        {'category': 'food', 'cap': 3000},
+        {'category': 'rent', 'cap': 1},
       ],
     });
   });
