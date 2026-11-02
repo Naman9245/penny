@@ -67,6 +67,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       for (final t in totals)
         if (t.type == TxnType.credit) t,
     ];
+    final caps = ref.watch(budgetProvider).value?.caps ?? const <String, int>{};
 
     return SafeArea(
       bottom: false,
@@ -94,6 +95,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                 totals: spent,
                 outOf: summary.spentPaise,
                 month: _month,
+                caps: caps,
               ),
             ],
             if (got.isNotEmpty) ...[
@@ -209,13 +211,24 @@ class _SplitCard extends ConsumerWidget {
             onPressed: () => context.push(reportLocation(month)),
           ),
           const SizedBox(height: 10),
-          Center(
-            child: BrutalChip(
-              key: const ValueKey('open-needs'),
-              label: 'Edit my needs',
-              icon: Icons.tune_rounded,
-              onTap: () => context.push('/needs'),
-            ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              BrutalChip(
+                key: const ValueKey('open-needs'),
+                label: 'Edit my needs',
+                icon: Icons.tune_rounded,
+                onTap: () => context.push('/needs'),
+              ),
+              BrutalChip(
+                key: const ValueKey('open-budget'),
+                label: 'Budget',
+                icon: Icons.savings_outlined,
+                onTap: () => context.push('/budget'),
+              ),
+            ],
           ),
         ],
       ),
@@ -229,6 +242,7 @@ class _CategoryCards extends StatelessWidget {
     required this.totals,
     required this.outOf,
     required this.month,
+    this.caps = const {},
   });
 
   final List<CategoryTotal> totals;
@@ -236,6 +250,9 @@ class _CategoryCards extends StatelessWidget {
   /// The month's total the shares are taken of.
   final int outOf;
   final DateTime month;
+
+  /// Category id → the user's monthly cap for it.
+  final Map<String, int> caps;
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +282,7 @@ class _CategoryCards extends StatelessWidget {
   Widget _card(BuildContext context, CategoryTotal total) {
     final category = categoryById(total.categoryId);
     final share = outOf <= 0 ? 0.0 : total.totalPaise / outOf;
+    final cap = caps[category.id];
     return BrutalCard(
       key: ValueKey('category-card-${category.id}'),
       color: category.color,
@@ -298,22 +316,33 @@ class _CategoryCards extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: MoneyText(total.totalPaise, style: AppText.amount),
           ),
-          Text(
-            total.count == 1 ? '1 entry' : '${total.count} entries',
-            style: AppText.small.copyWith(color: AppColors.ink),
-          ),
+          Text(switch (cap) {
+            null when total.count == 1 => '1 entry',
+            null => '${total.count} entries',
+            final limit when total.totalPaise > limit =>
+              '${formatPaise(total.totalPaise - limit)} over your cap',
+            final limit => 'of ${formatPaise(limit)}',
+          }, style: AppText.small.copyWith(color: AppColors.ink)),
           const Spacer(),
           const SizedBox(height: 10),
-          _ShareBar(share: share),
+          // With a cap, the bar shows how much of it is used.
+          if (cap != null)
+            _ShareBar(
+              key: ValueKey('cap-bar-${category.id}'),
+              share: total.totalPaise / cap,
+            )
+          else
+            _ShareBar(share: share),
         ],
       ),
     );
   }
 }
 
-/// How much of the month this category is, as a chunky bar.
+/// How much of the month, or of a cap, this category is, as a chunky bar.
+/// Past a cap the bar is full and pink.
 class _ShareBar extends StatelessWidget {
-  const _ShareBar({required this.share});
+  const _ShareBar({super.key, required this.share});
 
   final double share;
 
@@ -331,10 +360,10 @@ class _ShareBar extends StatelessWidget {
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: math.min(1.0, share),
-        child: const DecoratedBox(
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.ink,
-            borderRadius: BorderRadius.all(Radius.circular(kPillRadius)),
+            color: share > 1 ? AppColors.pink : AppColors.ink,
+            borderRadius: const BorderRadius.all(Radius.circular(kPillRadius)),
           ),
         ),
       ),

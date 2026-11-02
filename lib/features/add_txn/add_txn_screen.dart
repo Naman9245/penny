@@ -10,7 +10,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/add_txn/add_txn_controller.dart';
-import 'package:penny/features/add_txn/amount_keypad.dart';
+import 'package:penny/widgets/amount_keypad.dart';
 import 'package:penny/features/add_txn/category_grid.dart';
 import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';

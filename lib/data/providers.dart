@@ -16,6 +16,7 @@ import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/your_rules.dart';
+import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 
@@ -55,9 +56,22 @@ final txnByDedupeKeyProvider = FutureProvider.autoDispose.family<Txn?, String>(
   (ref, key) => ref.watch(txnRepositoryProvider).findByDedupeKey(key),
 );
 
-/// Penny's current mood. Neutral until budgets arrive in Milestone 4; then
-/// it comes from spending pace against the caps.
-final pennyMoodProvider = Provider<PennyMood>((ref) => PennyMood.neutral);
+/// Where this month stands against the budget.
+final budgetStatusProvider = Provider.autoDispose<BudgetStatus>((ref) {
+  final now = DateTime.now();
+  final month = monthStart(now);
+  return budgetStatus(
+    budget: ref.watch(budgetProvider).value ?? Budget.none,
+    monthTxns: ref.watch(monthTxnsProvider(month)).value ?? const [],
+    month: month,
+    now: now,
+  );
+});
+
+/// Penny's current mood, from where the month stands against the budget.
+final pennyMoodProvider = Provider.autoDispose<PennyMood>(
+  (ref) => ref.watch(budgetStatusProvider).mood,
+);
 
 /// Per-category totals for the month containing the given date.
 final categoryTotalsProvider = StreamProvider.autoDispose

@@ -25,7 +25,7 @@ class AmountKeypad extends StatelessWidget {
   /// The ✓ key.
   final VoidCallback onDone;
 
-  /// Amount and category are both in, so ✓ lights up.
+  /// There is something to save, so ✓ lights up.
   final bool ready;
 
   static const _rowHeight = 58.0;

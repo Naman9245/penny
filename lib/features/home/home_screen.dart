@@ -6,10 +6,12 @@ import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/money_text.dart';
@@ -24,6 +26,7 @@ class HomeScreen extends ConsumerWidget {
     final now = DateTime.now();
     final month = monthStart(now);
     final mood = ref.watch(pennyMoodProvider);
+    final status = ref.watch(budgetStatusProvider);
     final summary = ref
         .watch(monthSummaryProvider(month))
         .when(
@@ -46,7 +49,19 @@ class HomeScreen extends ConsumerWidget {
             style: AppText.bodyMuted,
           ),
           const SizedBox(height: 18),
-          _PennyCard(mood: mood),
+          _PennyCard(mood: mood, status: status),
+          if (status.budget.everydayPaise == null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BrutalChip(
+                key: const ValueKey('set-budget'),
+                label: 'Set a budget',
+                icon: Icons.savings_outlined,
+                onTap: () => context.push('/budget'),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           _MonthBento(month: month, summary: summary),
           const SizedBox(height: 28),
@@ -103,12 +118,14 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _PennyCard extends StatelessWidget {
-  const _PennyCard({required this.mood});
+  const _PennyCard({required this.mood, required this.status});
 
   final PennyMood mood;
+  final BudgetStatus status;
 
   @override
   Widget build(BuildContext context) {
+    final budget = status.budget.everydayPaise;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
@@ -136,6 +153,20 @@ class _PennyCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(mood.line, style: AppText.h3),
+                if (status.capNote case final note?) ...[
+                  const SizedBox(height: 4),
+                  Text(note, style: AppText.bodyStrong),
+                ],
+                if (budget != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${formatPaise(status.everydaySpentPaise)} of '
+                    '${formatPaise(budget)} · '
+                    '${daysLeftLabel(status.daysLeft)}',
+                    key: const ValueKey('budget-line'),
+                    style: AppText.bodyStrong,
+                  ),
+                ],
                 const SizedBox(height: 10),
                 // The whole card opens the chat; this says so.
                 Container(

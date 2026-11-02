@@ -4,6 +4,7 @@ import 'package:penny/core/router/app_shell.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/features/add_txn/add_txn_screen.dart';
 import 'package:penny/features/analysis/analysis_screen.dart';
+import 'package:penny/features/budget/budget_screen.dart';
 import 'package:penny/features/calendar/calendar_screen.dart';
 import 'package:penny/features/chat/chat_screen.dart';
 import 'package:penny/features/goals/goals_screen.dart';
@@ -93,6 +94,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/needs', builder: (context, state) => const NeedsScreen()),
       GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
+      GoRoute(
+        path: '/budget',
+        builder: (context, state) => const BudgetScreen(),
+      ),
       GoRoute(
         path: '/report',
         // ?month=2026-10, from the Analysis tab; this month when missing.
