@@ -22,10 +22,12 @@ part 'app_database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  /// Opens `penny.sqlite` in the app's documents folder. Tests pass an
-  /// in-memory executor instead.
-  AppDatabase([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'penny'));
+  /// Tests pass an in-memory executor.
+  AppDatabase(super.executor);
+
+  /// Opens `<name>.sqlite` in the app's documents folder: `penny` for the
+  /// user's own money, or the demo's.
+  AppDatabase.named(String name) : super(driftDatabase(name: name));
 
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.

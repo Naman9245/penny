@@ -3,6 +3,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/chat_repository.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/demo_data.dart';
 import 'package:penny/data/goal_plan_repository.dart';
 import 'package:penny/data/goal_repository.dart';
 import 'package:penny/data/insight_repository.dart';
@@ -20,11 +21,58 @@ import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// One database for the app's lifetime. Tests override it with an
-/// in-memory one.
+/// The phone's small key-value store, opened in main before the app
+/// starts. Tests override it.
+final sharedPrefsProvider = Provider<SharedPreferences>(
+  (ref) => throw UnimplementedError('Opened in main'),
+);
+
+/// Whether the app shows the made-up demo instead of the user's own money.
+/// Remembered across restarts.
+final demoModeProvider = NotifierProvider<DemoMode, bool>(DemoMode.new);
+
+class DemoMode extends Notifier<bool> {
+  static const _key = 'demo_mode';
+
+  Future<void>? _switching;
+
+  @override
+  bool build() => ref.watch(sharedPrefsProvider).getBool(_key) ?? false;
+
+  /// Turns the demo on or off. The first time on, its database is filled
+  /// before it shows, so it never flashes empty. Ignored while a switch is
+  /// already under way.
+  Future<void> set(bool on) =>
+      _switching ??= _set(on).whenComplete(() => _switching = null);
+
+  Future<void> _set(bool on) async {
+    if (on == state) return;
+    if (on) {
+      final db = ref.read(databaseOpenerProvider)(demoDatabaseName);
+      try {
+        await fillDemoData(db, DateTime.now());
+      } finally {
+        await db.close();
+      }
+    }
+    await ref.read(sharedPrefsProvider).setBool(_key, on);
+    state = on;
+  }
+}
+
+/// Opens a database by name. Tests open temporary ones instead.
+final databaseOpenerProvider = Provider<AppDatabase Function(String name)>(
+  (ref) => AppDatabase.named,
+);
+
+/// The database on show: the user's own, or the demo's while demo mode is
+/// on. Switching closes one and opens the other, and everything that reads
+/// from it follows. Most tests override it with an in-memory one.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
+  final name = ref.watch(demoModeProvider) ? demoDatabaseName : 'penny';
+  final db = ref.watch(databaseOpenerProvider)(name);
   ref.onDispose(db.close);
   return db;
 });

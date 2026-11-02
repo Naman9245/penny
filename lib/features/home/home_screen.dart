@@ -8,12 +8,14 @@ import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/settings/settings_sheet.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 
@@ -35,6 +37,7 @@ class HomeScreen extends ConsumerWidget {
           error: (error, stackTrace) => MonthSummary.empty,
         );
     final recent = ref.watch(recentTxnsProvider);
+    final demo = ref.watch(demoModeProvider);
 
     return SafeArea(
       bottom: false,
@@ -42,12 +45,35 @@ class HomeScreen extends ConsumerWidget {
         // Room at the bottom so the Add button never hides the last row.
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          Text(_greeting(now), style: AppText.h1),
-          const SizedBox(height: 2),
-          Text(
-            DateFormat('EEEE, d MMMM').format(now),
-            style: AppText.bodyMuted,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_greeting(now), style: AppText.h1),
+                    const SizedBox(height: 2),
+                    Text(
+                      DateFormat('EEEE, d MMMM').format(now),
+                      style: AppText.bodyMuted,
+                    ),
+                  ],
+                ),
+              ),
+              BrutalIconButton(
+                icon: Icons.settings_outlined,
+                semanticLabel: 'Settings',
+                size: 44,
+                onPressed: () => showSettingsSheet(context),
+              ),
+            ],
           ),
+          // Made-up money must never pass for the user's own.
+          if (demo) ...[
+            const SizedBox(height: 14),
+            _DemoBanner(onTap: () => showSettingsSheet(context)),
+          ],
           const SizedBox(height: 18),
           _PennyCard(mood: mood, status: status),
           if (status.budget.isEmpty) ...[
@@ -115,6 +141,41 @@ class HomeScreen extends ConsumerWidget {
     < 17 => 'Good afternoon',
     _ => 'Good evening',
   };
+}
+
+class _DemoBanner extends StatelessWidget {
+  const _DemoBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return BrutalCard(
+      key: const ValueKey('demo-banner'),
+      color: AppColors.sky,
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      onTap: onTap,
+      child: const Row(
+        children: [
+          Icon(Icons.science_outlined, color: AppColors.ink),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Demo data', style: AppText.label),
+                Text(
+                  'Made-up money to try Penny on. Yours is safe.',
+                  style: AppText.body,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: AppColors.ink),
+        ],
+      ),
+    );
+  }
 }
 
 class _PennyCard extends StatelessWidget {
