@@ -6,14 +6,15 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 
 ## What works now
 
-- **Add in under 5 seconds**: type the amount on the keypad, pick a category, tap ✓. Undo is one tap away.
+- **Add in under 5 seconds**: type the amount on the keypad, pick a category, tap ✓. Undo is one tap away. The keypad adds and takes away like a calculator (3000 + 2500 − 200) wherever you type an amount.
 - **Bank SMS import**: share an SMS from Messages to Penny, or paste one. It's read on the phone: numbers are masked, OTPs and look-alikes (payment requests, reminders, offers) are refused with a reason, and the SMS itself is never saved.
 - **Analysis**: spent and got, a card per category, the necessary-vs-wasteful split, and the last six months as a chart.
 - **Wasteful report** (Gemini): Penny sorts the month's spends into necessary and wasteful, picks habits worth cutting with a tip each, and the app works out what cutting them would have saved. "I need this" moves a habit back to necessary, and you can change any entry's tag yourself. The report ends with a few ideas for earning a little extra.
 - **My needs**: mark each category and each shop you've paid as Need, Penny (she decides) or Wasteful, and leave Penny a short note about your life. An entry's own tag beats your shop rule, which beats your category rule, which beats Penny's pick. The split updates at once.
 - **Talk to Penny** (Gemini): tap Penny on Home and ask her how to save, in English, Hindi or Hinglish. She knows this month's totals, your My needs, your note, your budget and your goals.
-- **Budget and Penny's moods**: one monthly budget for everyday spending (everything but rent, bills, subscriptions and education, which are paid in one go) and optional caps per category. Penny is happy under the budget's pace, worried at 85% of a limit, sad over one, and celebrating when a goal is reached. Analysis cards show their caps.
-- **Mood calendar**: every day coloured by that day's everyday spending against its share of the budget: mint at or under it, yellow up to 1.5 times, pink above, sky blue when a goal was reached. Tap a day for its entries.
+- **Budget and Penny's moods**: give each category you care about a monthly amount. The monthly budget is their total, split into everyday spending and what's paid in one go (rent, bills, subscriptions and education). Penny compares everyday spending in those categories with their total: happy on pace, worried at 85% of it or of a category's amount, sad over either, and celebrating when a goal is reached. Categories without a budget aren't counted. Analysis cards show each budget.
+- **Mood calendar**: Penny's face on every day, on its colour, from that day's everyday spending against its share of the budget: mint at or under it, yellow up to 1.5 times, pink above, sky blue when a goal was reached. Under the month, its mood: what most days were, and how many days had each. Tap a day for its entries.
+- **Demo data**: Settings (the gear on Home) swaps in four months of made-up money, with a budget, goals and My needs, to try every screen on. It lives in its own database, so your own entries stay untouched and come back when you turn it off. Reset starts it again from today, and sample bank SMS are there to paste.
 - **Goals** (Gemini plans): save for something by a date, with what's needed each week. Note money in and out; reaching the target sets Penny celebrating. Plan with Penny picks up to four cuts from last month's spending, and the phone works out what each saves a month against what the goal needs.
 - **Offline-first**: everything lives on the phone in SQLite (Drift). Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, ready for sync.
 
@@ -64,12 +65,12 @@ cd supabase/functions && deno test
 ```
 lib/
   core/       theme tokens and type, router, config, money and date helpers
-  data/       Drift database, repositories, Riverpod providers
+  data/       Drift database, repositories, Riverpod providers, demo data
   models/     enums, categories, Penny's moods, the budget, the report and plans
   services/   SMS parser, share inbox, what Penny sends, report, budget, goal
               and plan maths, AI client
   features/   home, add_txn, import, transactions, analysis, report, needs,
-              chat, budget, goals, calendar
+              chat, budget, goals, calendar, settings
   widgets/    brutal card/button/chip/pill, keypad, pill nav bar, split bar,
               Penny
 supabase/     migrations, and the analyze-month, penny-chat and plan-goal Edge
