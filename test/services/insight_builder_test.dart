@@ -66,7 +66,7 @@ void main() {
         merchant: 'Asha Rao',
         payeeIsPerson: true,
       ),
-      // Typed by hand: reads like a person, so it counts as one.
+      // Typed by hand with no word Penny knows: it may be a person.
       txn(400, DateTime(2026, 10, 3), merchant: 'Vikram K'),
       // Typed, but a shop Penny knows, or a place.
       txn(300, DateTime(2026, 10, 4), merchant: 'Swiggy'),
@@ -78,18 +78,41 @@ void main() {
         merchant: 'Sharma Sweets',
         payeeIsPerson: false,
       ),
+      // Typed things and jobs: only the words Penny knows go along.
+      txn(
+        2000,
+        DateTime(2026, 10, 7),
+        categoryId: 'rent',
+        merchant: 'For Cook',
+      ),
+      txn(
+        1012,
+        DateTime(2026, 10, 8),
+        categoryId: 'shopping',
+        merchant: 'Creatine',
+      ),
+      txn(
+        150,
+        DateTime(2026, 10, 9),
+        categoryId: 'shopping',
+        merchant: 'Gift for Priya',
+      ),
     ]);
 
     expect(request.spends.map((s) => [s['name'], s['person']]), [
+      ['Cook', false],
+      ['Creatine', false],
       ['Person 1', true],
       ['Person 2', true],
       ['Swiggy', false],
       ['Canteen', false],
+      ['Gift', false],
       ['Sharma Sweets', false],
     ]);
     final sent = jsonEncode(request.body).toLowerCase();
     expect(sent, isNot(contains('asha')));
     expect(sent, isNot(contains('vikram')));
+    expect(sent, isNot(contains('priya')));
   });
 
   test('digits never ride along in a shop name', () {

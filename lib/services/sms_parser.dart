@@ -389,13 +389,8 @@ String? _cleanName(String raw) {
   return _titleCase(name.length > 40 ? name.substring(0, 40).trim() : name);
 }
 
-/// Whether a payee name reads like a person's rather than a shop's: a few
-/// plain words, no business words, and no shop Penny knows. Used for typed
-/// entries and older imports, where no SMS said which it is.
-bool looksLikePersonName(String name) =>
-    _looksLikePerson(name.trim()) &&
-    suggestCategory(type: TxnType.debit, text: name) == null;
-
+/// Whether an SMS payee's name reads like a person's rather than a shop's:
+/// a few plain words, and no business words.
 bool _looksLikePerson(String name) {
   final words = name.split(' ');
   return words.length <= 4 &&

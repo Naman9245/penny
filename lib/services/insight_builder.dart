@@ -10,7 +10,7 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
-import 'package:penny/services/sms_parser.dart';
+import 'package:penny/services/payee_names.dart';
 
 // What Penny sends for a look at one month: month totals per shop, people
 // only as "Person 1, 2…", income by category only. Never a single entry, an
@@ -42,11 +42,12 @@ String groupKeyOf(Txn txn) {
 }
 
 /// Whether [txn]'s payee may reach the AI only as an alias. What the SMS
-/// showed wins; otherwise any name that reads like a person's counts as one.
+/// showed wins; otherwise a typed name with no word Penny knows counts as a
+/// person's.
 bool isPersonPayee(Txn txn) {
   if (txn.payeeIsPerson case final known?) return known;
   final merchant = txn.merchant;
-  return merchant != null && looksLikePersonName(merchant);
+  return merchant != null && safePayeeName(merchant) == null;
 }
 
 /// A shop name with only letters and simple punctuation, so phone and
@@ -175,7 +176,7 @@ InsightRequest buildInsightRequest({
       'name': person
           ? 'Person ${++people}'
           : group.isShop
-          ? cleanShopName(group.latest.merchant)
+          ? cleanShopName(group.shopName)
           : null,
       'person': person,
       'category': group.categoryId,
@@ -296,6 +297,15 @@ class _Group {
 
   Txn get latest =>
       txns.reduce((a, b) => b.occurredAt.isAfter(a.occurredAt) ? b : a);
+
+  /// What Penny may call this shop: its whole name once an SMS showed it's a
+  /// business, otherwise only the words of the typed name she knows.
+  String? get shopName {
+    final merchant = latest.merchant;
+    if (merchant == null) return null;
+    final fromSms = txns.any((txn) => txn.payeeIsPerson == false);
+    return fromSms ? merchant : safePayeeName(merchant);
+  }
 
   /// The user's call, from their own tags or [rules], when every entry gets
   /// the same one.

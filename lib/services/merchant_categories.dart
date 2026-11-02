@@ -20,6 +20,15 @@ const _spendKeywords = <String, List<String>>{
     'audible',
     'chatgpt',
     'openai',
+    'claude',
+    'anthropic',
+    'perplexity',
+    'github',
+    'notion',
+    'grammarly',
+    'duolingo',
+    'linkedin',
+    'icloud',
     'canva',
   ],
   'food': [
@@ -147,6 +156,9 @@ const _spendKeywords = <String, List<String>>{
   ],
   'rent': ['rent', 'landlord', 'nobroker', 'nestaway', 'hostel', 'stanza'],
 };
+
+/// Every shop and brand above, for telling a shop from a person.
+final knownShopNames = [for (final words in _spendKeywords.values) ...words];
 
 final _spendPatterns = {
   for (final MapEntry(key: category, value: words) in _spendKeywords.entries)
