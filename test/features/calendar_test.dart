@@ -57,6 +57,16 @@ void main() {
     expect(find.bySemanticsLabel('4 $name, Sad'), findsOneWidget);
     expect(find.bySemanticsLabel('5 $name, Happy'), findsOneWidget);
 
+    // Day 1 came before the first entry; every day after the 4th is happy.
+    final days = DateTime(month.year, month.month + 1, 0).day;
+    final summary = find.byKey(const ValueKey('month-summary'));
+    await tester.scrollUntilVisible(summary, 300);
+    await tester.pumpAndSettle();
+    expect(find.text('Mostly happy'), findsOneWidget);
+    expect(find.text('${days - 3} happy · 1 worried · 1 sad'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('day-4')), -300);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const ValueKey('day-4')));
     await tester.pumpAndSettle();
     final share = formatPaise(dailySharePaise(3000000, month));

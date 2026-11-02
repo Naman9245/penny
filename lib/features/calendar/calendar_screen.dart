@@ -84,8 +84,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             today: dayStart(now),
             onDay: openDay,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           const _Legend(),
+          if (moodSummary(moods) case final summary?) ...[
+            const SizedBox(height: 18),
+            _MonthSummary(mostly: summary.mostly, counts: summary.counts),
+          ],
         ],
       ),
     );
@@ -238,15 +242,106 @@ class _DayCell extends StatelessWidget {
               width: isToday ? 3 : 1.5,
             ),
           ),
-          child: Center(
-            child: Text(
-              '${date.day}',
-              style: future
-                  ? AppText.label.copyWith(color: AppColors.inkMuted)
-                  : AppText.label,
+          // A day with a mood shows Penny's face, its date tucked in the
+          // corner; any other day just its date.
+          child: mood == null
+              ? Center(
+                  child: Text(
+                    '${date.day}',
+                    style: future
+                        ? AppText.label.copyWith(color: AppColors.inkMuted)
+                        : AppText.label,
+                  ),
+                )
+              : LayoutBuilder(
+                  builder: (context, box) => Stack(
+                    children: [
+                      Positioned(
+                        left: 5,
+                        top: 2,
+                        child: Text(
+                          '${date.day}',
+                          textScaler: TextScaler.noScaling,
+                          style: AppText.small.copyWith(
+                            color: AppColors.ink,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: const Alignment(0, 0.6),
+                        child: PennyFace(mood: mood, size: box.maxWidth * 0.72),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// How the month went, in one card: the mood most days had, and how many
+/// days had each.
+class _MonthSummary extends StatelessWidget {
+  const _MonthSummary({required this.mostly, required this.counts});
+
+  final PennyMood mostly;
+  final Map<PennyMood, int> counts;
+
+  static const _lines = {
+    PennyMood.happy: 'Most days stayed within your share. Keep it up!',
+    PennyMood.worried: 'Lots of days went a little over your share.',
+    PennyMood.sad: "Many days went well over your share. Let's plan a fix!",
+    PennyMood.celebrating: 'A goal reached! You did it!',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    String count(PennyMood mood, String one, String many) =>
+        switch (counts[mood] ?? 0) {
+          0 => '',
+          1 => '1 $one',
+          final n => '$n $many',
+        };
+    final tally = [
+      count(PennyMood.happy, 'happy', 'happy'),
+      count(PennyMood.worried, 'worried', 'worried'),
+      count(PennyMood.sad, 'sad', 'sad'),
+      count(PennyMood.celebrating, 'goal day', 'goal days'),
+    ].where((part) => part.isNotEmpty).join(' · ');
+
+    return BrutalCard(
+      key: const ValueKey('month-summary'),
+      color: mostly.color,
+      child: Row(
+        children: [
+          PennyMascot(mood: mostly, size: 72),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Monthly mood', style: AppText.label),
+                Text(
+                  mostly == PennyMood.celebrating
+                      ? 'Celebrating'
+                      : 'Mostly ${mostly.label.toLowerCase()}',
+                  style: AppText.h2,
+                ),
+                Text(_lines[mostly]!, style: AppText.body),
+                const SizedBox(height: 4),
+                Text(
+                  tally,
+                  key: const ValueKey('month-tally'),
+                  style: AppText.small.copyWith(color: AppColors.ink),
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -180,6 +180,30 @@ Map<int, PennyMood> dayMoods({
   return moods;
 }
 
+/// How a month's days went: how many had each mood, and the spending mood
+/// most of them had. Null when no day has a mood yet.
+({PennyMood mostly, Map<PennyMood, int> counts})? moodSummary(
+  Map<int, PennyMood> moods,
+) {
+  if (moods.isEmpty) return null;
+  final counts = <PennyMood, int>{};
+  for (final mood in moods.values) {
+    counts[mood] = (counts[mood] ?? 0) + 1;
+  }
+  // Goal days are a treat, not a habit, so "mostly" is about spending; a
+  // tie goes to the kinder mood.
+  PennyMood? mostly;
+  for (final mood in const [
+    PennyMood.happy,
+    PennyMood.worried,
+    PennyMood.sad,
+  ]) {
+    final count = counts[mood] ?? 0;
+    if (count > 0 && (mostly == null || count > counts[mostly]!)) mostly = mood;
+  }
+  return (mostly: mostly ?? PennyMood.celebrating, counts: counts);
+}
+
 /// "18 days left", "1 day left" or "Last day".
 String daysLeftLabel(int daysLeft) => switch (daysLeft) {
   <= 0 => 'Last day',

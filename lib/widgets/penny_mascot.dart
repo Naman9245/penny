@@ -42,6 +42,20 @@ class PennyMascot extends StatelessWidget {
   }
 }
 
+/// Just Penny's face for [mood], without the coin: for small places, like
+/// a day on the mood calendar. It matches her face everywhere else.
+class PennyFace extends StatelessWidget {
+  const PennyFace({super.key, required this.mood, this.size = 32});
+
+  final PennyMood mood;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(size: Size.square(size), painter: _FacePainter(mood));
+  }
+}
+
 /// Draws Penny on a 100 x 100 grid, scaled to the canvas.
 class _PennyPainter extends CustomPainter {
   _PennyPainter(this.mood);
@@ -50,7 +64,6 @@ class _PennyPainter extends CustomPainter {
 
   static const _center = Offset(50, 56);
   static const _radius = 35.0;
-  static const _eyes = [Offset(39, 55), Offset(61, 55)];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -69,7 +82,7 @@ class _PennyPainter extends CustomPainter {
     canvas.drawCircle(_center, _radius, outline);
     // The ₹ is unreadable on small Pennys, so it only appears on big ones.
     _drawCups(canvas, outline, withRupee: size.width >= 56);
-    _drawFace(canvas, outline);
+    _Face.draw(canvas, mood, outline);
 
     canvas.restore();
   }
@@ -115,7 +128,42 @@ class _PennyPainter extends CustomPainter {
     rupee.dispose();
   }
 
-  void _drawFace(Canvas canvas, Paint outline) {
+  @override
+  bool shouldRepaint(_PennyPainter oldDelegate) => oldDelegate.mood != mood;
+}
+
+/// Draws only the face: the middle 60 x 60 of Penny's 100 x 100 grid,
+/// filling the canvas, so it reads when small.
+class _FacePainter extends CustomPainter {
+  _FacePainter(this.mood);
+
+  final PennyMood mood;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(size.width / 60, size.height / 60);
+    // The face sits around (50, 60) on Penny's grid.
+    canvas.translate(-20, -30);
+    _Face.draw(canvas, mood, _stroke(AppColors.ink, 4), sparkles: false);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_FacePainter oldDelegate) => oldDelegate.mood != mood;
+}
+
+/// Penny's face for each mood, drawn around the middle of the 100 x 100
+/// grid with [outline] for its lines.
+abstract final class _Face {
+  static const _eyes = [Offset(39, 55), Offset(61, 55)];
+
+  static void draw(
+    Canvas canvas,
+    PennyMood mood,
+    Paint outline, {
+    bool sparkles = true,
+  }) {
     final ink = Paint()..color = AppColors.ink;
     switch (mood) {
       case PennyMood.happy:
@@ -158,12 +206,14 @@ class _PennyPainter extends CustomPainter {
         _cheeks(canvas);
         _closedEyes(canvas, outline);
         _openSmile(canvas, width: 22, depth: 13);
-        _sparkle(canvas, const Offset(10, 14), 5.5);
-        _sparkle(canvas, const Offset(90, 12), 4.5);
+        if (sparkles) {
+          _sparkle(canvas, const Offset(10, 14), 5.5);
+          _sparkle(canvas, const Offset(90, 12), 4.5);
+        }
     }
   }
 
-  void _dotEyes(
+  static void _dotEyes(
     Canvas canvas,
     Paint ink, {
     required double height,
@@ -181,7 +231,7 @@ class _PennyPainter extends CustomPainter {
   }
 
   /// Happy, squeezed-shut eyes: two little arches.
-  void _closedEyes(Canvas canvas, Paint outline) {
+  static void _closedEyes(Canvas canvas, Paint outline) {
     for (final eye in _eyes) {
       canvas.drawArc(
         Rect.fromCenter(center: eye.translate(0, 2), width: 10, height: 9),
@@ -193,7 +243,7 @@ class _PennyPainter extends CustomPainter {
     }
   }
 
-  void _openSmile(
+  static void _openSmile(
     Canvas canvas, {
     required double width,
     required double depth,
@@ -226,7 +276,7 @@ class _PennyPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _cheeks(Canvas canvas) {
+  static void _cheeks(Canvas canvas) {
     final blush = Paint()..color = AppColors.pink;
     for (final x in const [30.0, 70.0]) {
       canvas.drawOval(
@@ -237,7 +287,7 @@ class _PennyPainter extends CustomPainter {
   }
 
   /// A sweat drop or tear, hanging from [tip].
-  void _drop(Canvas canvas, Offset tip, {double scale = 1}) {
+  static void _drop(Canvas canvas, Offset tip, {double scale = 1}) {
     final r = 4 * scale;
     final drop = Path()
       ..moveTo(tip.dx, tip.dy)
@@ -257,7 +307,7 @@ class _PennyPainter extends CustomPainter {
     canvas.drawPath(drop, _stroke(AppColors.ink, 2));
   }
 
-  void _sparkle(Canvas canvas, Offset c, double r) {
+  static void _sparkle(Canvas canvas, Offset c, double r) {
     final star = Path()
       ..moveTo(c.dx, c.dy - r)
       ..quadraticBezierTo(c.dx, c.dy, c.dx + r, c.dy)
@@ -268,14 +318,11 @@ class _PennyPainter extends CustomPainter {
     canvas.drawPath(star, Paint()..color = AppColors.yellow);
     canvas.drawPath(star, _stroke(AppColors.ink, 1.8));
   }
-
-  static Paint _stroke(Color color, double width) => Paint()
-    ..color = color
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = width
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
-
-  @override
-  bool shouldRepaint(_PennyPainter oldDelegate) => oldDelegate.mood != mood;
 }
+
+Paint _stroke(Color color, double width) => Paint()
+  ..color = color
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = width
+  ..strokeCap = StrokeCap.round
+  ..strokeJoin = StrokeJoin.round;

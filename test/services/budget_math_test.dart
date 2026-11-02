@@ -153,6 +153,34 @@ void main() {
       });
     });
 
+    test('the month sums up as the mood most days had', () {
+      expect(moodSummary(const {}), isNull);
+      final summary = moodSummary({
+        1: PennyMood.sad,
+        2: PennyMood.happy,
+        3: PennyMood.sad,
+        4: PennyMood.celebrating,
+        5: PennyMood.celebrating,
+        6: PennyMood.celebrating,
+      })!;
+      // Goal days don't count towards "mostly".
+      expect(summary.mostly, PennyMood.sad);
+      expect(summary.counts, {
+        PennyMood.sad: 2,
+        PennyMood.happy: 1,
+        PennyMood.celebrating: 3,
+      });
+      // A tie goes to the kinder mood.
+      expect(
+        moodSummary({1: PennyMood.sad, 2: PennyMood.worried})!.mostly,
+        PennyMood.worried,
+      );
+      expect(
+        moodSummary({1: PennyMood.celebrating})!.mostly,
+        PennyMood.celebrating,
+      );
+    });
+
     test('the daily share is to the rupee', () {
       expect(dailySharePaise(900000, month), 30000);
       expect(dailySharePaise(800000, month), 26700);
