@@ -22,6 +22,8 @@ Future<void> showDaySheet(
 }) {
   return showModalBottomSheet<void>(
     context: context,
+    // Over the whole app, nav bar too, so it can't stay open behind a tab.
+    useRootNavigator: true,
     isScrollControlled: true,
     builder: (context) => _DaySheet(
       date: date,
