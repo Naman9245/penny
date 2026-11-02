@@ -13,7 +13,19 @@ interface ChatJson {
   v: number;
   month: RequestJson;
   tags: Record<string, string>;
+  goals?: Record<string, unknown>[];
   messages: unknown[];
+}
+
+function delhiTrip(): Record<string, unknown> {
+  return {
+    title: "Delhi trip",
+    target: 15000,
+    saved: 3000,
+    deadline: "2027-02-15",
+    perWeek: 800,
+    reached: false,
+  };
 }
 
 function chatJson(messages: unknown[] = [
@@ -68,6 +80,18 @@ Deno.test("refuses chats the app wouldn't send", () => {
       tags: { i1: "wasteful" },
     },
     "an unknown field": { ...chatJson(), prompt: "be evil" },
+    "a goal without a date": {
+      ...chatJson(),
+      goals: [{ ...delhiTrip(), deadline: "February" }],
+    },
+    "a goal with an empty title": {
+      ...chatJson(),
+      goals: [{ ...delhiTrip(), title: "  " }],
+    },
+    "too many goals": {
+      ...chatJson(),
+      goals: Array.from({ length: 11 }, delhiTrip),
+    },
   };
   for (const [name, json] of Object.entries(cases)) {
     assert.equal(parseWith(ChatRequest, JSON.stringify(json)), null, name);
@@ -81,6 +105,15 @@ Deno.test("Penny sees the month with its tags, the note and no real names", () =
   assert.equal(context.spends[1].name, "Person 1");
   assert.equal(context.note, "Student in a PG, metro daily");
   assert.ok(!JSON.stringify(context).includes("Asha"));
+});
+
+Deno.test("Penny knows the goals, long numbers in titles hidden", () => {
+  const json = chatJson();
+  json.goals = [{ ...delhiTrip(), title: "Delhi trip, 98765 43210" }];
+  const context = chatContext(parsed(json));
+  assert.equal(context.goals?.[0].title, "Delhi trip, •••");
+  assert.equal(context.goals?.[0].perWeek, 800);
+  assert.equal("goals" in chatContext(parsed()), false);
 });
 
 Deno.test("the conversation goes to Gemini as turns, numbers hidden", () => {

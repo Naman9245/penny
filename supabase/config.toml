@@ -7,3 +7,6 @@ verify_jwt = true
 
 [functions.penny-chat]
 verify_jwt = true
+
+[functions.plan-goal]
+verify_jwt = true

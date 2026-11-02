@@ -35,6 +35,10 @@ export interface RequestJson {
   spends: SpendJson[];
   income: IncomeJson[];
   note?: string;
+  budget?: {
+    everyday: number | null;
+    caps: { category: string; cap: number }[];
+  };
 }
 
 export function sampleRequest(): RequestJson {

@@ -10,7 +10,7 @@ type Rpc = (
 /** Counting for one [kind] of call, with its own limits. */
 export function quota(
   rpc: Rpc,
-  kind: "report" | "chat",
+  kind: "report" | "chat" | "plan",
   userLimit: number,
   totalLimit: number,
 ) {

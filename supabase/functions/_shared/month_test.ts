@@ -41,6 +41,20 @@ Deno.test("refuses anything the app wouldn't send", () => {
     "a fractional amount": (r) => (r.spent = 10.5),
     "spends that aren't a list": (r) => Object.assign(r, { spends: 5 }),
     "a long note": (r) => (r.note = "x".repeat(241)),
+    "a cap for an unknown category": (r) => {
+      r.budget = { everyday: null, caps: [{ category: "crypto", cap: 500 }] };
+    },
+    "two caps for one category": (r) => {
+      r.budget = {
+        everyday: null,
+        caps: [{ category: "food", cap: 500 }, { category: "food", cap: 900 }],
+      };
+    },
+    "a zero budget": (r) => (r.budget = { everyday: 0, caps: [] }),
+    "a budget with an unknown field": (r) => {
+      r.budget = { everyday: 8000, caps: [] };
+      Object.assign(r.budget, { daily: 300 });
+    },
   };
   for (const [name, change] of Object.entries(cases)) {
     const request = sampleRequest();
@@ -84,6 +98,32 @@ Deno.test("the note goes along with long numbers hidden", () => {
     note: "PG in Bengaluru, call me on 98765 43210",
   }));
   assert.equal(input.note, "PG in Bengaluru, call me on •••");
+});
+
+Deno.test("the budget goes along with what's spent against it", () => {
+  const input = modelInput(parsed({
+    ...sampleRequest(),
+    budget: {
+      everyday: 8000,
+      caps: [{ category: "food", cap: 3000 }, { category: "rent", cap: 4000 }],
+    },
+  }));
+  // Rent and subscriptions are paid in one go, so everyday leaves them out.
+  assert.deepEqual(input.budget, {
+    everyday: { budget: 8000, spent: 3480 + 1500 },
+    caps: [
+      { category: "Food", cap: 3000, spent: 3480 },
+      { category: "Rent & PG", cap: 4000, spent: 3851 },
+    ],
+  });
+  assert.equal("budget" in modelInput(parsed()), false);
+  assert.equal(
+    modelInput(parsed({
+      ...sampleRequest(),
+      budget: { everyday: null, caps: [] },
+    })).budget?.everyday,
+    null,
+  );
 });
 
 Deno.test("long digit runs are hidden, amounts are not", () => {

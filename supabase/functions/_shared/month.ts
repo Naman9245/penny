@@ -1,5 +1,5 @@
-// The month as the app sends it, and as Gemini gets to see it. Both the
-// report and the chat use these.
+// The month as the app sends it, and as Gemini gets to see it. The report,
+// the chat and goal plans all use these.
 import { z } from "npm:zod@4.6.7";
 
 // Must match lib/models/category.dart in the app.
@@ -16,6 +16,14 @@ const SPEND_IDS = [
   "education",
   "other",
 ] as const;
+// Paid in one go, so they stay out of the everyday budget. Must match
+// lib/models/category.dart in the app.
+const ONE_GO_IDS: readonly string[] = [
+  "rent",
+  "bills",
+  "subscriptions",
+  "education",
+];
 const INCOME_IDS = [
   "pocket_money",
   "salary",
@@ -46,8 +54,17 @@ const LABELS: Record<string, string> = {
 export const TAGS = ["necessary", "wasteful"] as const;
 export type Tag = (typeof TAGS)[number];
 
+/** How much of a group to cut, in the report's habits and a goal's plan. */
+export const CUTS = ["stop", "three_quarters", "half", "quarter"] as const;
+export type Cut = (typeof CUTS)[number];
+
+export function isCut(value: string): value is Cut {
+  return (CUTS as readonly string[]).includes(value);
+}
+
 // Whole rupees; no one spends a hundred crore in a month.
-const rupees = z.int().min(0).max(1_000_000_000);
+export const rupees = z.int().min(0).max(1_000_000_000);
+const someRupees = z.int().min(1).max(1_000_000_000);
 
 const SpendGroup = z.strictObject({
   id: z.string().regex(/^s\d{1,2}$/),
@@ -72,6 +89,22 @@ const IncomeGroup = z.strictObject({
   steadiness: z.enum(["steady", "most_months", "now_and_then", "too_early"]),
 });
 
+const Budget = z
+  .strictObject({
+    /** What the person means to spend a month on everyday things. */
+    everyday: someRupees.nullable(),
+    /** Monthly limits for single categories. */
+    caps: z
+      .array(z.strictObject({ category: z.enum(SPEND_IDS), cap: someRupees }))
+      .max(SPEND_IDS.length),
+  })
+  // Zod runs this even when the fields above failed, so it can't trust them.
+  .refine((b) => {
+    const caps: unknown[] = Array.isArray(b.caps) ? b.caps : [];
+    const ids = caps.map((cap) => (cap as { category?: unknown })?.category);
+    return new Set(ids).size === ids.length;
+  }, "one cap per category");
+
 export const MonthRequest = z
   .strictObject({
     v: z.literal(1),
@@ -86,6 +119,7 @@ export const MonthRequest = z
     income: z.array(IncomeGroup).max(10),
     /** What the person wrote about themselves on My needs. */
     note: z.string().max(240).optional(),
+    budget: Budget.optional(),
   })
   // Zod runs this even when the fields above failed, so it can't trust them.
   .refine((r) => {
@@ -171,7 +205,47 @@ export function modelInput(request: MonthRequest) {
     ...(request.note?.trim()
       ? { note: maskLongNumbers(request.note.trim()) }
       : {}),
+    ...(request.budget ? { budget: budgetInput(request, request.budget) } : {}),
   };
+}
+
+/** [request]'s month as Gemini sees it, with each spend group's tag. */
+export function taggedInput(
+  request: MonthRequest,
+  tags: Record<string, Tag>,
+) {
+  const month = modelInput(request);
+  return {
+    ...month,
+    spends: month.spends.map((group) => ({
+      ...group,
+      tag: tags[group.id] ?? null,
+    })),
+  };
+}
+
+/** The budget with what the month has spent against it, added up here. */
+function budgetInput(request: MonthRequest, budget: z.infer<typeof Budget>) {
+  const spentWhere = (keep: (category: string) => boolean) =>
+    request.spends
+      .filter((group) => keep(group.category))
+      .reduce((sum, group) => sum + group.total, 0);
+  return {
+    everyday: budget.everyday == null ? null : {
+      budget: budget.everyday,
+      spent: spentWhere((category) => !ONE_GO_IDS.includes(category)),
+    },
+    caps: budget.caps.map(({ category, cap }) => ({
+      category: LABELS[category],
+      cap,
+      spent: spentWhere((other) => other === category),
+    })),
+  };
+}
+
+/** A goal's title as Gemini may see it: one line, long numbers hidden. */
+export function cleanGoalTitle(raw: string): string {
+  return maskLongNumbers(raw.replace(/\s+/g, " ").trim()).slice(0, 40);
 }
 
 /**
