@@ -17,6 +17,7 @@ import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/budget_math.dart';
+import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 
@@ -73,10 +74,13 @@ final budgetStatusProvider = Provider.autoDispose<BudgetStatus>((ref) {
   );
 });
 
-/// Penny's current mood, from where the month stands against the budget.
-final pennyMoodProvider = Provider.autoDispose<PennyMood>(
-  (ref) => ref.watch(budgetStatusProvider).mood,
-);
+/// Penny's current mood: celebrating a goal reached today or yesterday,
+/// otherwise from where the month stands against the budget.
+final pennyMoodProvider = Provider.autoDispose<PennyMood>((ref) {
+  final goals = ref.watch(goalProgressProvider).value ?? const [];
+  if (justReached(goals, DateTime.now())) return PennyMood.celebrating;
+  return ref.watch(budgetStatusProvider).mood;
+});
 
 /// Per-category totals for the month containing the given date.
 final categoryTotalsProvider = StreamProvider.autoDispose
@@ -173,6 +177,24 @@ final goalsProvider = StreamProvider.autoDispose<List<Goal>>(
 /// The money put toward every live goal, oldest first.
 final goalDepositsProvider = StreamProvider.autoDispose<List<GoalDeposit>>(
   (ref) => ref.watch(goalRepositoryProvider).watchDeposits(),
+);
+
+/// Every live goal with what has been put toward it, soonest deadline
+/// first.
+final goalProgressProvider =
+    Provider.autoDispose<AsyncValue<List<GoalProgress>>>((ref) {
+      final deposits = ref.watch(goalDepositsProvider).value ?? const [];
+      return ref
+          .watch(goalsProvider)
+          .whenData((goals) => goalProgress(goals, deposits));
+    });
+
+/// The days goals were reached: sky blue on the mood calendar.
+final goalDaysProvider = Provider.autoDispose<Set<DateTime>>(
+  (ref) => {
+    for (final goal in ref.watch(goalProgressProvider).value ?? const [])
+      ?goal.reachedOn,
+  },
 );
 
 final goalPlanRepositoryProvider = Provider<GoalPlanRepository>(

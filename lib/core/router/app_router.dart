@@ -7,6 +7,8 @@ import 'package:penny/features/analysis/analysis_screen.dart';
 import 'package:penny/features/budget/budget_screen.dart';
 import 'package:penny/features/calendar/calendar_screen.dart';
 import 'package:penny/features/chat/chat_screen.dart';
+import 'package:penny/features/goals/goal_editor_screen.dart';
+import 'package:penny/features/goals/goal_screen.dart';
 import 'package:penny/features/goals/goals_screen.dart';
 import 'package:penny/features/home/home_screen.dart';
 import 'package:penny/features/import/import_screen.dart';
@@ -97,6 +99,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/budget',
         builder: (context, state) => const BudgetScreen(),
+      ),
+      // Before /goals/:id, which would take "new" for an id.
+      GoRoute(
+        path: '/goals/new',
+        builder: (context, state) => const GoalEditorScreen(),
+      ),
+      GoRoute(
+        path: '/goals/:id/edit',
+        builder: (context, state) =>
+            GoalEditorScreen(goalId: state.pathParameters['id']),
+      ),
+      GoRoute(
+        path: '/goals/:id',
+        builder: (context, state) =>
+            GoalScreen(goalId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/report',

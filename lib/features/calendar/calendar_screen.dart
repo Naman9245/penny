@@ -42,6 +42,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       month: _month,
       now: now,
       firstEntry: ref.watch(firstEntryProvider).value,
+      goalDays: ref.watch(goalDaysProvider),
     );
 
     void openDay(DateTime date) => showDaySheet(
