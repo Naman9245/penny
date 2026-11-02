@@ -122,9 +122,9 @@ class ChatMessages extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// What the user means to spend each month: the everyday budget, or one
-/// category's cap. Kept like entries (UUIDv7 ids, soft deletes), ready for
-/// sync.
+/// What the user means to spend on one category each month; the monthly
+/// budget is their total. Kept like entries (UUIDv7 ids, soft deletes),
+/// ready for sync.
 @DataClassName('BudgetRow')
 @TableIndex.sql(
   'CREATE UNIQUE INDEX budgets_budget_key ON budgets (budget_key) '

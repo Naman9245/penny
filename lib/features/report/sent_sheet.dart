@@ -161,7 +161,7 @@ class _SentSheet extends StatelessWidget {
                   })
                     (
                       key: 'sent-cap-$id',
-                      title: '${categoryById(id).label} cap',
+                      title: '${categoryById(id).label} budget',
                       detail: 'A month',
                       rupees: rupees,
                     ),
