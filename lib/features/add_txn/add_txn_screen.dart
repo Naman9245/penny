@@ -335,22 +335,45 @@ class _AmountDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shown = formatAmountText(text);
+    final sum = isSum(text);
+    final total = sumTextToPaise(text);
+    // A sum shows what was typed small, with its total big.
+    final shown = sum ? formatPaise(total) : formatAmountText(text);
     return Semantics(
       liveRegion: true,
-      label: 'Amount $shown',
+      label: sum
+          ? 'Amount $shown, from ${formatSumText(text)}'
+          : 'Amount $shown',
       excludeSemantics: true,
-      child: SizedBox(
-        height: 64,
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            shown,
-            style: AppText.hero.copyWith(
-              color: text.isEmpty ? AppColors.inkMuted : AppColors.ink,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 22,
+            child: sum
+                ? FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatSumText(text),
+                      key: const ValueKey('amount-sum'),
+                      style: AppText.bodyStrong,
+                    ),
+                  )
+                : null,
+          ),
+          SizedBox(
+            height: 64,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                shown,
+                style: AppText.hero.copyWith(
+                  color: total > 0 ? AppColors.ink : AppColors.inkMuted,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     ).animate(controller: shake, autoPlay: false).shakeX(hz: 5, amount: 10);
   }

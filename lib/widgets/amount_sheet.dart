@@ -48,7 +48,8 @@ class _AmountSheetState extends State<_AmountSheet> {
     _ => '',
   };
 
-  int get _paise => amountTextToPaise(_text);
+  /// What was typed, added up.
+  int get _paise => sumTextToPaise(_text);
 
   bool get _ready =>
       _paise > 0 && (widget.maxPaise == null || _paise <= widget.maxPaise!);
@@ -87,15 +88,26 @@ class _AmountSheetState extends State<_AmountSheet> {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                formatAmountText(_text),
+                formatSumText(_text),
                 key: const ValueKey('amount-shown'),
                 style: AppText.hero,
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          // A sum shows its total underneath.
+          SizedBox(
+            height: 30,
+            child: isSum(_text)
+                ? Text(
+                    '= ${formatPaise(_paise)}',
+                    key: const ValueKey('amount-total'),
+                    style: AppText.h3,
+                    textAlign: TextAlign.center,
+                  )
+                : null,
+          ),
           AmountKeypad(
-            onKey: (key) => setState(() => _text = applyAmountKey(_text, key)),
+            onKey: (key) => setState(() => _text = applySumKey(_text, key)),
             onBackspace: () => setState(() => _text = dropAmountKey(_text)),
             onClear: () => setState(() => _text = ''),
             onDone: () {

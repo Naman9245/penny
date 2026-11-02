@@ -73,4 +73,51 @@ void main() {
     expect(formatAmountText('0.'), '₹0.');
     expect(formatAmountText('123456.5'), '₹1,23,456.5');
   });
+
+  group('sums', () {
+    String type(String keys) => keys.split('').fold('', applySumKey);
+
+    test('add and take away, each term typed like an amount', () {
+      expect(type('3000+2500−200'), '3000+2500-200');
+      expect(sumTextToPaise('3000+2500-200'), 530000);
+      expect(type('12.555+05'), '12.55+5');
+      expect(sumTextToPaise('12.55+5'), 1755);
+    });
+
+    test('a second operator replaces the first', () {
+      expect(type('50+−'), '50-');
+      expect(type('50−+'), '50+');
+    });
+
+    test('a sum can start with a minus, never a plus', () {
+      expect(type('+'), '');
+      expect(type('−50'), '-50');
+      expect(type('−+'), '-');
+      expect(sumTextToPaise('-50'), -5000);
+    });
+
+    test('a trailing point goes before an operator', () {
+      expect(type('30.+'), '30+');
+    });
+
+    test('stops at ten terms', () {
+      final keys = List.filled(12, '1').join('+');
+      expect(type(keys).split('+'), hasLength(kMaxSumTerms));
+    });
+
+    test('partial terms count as nothing', () {
+      expect(sumTextToPaise(''), 0);
+      expect(sumTextToPaise('3000+'), 300000);
+      expect(sumTextToPaise('3000-0.'), 300000);
+      expect(sumTextToPaise('200-500'), -30000);
+    });
+
+    test('shown with rupees and real minus signs', () {
+      expect(isSum('3000'), isFalse);
+      expect(formatSumText('3000'), '₹3,000');
+      expect(formatSumText('3000+2500-200'), '₹3,000 + ₹2,500 − ₹200');
+      expect(formatSumText('3000+'), '₹3,000 +');
+      expect(formatSumText('-50'), '− ₹50');
+    });
+  });
 }

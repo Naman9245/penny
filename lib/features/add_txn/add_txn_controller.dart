@@ -62,7 +62,8 @@ class AddTxnState {
   /// to Penny.
   final TxnTag? tag;
 
-  int get amountPaise => amountTextToPaise(amountText);
+  /// What was typed, added up.
+  int get amountPaise => sumTextToPaise(amountText);
 
   /// What ✓ needs before it will save.
   bool get canSave => amountPaise > 0 && categoryId != null;
@@ -143,7 +144,7 @@ class AddTxnController extends Notifier<AddTxnState> {
   }
 
   void press(String key) =>
-      state = state.copyWith(amountText: applyAmountKey(state.amountText, key));
+      state = state.copyWith(amountText: applySumKey(state.amountText, key));
 
   void backspace() =>
       state = state.copyWith(amountText: dropAmountKey(state.amountText));

@@ -76,9 +76,17 @@ void main() {
     expect(find.byType(GoalScreen), findsOneWidget);
     expect(find.textContaining('of ₹15,000 by'), findsOneWidget);
 
+    // The amount sheet adds up too.
     await tester.tap(find.byKey(const ValueKey('add-money')));
     await tester.pumpAndSettle();
-    await type(tester, '3000');
+    for (final key in '2000+1000'.split('')) {
+      await tester.tap(find.byKey(ValueKey('key-$key')));
+    }
+    await tester.pump();
+    expect(find.text('₹2,000 + ₹1,000'), findsOneWidget);
+    expect(find.text('= ₹3,000'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('key-done')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('₹12,000 to go'), findsOneWidget);
     await reveal(tester, find.text('+₹3,000'));
 

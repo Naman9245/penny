@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:intl/intl.dart';
 
 // Amounts are integer paise everywhere; rupees exist only on screen.
@@ -64,6 +66,68 @@ int amountTextToPaise(String text) {
   final fraction = dot == -1 ? '' : text.substring(dot + 1);
   return int.parse(whole.isEmpty ? '0' : whole) * 100 +
       int.parse(fraction.padRight(2, '0').substring(0, 2));
+}
+
+// The keypad also adds and takes away, like a calculator: "3000+2500-200".
+// Each term follows the single-amount rules above, and "-" is the minus key.
+
+/// Most terms one sum may have.
+const kMaxSumTerms = 10;
+
+/// Applies one keypad press, a digit, "." or "+" and "−", to a sum being
+/// typed. Presses that would make it invalid are ignored, and a second
+/// operator in a row replaces the first.
+String applySumKey(String text, String key) {
+  if (key == '+' || key == '−' || key == '-') {
+    final op = key == '+' ? '+' : '-';
+    if (text.isEmpty) return op == '-' ? '-' : text;
+    final last = text[text.length - 1];
+    if (last == '+' || last == '-') {
+      // A lone leading minus stays as it is.
+      if (text.length == 1) return text;
+      return '${text.substring(0, text.length - 1)}$op';
+    }
+    if (_signedTerms(text).length >= kMaxSumTerms) return text;
+    return '${text.endsWith('.') ? dropAmountKey(text) : text}$op';
+  }
+  final cut = math.max(text.lastIndexOf('+'), text.lastIndexOf('-'));
+  final term = text.substring(cut + 1);
+  return '${text.substring(0, cut + 1)}${applyAmountKey(term, key)}';
+}
+
+/// Whether [text] adds or takes anything away, so its total is worth
+/// showing apart from what was typed.
+bool isSum(String text) => text.contains('+') || text.contains('-');
+
+/// The total of a sum being typed, in paise: "3000+2500-200" → 530000.
+/// Partial terms such as "" or "0." count as nothing, and the total can come
+/// out at zero or below.
+int sumTextToPaise(String text) => _signedTerms(text)
+    .fold(0, (total, term) => total + term.sign * amountTextToPaise(term.text));
+
+/// A sum being typed, as shown: "3000+2500-200" → "₹3,000 + ₹2,500 − ₹200".
+String formatSumText(String text) {
+  if (!isSum(text)) return formatAmountText(text);
+  final parts = <String>[];
+  for (final (i, term) in _signedTerms(text).indexed) {
+    if (i > 0 || term.sign < 0) parts.add(term.sign < 0 ? '−' : '+');
+    if (term.text.isNotEmpty) parts.add(formatAmountText(term.text));
+  }
+  return parts.join(' ');
+}
+
+List<({int sign, String text})> _signedTerms(String text) {
+  final terms = <({int sign, String text})>[];
+  var sign = 1;
+  var start = 0;
+  for (var i = 0; i < text.length; i++) {
+    final char = text[i];
+    if (char != '+' && char != '-') continue;
+    if (i > 0) terms.add((sign: sign, text: text.substring(start, i)));
+    sign = char == '+' ? 1 : -1;
+    start = i + 1;
+  }
+  return terms..add((sign: sign, text: text.substring(start)));
 }
 
 /// The keypad buffer that shows [paise], for editing: 24950 → "249.50".

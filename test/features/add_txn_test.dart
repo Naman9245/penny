@@ -41,6 +41,43 @@ void main() {
     await closeApp(tester, db);
   });
 
+  testWidgets('the keypad adds and takes away like a calculator', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('home-add')));
+    await tester.pumpAndSettle();
+    for (final key in '3000+2500−200'.split('')) {
+      await tester.tap(find.byKey(ValueKey('key-$key')));
+      await tester.pump();
+    }
+    expect(find.text('₹3,000 + ₹2,500 − ₹200'), findsOneWidget);
+    expect(find.text('₹5,300'), findsOneWidget);
+
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('key-done')));
+    await tester.pumpAndSettle();
+    expect(find.text('Added ₹5,300 · Food'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets("a sum that comes to nothing can't be saved", (tester) async {
+    final db = await pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('home-add')));
+    await tester.pumpAndSettle();
+    for (final key in '200−500'.split('')) {
+      await tester.tap(find.byKey(ValueKey('key-$key')));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Food'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('key-done')));
+    await tester.pumpAndSettle();
+    expect(find.text('How much did you spend?'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
   testWidgets('the tick waits for an amount and a category', (tester) async {
     final db = await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('home-add')));
