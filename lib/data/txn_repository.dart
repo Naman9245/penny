@@ -150,6 +150,15 @@ class TxnRepository {
     return query.watch();
   }
 
+  /// When the first live entry happened, or null before there is one.
+  Stream<DateTime?> watchFirstOccurredAt() {
+    final first = _txns.occurredAt.min();
+    final query = _db.selectOnly(_txns)
+      ..addColumns([first])
+      ..where(_txns.deletedAt.isNull());
+    return query.map((row) => row.read(first)).watchSingle();
+  }
+
   Stream<List<Txn>> watchRecent({int limit = 5}) {
     final query = _db.select(_txns)
       ..where((t) => t.deletedAt.isNull())

@@ -100,6 +100,58 @@ void main() {
     expect(done.mood, PennyMood.worried);
   });
 
+  group('the mood calendar', () {
+    // ₹9,000 over November's 30 days is a share of ₹300 a day.
+    Map<int, PennyMood> moods(
+      List<Txn> txns, {
+      Budget budget = budget,
+      Set<DateTime> goalDays = const {},
+    }) => dayMoods(
+      budget: budget,
+      monthTxns: txns,
+      month: month,
+      now: tenth,
+      firstEntry: on(2),
+      goalDays: goalDays,
+    );
+
+    test('each day against its share: 1× happy, 1.5× worried, more sad', () {
+      final days = moods([
+        txn(300, on(2)),
+        txn(301, on(3)),
+        txn(450, on(4)),
+        txn(451, on(5)),
+        txn(8000, on(7), categoryId: 'rent'),
+      ]);
+      expect(days[2], PennyMood.happy);
+      expect(days[3], PennyMood.worried);
+      expect(days[4], PennyMood.worried);
+      expect(days[5], PennyMood.sad);
+      // Nothing spent is a good day, and rent stays out.
+      expect(days[6], PennyMood.happy);
+      expect(days[7], PennyMood.happy);
+    });
+
+    test('no mood before the first entry or after today', () {
+      final days = moods([txn(100, on(2))]);
+      expect(days.containsKey(1), isFalse);
+      expect(days.keys, [2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    });
+
+    test('a day a goal was reached celebrates, budget or not', () {
+      final goalDay = {DateTime(2026, 11, 8)};
+      expect(moods(const [], goalDays: goalDay)[8], PennyMood.celebrating);
+      expect(moods(const [], budget: Budget.none, goalDays: goalDay), {
+        8: PennyMood.celebrating,
+      });
+    });
+
+    test('the daily share is to the rupee', () {
+      expect(dailySharePaise(900000, month), 30000);
+      expect(dailySharePaise(800000, month), 26700);
+    });
+  });
+
   test('days left read naturally', () {
     expect(daysLeftLabel(18), '18 days left');
     expect(daysLeftLabel(1), '1 day left');

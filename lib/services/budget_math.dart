@@ -116,6 +116,63 @@ BudgetStatus budgetStatus({
   );
 }
 
+/// The everyday budget's share for one day of [month], to the rupee.
+int dailySharePaise(int everydayPaise, DateTime month) {
+  final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+  return (everydayPaise / daysInMonth / 100).round() * 100;
+}
+
+/// Penny's mood on each day of [month] that has one, by day of the month.
+/// It is that day's everyday spending against the day's share of the
+/// everyday budget: happy at or under it, worried up to one and a half
+/// times it, sad above that. A day a goal was reached is celebrating.
+/// Days after [now] or before [firstEntry] have none, and without an
+/// everyday budget only goal days do.
+Map<int, PennyMood> dayMoods({
+  required Budget budget,
+  required Iterable<Txn> monthTxns,
+  required DateTime month,
+  required DateTime now,
+  DateTime? firstEntry,
+  Set<DateTime> goalDays = const {},
+}) {
+  final start = monthStart(month);
+  final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
+  final spent = List.filled(daysInMonth + 1, 0);
+  for (final txn in monthTxns) {
+    final at = txn.occurredAt;
+    if (txn.type != TxnType.debit ||
+        categoryById(txn.categoryId).oneGo ||
+        monthStart(at) != start) {
+      continue;
+    }
+    spent[at.day] += txn.amountPaise;
+  }
+
+  final today = dayStart(now);
+  final first = firstEntry == null ? null : dayStart(firstEntry);
+  final everyday = budget.everydayPaise;
+  final moods = <int, PennyMood>{};
+  for (var day = 1; day <= daysInMonth; day++) {
+    final date = DateTime(start.year, start.month, day);
+    if (date.isAfter(today)) break;
+    if (goalDays.contains(date)) {
+      moods[day] = PennyMood.celebrating;
+      continue;
+    }
+    if (everyday == null || first == null || date.isBefore(first)) continue;
+    // The day's share is everyday ÷ days in the month; compare without
+    // dividing.
+    final scaled = spent[day] * daysInMonth;
+    moods[day] = scaled <= everyday
+        ? PennyMood.happy
+        : scaled * 2 <= everyday * 3
+        ? PennyMood.worried
+        : PennyMood.sad;
+  }
+  return moods;
+}
+
 /// "18 days left", "1 day left" or "Last day".
 String daysLeftLabel(int daysLeft) => switch (daysLeft) {
   <= 0 => 'Last day',

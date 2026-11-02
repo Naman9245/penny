@@ -47,6 +47,11 @@ final recentTxnsProvider = StreamProvider.autoDispose<List<Txn>>(
   (ref) => ref.watch(txnRepositoryProvider).watchRecent(),
 );
 
+/// When the first entry happened: the mood calendar starts there.
+final firstEntryProvider = StreamProvider.autoDispose<DateTime?>(
+  (ref) => ref.watch(txnRepositoryProvider).watchFirstOccurredAt(),
+);
+
 final txnByIdProvider = FutureProvider.autoDispose.family<Txn?, String>(
   (ref, id) => ref.watch(txnRepositoryProvider).findById(id),
 );

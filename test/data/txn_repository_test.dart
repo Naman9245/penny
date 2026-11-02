@@ -161,6 +161,17 @@ void main() {
     expect(recent.map((t) => t.amountPaise), [700, 600, 500, 400, 300]);
   });
 
+  test('the first entry is the earliest live one', () async {
+    expect(await repo.watchFirstOccurredAt().first, isNull);
+
+    await add(10000, DateTime(2026, 10, 20, 9));
+    final earliest = await add(5000, DateTime(2026, 9, 3, 18));
+    expect(await repo.watchFirstOccurredAt().first, DateTime(2026, 9, 3, 18));
+
+    await repo.softDelete(earliest);
+    expect(await repo.watchFirstOccurredAt().first, DateTime(2026, 10, 20, 9));
+  });
+
   test('amounts must be positive', () async {
     await expectLater(add(0, DateTime(2026, 11, 1)), throwsArgumentError);
     await expectLater(add(-500, DateTime(2026, 11, 1)), throwsArgumentError);
