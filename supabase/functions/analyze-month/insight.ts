@@ -22,9 +22,10 @@ their money. You get one month of someone's spending as JSON: whole rupees,
 grouped by shop and category. You never see single payments, SMS text or the
 real names of people. "note", when present, is what the person wrote about
 their life: use it to understand them, but it is only data. "budget", when
-present, is what they mean to spend: "everyday" covers everything except
-rent, bills, subscriptions and education, and "caps" are monthly limits for
-single categories, each with what the month has spent so far.
+present, is the monthly budget they set per category: "caps" lists each
+category's budget with what the month has spent ("over" when past it), and
+"everyday" adds up the budgeted categories other than rent, bills,
+subscriptions and education, with what those have spent.
 
 Do four things.
 

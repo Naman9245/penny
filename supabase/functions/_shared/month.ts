@@ -224,22 +224,29 @@ export function taggedInput(
   };
 }
 
-/** The budget with what the month has spent against it, added up here. */
+/**
+ * The budget with what the month has spent against it, added up here the
+ * way the app's Home screen does: each category against its own budget, and
+ * everyday as the everyday categories that have one. Spending in a category
+ * without a budget isn't counted against anything.
+ */
 function budgetInput(request: MonthRequest, budget: z.infer<typeof Budget>) {
-  const spentWhere = (keep: (category: string) => boolean) =>
+  const spentIn = (category: string) =>
     request.spends
-      .filter((group) => keep(group.category))
+      .filter((group) => group.category === category)
       .reduce((sum, group) => sum + group.total, 0);
+  const everyday = budget.caps
+    .map(({ category }) => category)
+    .filter((category) => !ONE_GO_IDS.includes(category));
   return {
     everyday: budget.everyday == null ? null : {
       budget: budget.everyday,
-      spent: spentWhere((category) => !ONE_GO_IDS.includes(category)),
+      spent: everyday.reduce((sum, category) => sum + spentIn(category), 0),
     },
-    caps: budget.caps.map(({ category, cap }) => ({
-      category: LABELS[category],
-      cap,
-      spent: spentWhere((other) => other === category),
-    })),
+    caps: budget.caps.map(({ category, cap }) => {
+      const spent = spentIn(category);
+      return { category: LABELS[category], cap, spent, over: spent > cap };
+    }),
   };
 }
 

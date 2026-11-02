@@ -22,6 +22,9 @@ const Message = z.strictObject({
   text: z.string().trim().min(1).max(1000),
 });
 
+/** Penny's face on the app's Home card. Must match lib/models/penny_mood.dart. */
+const MOODS = ["happy", "neutral", "worried", "sad", "celebrating"] as const;
+
 const Goal = z.strictObject({
   title: z.string().trim().min(1).max(40),
   target: rupees,
@@ -41,6 +44,8 @@ const ChatRequest = z
     tags: z.record(z.string().regex(/^s\d{1,2}$/), z.enum(TAGS)),
     /** What the person is saving for. */
     goals: z.array(Goal).max(10).optional(),
+    /** Penny's mood on the Home card as the app works it out. */
+    mood: z.enum(MOODS).optional(),
     /** The conversation so far, oldest first, ending with the person. */
     messages: z.array(Message).min(1).max(12),
   })
@@ -55,15 +60,37 @@ export { ChatRequest };
 
 export const CHAT_PROMPT = `
 You are Penny, a cheerful coin who helps young people in India with their
-money, chatting inside the Penny app. Below is the person's current month as
-JSON: whole rupees, grouped by shop and category, each group tagged necessary
-or wasteful when known ("tag"), and maybe a note they wrote about themselves.
-People they paid appear only as "Person 1", "Person 2". "budget", when
-present, is what they mean to spend: "everyday" covers everything except
-rent, bills, subscriptions and education, and "caps" are monthly limits for
-single categories, each with what the month has spent so far. "goals", when
-present, are what they are saving for: the target, what they have put aside,
-the deadline and what they still need to put aside each week ("perWeek").
+money, chatting inside the Penny app. Below is what the app knows about the
+person, as JSON in whole rupees. It is current: where your earlier messages
+in this chat disagree with it, go by the JSON.
+
+- "home" is what the app's Home screen shows them right now: "spent" and
+  "got" this month so far, "left" (got minus spent; null until they log
+  income), the "daysLeft" in the month, and "mood", your face on their Home
+  card. When you mention their totals, use exactly these numbers, so you
+  always agree with the app, and let your mood show.
+- "spends" is this month's spending grouped by shop and category, each group
+  tagged necessary or wasteful when known ("tag"). People they paid appear
+  only as "Person 1", "Person 2". "income" is what they got, by category.
+- "budget", when present, is the monthly budget they set per category:
+  "caps" lists each category's budget with what it has spent ("over" when
+  past it), and "everyday" adds up the budgeted categories other than rent,
+  bills, subscriptions and education, with what those have spent.
+- Rent & PG, Bills & recharge, Subscriptions and Education are fixed costs
+  paid in one go, like rent, a cook, electricity or a phone plan, and are
+  already inside "spent". Don't count them as money that could be saved
+  unless they ask how to lower one; plan any saving from what is left after
+  them.
+- "goals" is every goal they have set on the app's Goals tab: the target,
+  what they have put aside, the deadline and what they still need to put
+  aside each week ("perWeek"). When it is empty they have set none: don't
+  assume they are saving for anything, and never call something their goal
+  unless it is in "goals". When they want to save for something, suggest
+  adding it as a goal on the Goals tab, so the app tracks it with them.
+- When they mention money the app doesn't have yet, like a fee, a
+  subscription or income, suggest adding it as an entry, so their month in
+  the app stays complete.
+- "note", when present, is what they wrote about themselves.
 
 How to answer:
 - Be warm, practical and brief: usually under 120 words, with a few "•"
@@ -71,8 +98,9 @@ How to answer:
   tables.
 - Reply in the language the person writes in: English, Hindi or Hinglish.
 - Use their month: point at their actual shops and categories when it helps.
-- Numbers: only use amounts from their month or from what they told you. For
-  anything you estimate, say "about". Never invent spending they didn't have.
+- Numbers: only use amounts from the app's data or from what they told you.
+  For anything you estimate, say "about". Never invent spending they didn't
+  have.
 - Stay on money: spending, saving, budgeting, earning a little extra and money
   habits. If they ask about something else, answer in one line and steer back
   to money.
@@ -87,21 +115,31 @@ How to answer:
 `.trim();
 
 /**
- * The month as Penny sees it in a chat: the report's view plus each tag,
- * and the goals.
+ * What Penny sees in a chat: what the Home screen shows, the report's view
+ * of the month with each tag, and every goal, even when there are none.
  */
 export function chatContext(request: ChatRequest) {
-  const goals = request.goals ?? [];
   return {
+    home: homeView(request),
     ...taggedInput(request.month, request.tags),
-    ...(goals.length > 0
-      ? {
-        goals: goals.map((goal) => ({
-          ...goal,
-          title: cleanGoalTitle(goal.title),
-        })),
-      }
-      : {}),
+    goals: (request.goals ?? []).map((goal) => ({
+      ...goal,
+      title: cleanGoalTitle(goal.title),
+    })),
+  };
+}
+
+/** The month's totals as the app's Home screen shows them. */
+function homeView({ month, mood }: ChatRequest) {
+  const [year, number] = month.month.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, number, 0)).getUTCDate();
+  return {
+    spent: month.spent,
+    got: month.got,
+    // Home shows no "left" until there's income to take spending from.
+    left: month.got > 0 ? month.got - month.spent : null,
+    daysLeft: month.monthComplete ? 0 : daysInMonth - month.daysCounted,
+    ...(mood ? { mood } : {}),
   };
 }
 

@@ -9,6 +9,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/chat.dart';
 import 'package:penny/models/goal_plan.dart';
 import 'package:penny/models/month_insight.dart';
+import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/goal_plan.dart';
@@ -109,6 +110,7 @@ class ChatRequest {
     required this.tags,
     required this.turns,
     this.goals = const [],
+    this.mood,
   });
 
   final InsightRequest month;
@@ -116,7 +118,12 @@ class ChatRequest {
 
   /// Oldest first, ending with the user.
   final List<ChatTurn> turns;
+
+  /// Every goal. None goes too, so Penny knows there are none.
   final List<ChatGoal> goals;
+
+  /// Penny's mood on the Home card, so the chat matches it.
+  final PennyMood? mood;
 
   Map<String, Object?> toJson() => {
     'v': 1,
@@ -124,18 +131,18 @@ class ChatRequest {
     'tags': {
       for (final MapEntry(:key, :value) in tags.entries) key: value.name,
     },
-    if (goals.isNotEmpty)
-      'goals': [
-        for (final goal in goals)
-          {
-            'title': goal.title,
-            'target': _rupees(goal.targetPaise),
-            'saved': _rupees(goal.savedPaise),
-            'deadline': DateFormat('yyyy-MM-dd').format(goal.deadline),
-            'perWeek': _rupees(goal.perWeekPaise),
-            'reached': goal.reached,
-          },
-      ],
+    'goals': [
+      for (final goal in goals)
+        {
+          'title': goal.title,
+          'target': _rupees(goal.targetPaise),
+          'saved': _rupees(goal.savedPaise),
+          'deadline': DateFormat('yyyy-MM-dd').format(goal.deadline),
+          'perWeek': _rupees(goal.perWeekPaise),
+          'reached': goal.reached,
+        },
+    ],
+    if (mood case final mood?) 'mood': mood.name,
     'messages': [
       for (final turn in turns) {'role': turn.role.name, 'text': turn.text},
     ],

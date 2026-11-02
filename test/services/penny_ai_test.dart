@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/chat.dart';
 import 'package:penny/models/month_insight.dart';
+import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/goal_plan.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -189,14 +190,25 @@ void main() {
         'reached': false,
       },
     ]);
+    // None goes along too, so Penny knows there are none.
     expect(
       ChatRequest(
         month: request,
         tags: const {},
         turns: const [(role: ChatRole.user, text: 'Hi')],
-      ).toJson().containsKey('goals'),
-      isFalse,
+      ).toJson()['goals'],
+      isEmpty,
     );
+  });
+
+  test("Penny's mood on Home goes to the chat by name", () {
+    final json = ChatRequest(
+      month: request,
+      tags: const {},
+      turns: const [(role: ChatRole.user, text: 'Hi')],
+      mood: PennyMood.sad,
+    ).toJson();
+    expect(json['mood'], 'sad');
   });
 
   group('the chat', () {
@@ -218,6 +230,7 @@ void main() {
         'v': 1,
         'month': request.body,
         'tags': {'s1': 'wasteful', 's2': 'necessary'},
+        'goals': <Object?>[],
         'messages': [
           {'role': 'user', 'text': 'How do I save?'},
         ],

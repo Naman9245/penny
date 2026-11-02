@@ -14,6 +14,7 @@ interface ChatJson {
   month: RequestJson;
   tags: Record<string, string>;
   goals?: Record<string, unknown>[];
+  mood?: string;
   messages: unknown[];
 }
 
@@ -92,6 +93,7 @@ Deno.test("refuses chats the app wouldn't send", () => {
       ...chatJson(),
       goals: Array.from({ length: 11 }, delhiTrip),
     },
+    "an unknown mood": { ...chatJson(), mood: "furious" },
   };
   for (const [name, json] of Object.entries(cases)) {
     assert.equal(parseWith(ChatRequest, JSON.stringify(json)), null, name);
@@ -111,9 +113,36 @@ Deno.test("Penny knows the goals, long numbers in titles hidden", () => {
   const json = chatJson();
   json.goals = [{ ...delhiTrip(), title: "Delhi trip, 98765 43210" }];
   const context = chatContext(parsed(json));
-  assert.equal(context.goals?.[0].title, "Delhi trip, •••");
-  assert.equal(context.goals?.[0].perWeek, 800);
-  assert.equal("goals" in chatContext(parsed()), false);
+  assert.equal(context.goals[0].title, "Delhi trip, •••");
+  assert.equal(context.goals[0].perWeek, 800);
+  // No goals still goes along, so Penny knows there are none.
+  assert.deepEqual(chatContext(parsed()).goals, []);
+  assert.match(CHAT_PROMPT, /When it is empty they have set none/);
+  assert.match(CHAT_PROMPT, /Goals tab/);
+});
+
+Deno.test("Penny sees what Home shows: totals, what's left, her mood", () => {
+  const json = chatJson();
+  json.month = { ...json.month, monthComplete: false, daysCounted: 3 };
+  json.mood = "sad";
+  assert.deepEqual(chatContext(parsed(json)).home, {
+    spent: 9480,
+    got: 15000,
+    left: 15000 - 9480,
+    daysLeft: 31 - 3,
+    mood: "sad",
+  });
+
+  // Like Home: nothing left to show before any income, and no days left
+  // once the month is over.
+  const noIncome = chatJson();
+  noIncome.month = { ...noIncome.month, got: 0, income: [] };
+  assert.deepEqual(chatContext(parsed(noIncome)).home, {
+    spent: 9480,
+    got: 0,
+    left: null,
+    daysLeft: 0,
+  });
 });
 
 Deno.test("the conversation goes to Gemini as turns, numbers hidden", () => {

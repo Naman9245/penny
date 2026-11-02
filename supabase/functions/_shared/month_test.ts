@@ -104,16 +104,17 @@ Deno.test("the budget goes along with what's spent against it", () => {
   const input = modelInput(parsed({
     ...sampleRequest(),
     budget: {
-      everyday: 8000,
+      everyday: 3000,
       caps: [{ category: "food", cap: 3000 }, { category: "rent", cap: 4000 }],
     },
   }));
-  // Rent and subscriptions are paid in one go, so everyday leaves them out.
+  // As on the app's Home screen: rent is paid in one go, and the ₹1,500 in
+  // Other has no budget, so everyday is food alone.
   assert.deepEqual(input.budget, {
-    everyday: { budget: 8000, spent: 3480 + 1500 },
+    everyday: { budget: 3000, spent: 3480 },
     caps: [
-      { category: "Food", cap: 3000, spent: 3480 },
-      { category: "Rent & PG", cap: 4000, spent: 3851 },
+      { category: "Food", cap: 3000, spent: 3480, over: true },
+      { category: "Rent & PG", cap: 4000, spent: 3851, over: false },
     ],
   });
   assert.equal("budget" in modelInput(parsed()), false);

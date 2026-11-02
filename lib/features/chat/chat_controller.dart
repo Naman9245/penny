@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/chat.dart';
+import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -10,11 +11,16 @@ import 'package:penny/services/insight_math.dart';
 import 'package:penny/services/penny_ai.dart';
 
 /// What the chat tells Penny about this month: the month as the report
-/// would send it, each group's tag, and the goals. The chat screen keeps it
-/// up to date.
+/// would send it, each group's tag, the goals, and her mood on Home. The
+/// chat screen keeps it up to date.
 final chatMonthProvider =
     FutureProvider.autoDispose<
-      ({InsightRequest month, Map<String, TxnTag> tags, List<ChatGoal> goals})
+      ({
+        InsightRequest month,
+        Map<String, TxnTag> tags,
+        List<ChatGoal> goals,
+        PennyMood mood,
+      })
     >((ref) async {
       final now = DateTime.now();
       final month = monthStart(now);
@@ -32,6 +38,8 @@ final chatMonthProvider =
           for (final goal in goalProgress(goals, deposits).take(10))
             chatGoalOf(goal, now),
         ],
+        // Everything it goes by has loaded above, so it matches Home.
+        mood: ref.watch(pennyMoodProvider),
       );
     });
 
@@ -89,12 +97,13 @@ class ChatController extends Notifier<ChatState> {
     final context = ref.read(chatMonthProvider.future);
     state = ChatState(sending: true, callsLeftToday: state.callsLeftToday);
     try {
-      final (:month, :tags, :goals) = await context;
+      final (:month, :tags, :goals, :mood) = await context;
       final answer = await ai.chat(
         ChatRequest(
           month: month,
           tags: tags,
           goals: goals,
+          mood: mood,
           turns: chatTurns(await chat.recent(24)),
         ),
       );

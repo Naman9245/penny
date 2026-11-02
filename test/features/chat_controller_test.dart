@@ -5,6 +5,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/chat/chat_controller.dart';
 import 'package:penny/models/chat.dart';
+import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/penny_ai.dart';
 
 import '../helpers/fake_ai.dart';
@@ -62,6 +63,15 @@ void main() {
       (role: ChatRole.penny, text: 'About: First'),
       (role: ChatRole.user, text: 'Second'),
     ]);
+  });
+
+  test('Penny hears her mood on Home, and that there are no goals', () async {
+    await chat().send('Hi');
+
+    final sent = ai.chats.single;
+    expect(sent.toJson()['goals'], isEmpty);
+    // No budget yet, so Home shows her neutral.
+    expect(sent.mood, PennyMood.neutral);
   });
 
   test('a blank message is not sent', () async {
