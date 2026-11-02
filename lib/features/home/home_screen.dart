@@ -355,7 +355,7 @@ class _GoalsCard extends StatelessWidget {
   final bool reached;
 
   /// Goals shown on the card; the rest are on Goals.
-  static const _shown = 3;
+  static const _shown = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -363,66 +363,80 @@ class _GoalsCard extends StatelessWidget {
     return BrutalCard(
       key: ValueKey(reached ? 'goals-reached' : 'goals-to-reach'),
       color: reached ? AppColors.sky : AppColors.lavender,
+      // The pager gives every card the tallest one's height: the title keeps
+      // to the top, the button to the foot, and the goals sit between.
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  reached ? 'Goals reached' : 'Goals to reach',
-                  style: AppText.h3,
-                ),
-              ),
-              BrutalChip(
-                label: 'All goals',
-                icon: Icons.flag_rounded,
-                onTap: () => context.go('/goals'),
-              ),
-            ],
+          Text(reached ? 'Goals reached' : 'Goals to reach', style: AppText.h3),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: goals.isEmpty
+                ? Row(
+                    children: [
+                      const PennyMascot(
+                        mood: PennyMood.happy,
+                        size: 64,
+                        bob: false,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          reached
+                              ? 'None yet. Every goal you reach lands here, '
+                                    'and Penny celebrates it.'
+                              : 'No goals yet. Add one and Penny works out '
+                                    'what to put aside each week.',
+                          style: AppText.body,
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final (i, goal) in goals.take(_shown).indexed) ...[
+                        if (i > 0) const SizedBox(height: 12),
+                        _GoalRow(progress: goal, today: today),
+                      ],
+                      if (more > 0) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          more == 1
+                              ? 'And 1 more on Goals'
+                              : 'And $more more on Goals',
+                          style: AppText.small.copyWith(color: AppColors.ink),
+                        ),
+                      ],
+                    ],
+                  ),
           ),
-          const SizedBox(height: 12),
-          if (goals.isEmpty && reached)
-            const Text(
-              'None yet. Every goal you reach lands here, and Penny '
-              'celebrates it.',
-              style: AppText.body,
-            )
-          else if (goals.isEmpty) ...[
-            const Text(
-              'Nothing to reach right now. Save for something, and Penny '
-              'works out what to put aside each week.',
-              style: AppText.body,
-            ),
-            const SizedBox(height: 12),
+          if (goals.isEmpty && !reached)
             BrutalButton(
               key: const ValueKey('home-add-goal'),
               label: 'Add a goal',
-              icon: Icons.flag_rounded,
+              icon: Icons.add_rounded,
               color: AppColors.white,
               expand: true,
               onPressed: () => context.push('/goals/new'),
+            )
+          else
+            BrutalButton(
+              label: 'All goals',
+              icon: Icons.flag_rounded,
+              color: AppColors.white,
+              expand: true,
+              onPressed: () => context.go('/goals'),
             ),
-          ],
-          for (final (i, goal) in goals.take(_shown).indexed) ...[
-            if (i > 0) const SizedBox(height: 14),
-            _GoalRow(progress: goal, today: today),
-          ],
-          if (more > 0) ...[
-            const SizedBox(height: 12),
-            Text(
-              more == 1 ? 'And 1 more on Goals' : 'And $more more on Goals',
-              style: AppText.small.copyWith(color: AppColors.ink),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-/// One goal on the goals card: how far along it is, and what it still
-/// needs. Tap it for its page.
+/// One goal on the goals card: how far along it is, or when it was
+/// reached. Tap it for its page.
 class _GoalRow extends StatelessWidget {
   const _GoalRow({required this.progress, required this.today});
 
@@ -462,15 +476,15 @@ class _GoalRow extends StatelessWidget {
                   ),
                 ],
               ),
-              if (!progress.reached) ...[
-                const SizedBox(height: 6),
+              const SizedBox(height: 6),
+              // What it needs each week is on its page; here, how far along.
+              if (progress.reached)
+                Text(
+                  goalNeedLine(progress, today),
+                  style: AppText.small.copyWith(color: AppColors.ink),
+                )
+              else
                 GoalProgressBar(progress: progress.progress),
-              ],
-              const SizedBox(height: 4),
-              Text(
-                goalNeedLine(progress, today),
-                style: AppText.small.copyWith(color: AppColors.ink),
-              ),
             ],
           ),
         ),

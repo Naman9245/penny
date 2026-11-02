@@ -77,6 +77,19 @@ Future<void> pumpPenny(
   await tester.pumpAndSettle();
 }
 
+/// Scrolls Home down to Recent, which starts below Penny's cards on a
+/// phone-sized screen.
+Future<void> scrollToRecent(WidgetTester tester) => _dragHome(tester, -400);
+
+/// Scrolls Home back up to the top.
+Future<void> scrollToTop(WidgetTester tester) => _dragHome(tester, 400);
+
+Future<void> _dragHome(WidgetTester tester, double dy) async {
+  // Home's own list comes before the cards' pager inside it.
+  await tester.drag(find.byType(Scrollable).first, Offset(0, dy));
+  await tester.pumpAndSettle();
+}
+
 /// The app's router, for opening routes the way a share would.
 GoRouter routerOf(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(PennyApp)))

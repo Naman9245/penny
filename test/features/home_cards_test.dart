@@ -84,6 +84,40 @@ void main() {
     await closeApp(tester, db);
   });
 
+  testWidgets('every card is as tall as the tallest; dots follow the finger', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester, seedDb: seedGoals);
+    final spent = find.textContaining('Spent in');
+    final below = tester.getTopLeft(spent);
+    final tall = tester.getSize(find.byKey(const ValueKey('penny-card')));
+    double dot(int i) =>
+        tester.getSize(find.byKey(ValueKey('card-dot-$i'))).width;
+    final (still, current) = (dot(1), dot(0));
+
+    // Halfway to the next card: nothing below moves, and the two dots
+    // share the stretch.
+    final gesture = await tester.startGesture(tester.getCenter(cards));
+    await gesture.moveBy(const Offset(-20, 0));
+    await gesture.moveBy(const Offset(-180, 0));
+    await tester.pump();
+    expect(tester.getTopLeft(spent), below);
+    expect(dot(0), inExclusiveRange(still, current));
+    expect(dot(1), inExclusiveRange(still, current));
+    // On past halfway, so it lands on the next card.
+    await gesture.moveBy(const Offset(-180, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byKey(const ValueKey('goals-to-reach'))), tall);
+    expect(tester.getTopLeft(spent), below);
+    await tester.drag(cards, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byKey(const ValueKey('goals-reached'))), tall);
+    expect(tester.getTopLeft(spent), below);
+    await closeApp(tester, db);
+  });
+
   testWidgets('a dot slides to its card, and All goals opens Goals', (
     tester,
   ) async {
@@ -105,7 +139,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('card-dot-1')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Nothing to reach right now'), findsOneWidget);
+    expect(find.textContaining('No goals yet'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('card-dot-2')));
     await tester.pumpAndSettle();
     expect(find.textContaining('None yet'), findsOneWidget);

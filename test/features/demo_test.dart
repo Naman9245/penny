@@ -44,8 +44,10 @@ void main() {
       tester,
       overrides: [databaseOpenerProvider.overrideWithValue(files.open)],
     );
-    expect(find.text('Chai point'), findsOneWidget);
     expect(find.byKey(const ValueKey('demo-banner')), findsNothing);
+    await scrollToRecent(tester);
+    expect(find.text('Chai point'), findsOneWidget);
+    await scrollToTop(tester);
 
     Future<void> openSettings() async {
       await tester.tap(find.bySemanticsLabel('Settings'));
@@ -74,8 +76,10 @@ void main() {
 
     // The demo, with headphones bought yesterday.
     expect(find.byKey(const ValueKey('demo-banner')), findsOneWidget);
-    expect(find.text('Chai point'), findsNothing);
     expect(find.text('Celebrating'), findsOneWidget);
+    await scrollToRecent(tester);
+    expect(find.text('Chai point'), findsNothing);
+    await scrollToTop(tester);
 
     // The copied sample goes into the demo.
     await tester.tap(find.byKey(const ValueKey('home-add')));
@@ -106,6 +110,7 @@ void main() {
     expect(reset, findsNothing);
     await closeSettings();
     expect(find.byKey(const ValueKey('demo-banner')), findsNothing);
+    await scrollToRecent(tester);
     expect(find.text('Chai point'), findsOneWidget);
     expect(find.text('Swiggy'), findsNothing);
 

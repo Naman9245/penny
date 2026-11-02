@@ -25,17 +25,20 @@ void main() {
     tester,
   ) async {
     final db = await pumpApp(tester);
+    await scrollToRecent(tester);
     expect(find.textContaining('Nothing logged yet'), findsOneWidget);
 
     await addFood250(tester);
 
     expect(find.text('Added ₹250 · Food'), findsOneWidget);
     expect(find.text('−₹250'), findsOneWidget); // The new row in Recent.
+    await scrollToTop(tester);
     expect(find.text('₹250'), findsOneWidget); // Spent this month.
 
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
 
+    await scrollToRecent(tester);
     expect(find.text('−₹250'), findsNothing);
     expect(find.textContaining('Nothing logged yet'), findsOneWidget);
     await closeApp(tester, db);
@@ -108,6 +111,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Added ₹250 · Food'), findsNothing);
+    await scrollToRecent(tester);
     expect(find.text('−₹250'), findsOneWidget);
     await closeApp(tester, db);
   });

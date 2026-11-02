@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
@@ -5,9 +6,9 @@ import 'package:flutter/rendering.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/brutal_theme.dart';
 
-/// Cards side by side to slide between, with dots under them saying which
-/// one shows. The pager is as tall as the card on show, blending between
-/// two while sliding, so every card keeps its own height.
+/// Cards side by side to slide between, with dots under them that follow
+/// the slide. Every card takes the tallest one's height, so none is cut
+/// short mid-slide and nothing under the pager moves.
 class CardPager extends StatefulWidget {
   const CardPager({
     super.key,
@@ -33,15 +34,12 @@ class CardPager extends StatefulWidget {
 class _CardPagerState extends State<CardPager> {
   final _controller = PageController();
 
-  /// Each card's height, once laid out.
+  /// Each card's own height, once laid out.
   late final _heights = List<double?>.filled(widget.pages.length, null);
 
   /// Where the pager is, in cards: 1.5 is halfway from the second card to
   /// the third.
   double _position = 0;
-
-  /// The height the pager last had.
-  double? _shown;
 
   @override
   void initState() {
@@ -64,15 +62,10 @@ class _CardPagerState extends State<CardPager> {
     }
   }
 
-  /// The height of the card on show, or a blend of two while sliding. A
-  /// card not measured yet, like one a dot jumps to, keeps the height the
-  /// pager had until it is.
-  double _height(double first) {
-    final last = _heights.length - 1;
-    final from = _position.floor().clamp(0, last);
-    final to = _position.ceil().clamp(0, last);
-    final height = _heights[from] ?? _shown ?? first;
-    return lerpDouble(height, _heights[to] ?? height, _position - from)!;
+  /// The tallest card's height, once every card has been measured.
+  double? get _height {
+    if (_heights.contains(null)) return null;
+    return _heights.cast<double>().reduce(math.max);
   }
 
   void _show(int index) {
@@ -88,48 +81,23 @@ class _CardPagerState extends State<CardPager> {
   }
 
   /// Card [index], inset to line up with the rest of the page and to leave
-  /// room for its shadow, reporting its height.
+  /// room for its shadow.
   Widget _card(int index) {
-    return _HeightReporter(
-      onHeight: (height) => _measured(index, height),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          widget.bleed,
-          0,
-          widget.bleed,
-          context.brutal.shadowOffset.dy,
-        ),
-        child: widget.pages[index],
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        widget.bleed,
+        0,
+        widget.bleed,
+        context.brutal.shadowOffset.dy,
       ),
+      child: widget.pages[index],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final first = _heights[0];
-    // The first card is laid out on its own once, to learn how tall the
-    // pager should be.
-    final cards = first == null
-        ? _card(0)
-        : SizedBox(
-            height: _shown = _height(first),
-            child: PageView(
-              controller: _controller,
-              // Builds the cards either side too, so their heights are
-              // known before they slide in.
-              allowImplicitScrolling: true,
-              children: [
-                for (var i = 0; i < widget.pages.length; i++)
-                  OverflowBox(
-                    minHeight: 0,
-                    maxHeight: double.infinity,
-                    alignment: Alignment.topCenter,
-                    child: _card(i),
-                  ),
-              ],
-            ),
-          );
-    final current = _position.round();
+    final height = _height;
+    final count = widget.pages.length;
     return Column(
       children: [
         LayoutBuilder(
@@ -137,20 +105,67 @@ class _CardPagerState extends State<CardPager> {
             fit: OverflowBoxFit.deferToChild,
             minWidth: box.maxWidth + widget.bleed * 2,
             maxWidth: box.maxWidth + widget.bleed * 2,
-            child: cards,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Every card laid out unseen at its own height, to find the
+                // tallest.
+                Offstage(
+                  child: TickerMode(
+                    enabled: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < count; i++)
+                          _HeightReporter(
+                            onHeight: (height) => _measured(i, height),
+                            child: _card(i),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Until then, the first card at its own height.
+                if (height == null)
+                  _card(0)
+                else
+                  SizedBox(
+                    height: height,
+                    child: PageView(
+                      controller: _controller,
+                      // Builds the cards either side too, so screen readers
+                      // can move to them.
+                      allowImplicitScrolling: true,
+                      children: [
+                        for (var i = 0; i < count; i++)
+                          // At least the pager's height. A card that has
+                          // just grown overflows for the one frame before
+                          // it's measured again, rather than squashing.
+                          OverflowBox(
+                            minHeight: height,
+                            maxHeight: double.infinity,
+                            alignment: Alignment.topCenter,
+                            child: _card(i),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var i = 0; i < widget.pages.length; i++)
+            for (var i = 0; i < count; i++)
               _Dot(
                 key: ValueKey('card-dot-$i'),
-                label:
-                    '${widget.labels[i]}, card ${i + 1} of '
-                    '${widget.pages.length}',
-                current: i == current,
+                label: '${widget.labels[i]}, card ${i + 1} of $count',
+                // How much this dot's card is on show: the dots stretch and
+                // fill along with the finger while sliding.
+                share: (1 - (_position - i).abs()).clamp(0.0, 1.0),
                 onTap: () => _show(i),
               ),
           ],
@@ -164,19 +179,21 @@ class _Dot extends StatelessWidget {
   const _Dot({
     super.key,
     required this.label,
-    required this.current,
+    required this.share,
     required this.onTap,
   });
 
   final String label;
-  final bool current;
+
+  /// How much this dot's card is on show, from 0 to 1.
+  final double share;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      selected: current,
+      selected: share > 0.5,
       label: label,
       excludeSemantics: true,
       child: GestureDetector(
@@ -184,12 +201,11 @@ class _Dot extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: current ? 22 : 10,
+          child: Container(
+            width: lerpDouble(10, 22, share),
             height: 10,
             decoration: BoxDecoration(
-              color: current ? AppColors.ink : AppColors.white,
+              color: Color.lerp(AppColors.white, AppColors.ink, share),
               borderRadius: BorderRadius.circular(kPillRadius),
               border: Border.all(color: AppColors.ink, width: 1.5),
             ),

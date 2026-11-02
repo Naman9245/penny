@@ -44,6 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Added ₹250 · Food'), findsOneWidget);
+    await scrollToRecent(tester);
     expect(find.text('Swiggy'), findsOneWidget);
     expect(find.textContaining('· SMS'), findsOneWidget);
     await closeApp(tester, db);
@@ -75,6 +76,7 @@ void main() {
     expect(find.text(IgnoreReason.otp.explanation), findsOneWidget);
     await tester.tap(find.text('Close').last);
     await tester.pumpAndSettle();
+    await scrollToRecent(tester);
     expect(find.textContaining('Nothing logged yet'), findsOneWidget);
     await closeApp(tester, db);
   });
