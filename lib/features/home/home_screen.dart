@@ -8,14 +8,18 @@ import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/goals/goal_widgets.dart';
 import 'package:penny/features/settings/settings_sheet.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/budget_math.dart';
+import 'package:penny/services/goal_math.dart';
+import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/card_pager.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 
@@ -38,6 +42,11 @@ class HomeScreen extends ConsumerWidget {
         );
     final recent = ref.watch(recentTxnsProvider);
     final demo = ref.watch(demoModeProvider);
+    final goals = ref.watch(goalProgressProvider).value ?? const [];
+    final reached = [
+      for (final goal in goals)
+        if (goal.reached) goal,
+    ]..sort((a, b) => b.reachedOn!.compareTo(a.reachedOn!));
 
     return SafeArea(
       bottom: false,
@@ -75,7 +84,27 @@ class HomeScreen extends ConsumerWidget {
             _DemoBanner(onTap: () => showSettingsSheet(context)),
           ],
           const SizedBox(height: 18),
-          _PennyCard(mood: mood, status: status),
+          // Slide Penny aside for the goals still to reach, then the ones
+          // reached.
+          CardPager(
+            key: const ValueKey('home-cards'),
+            labels: const ['Penny', 'Goals to reach', 'Goals reached'],
+            pages: [
+              _PennyCard(
+                mood: mood,
+                status: status,
+                celebrated: ref.watch(celebratedGoalProvider),
+              ),
+              _GoalsCard(
+                goals: [
+                  for (final goal in goals)
+                    if (!goal.reached) goal,
+                ],
+                today: now,
+              ),
+              _GoalsCard(goals: reached, today: now, reached: true),
+            ],
+          ),
           if (status.budget.isEmpty) ...[
             const SizedBox(height: 12),
             Align(
@@ -179,14 +208,23 @@ class _DemoBanner extends StatelessWidget {
 }
 
 class _PennyCard extends StatelessWidget {
-  const _PennyCard({required this.mood, required this.status});
+  const _PennyCard({
+    required this.mood,
+    required this.status,
+    required this.celebrated,
+  });
 
   final PennyMood mood;
   final BudgetStatus status;
 
+  /// The goal Penny is celebrating, if she is.
+  final GoalProgress? celebrated;
+
   @override
   Widget build(BuildContext context) {
-    final everyday = status.budget.everydayPaise;
+    final celebrated = this.celebrated;
+    final budget =
+        status.budget.everydayPaise > 0 || status.categoryNote != null;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
@@ -213,20 +251,13 @@ class _PennyCard extends StatelessWidget {
                   child: Text(mood.label, style: AppText.chip),
                 ),
                 const SizedBox(height: 8),
-                Text(mood.line, style: AppText.h3),
-                if (status.categoryNote case final note?) ...[
-                  const SizedBox(height: 4),
-                  Text(note, style: AppText.bodyStrong),
-                ],
-                if (everyday > 0) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '${formatPaise(status.everydaySpentPaise)} of '
-                    '${formatPaise(everyday)} · '
-                    '${daysLeftLabel(status.daysLeft)}',
-                    key: const ValueKey('budget-line'),
-                    style: AppText.bodyStrong,
-                  ),
+                Text(
+                  celebrated == null ? mood.line : celebrationLine(celebrated),
+                  style: AppText.h3,
+                ),
+                if (budget) ...[
+                  const SizedBox(height: 10),
+                  _BudgetBox(status: status),
                 ],
                 const SizedBox(height: 10),
                 // The whole card opens the chat; this says so.
@@ -262,6 +293,187 @@ class _PennyCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Where the month stands against the budget, boxed off from Penny's line
+/// so it can't be read as a goal.
+class _BudgetBox extends StatelessWidget {
+  const _BudgetBox({required this.status});
+
+  final BudgetStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final everyday = status.budget.everydayPaise;
+    final note = status.categoryNote;
+    return Container(
+      key: const ValueKey('budget-box'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.ink, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            everyday > 0
+                ? 'Everyday budget · ${daysLeftLabel(status.daysLeft)}'
+                : 'Budget',
+            style: AppText.small,
+          ),
+          if (everyday > 0)
+            Text(
+              '${formatPaise(status.everydaySpentPaise)} of '
+              '${formatPaise(everyday)}',
+              key: const ValueKey('budget-line'),
+              style: AppText.bodyStrong,
+            ),
+          if (note != null) Text(note, style: AppText.body),
+        ],
+      ),
+    );
+  }
+}
+
+/// The goals still to reach, or the ones reached, on the card beside
+/// Penny's.
+class _GoalsCard extends StatelessWidget {
+  const _GoalsCard({
+    required this.goals,
+    required this.today,
+    this.reached = false,
+  });
+
+  final List<GoalProgress> goals;
+  final DateTime today;
+  final bool reached;
+
+  /// Goals shown on the card; the rest are on Goals.
+  static const _shown = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final more = goals.length - _shown;
+    return BrutalCard(
+      key: ValueKey(reached ? 'goals-reached' : 'goals-to-reach'),
+      color: reached ? AppColors.sky : AppColors.lavender,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  reached ? 'Goals reached' : 'Goals to reach',
+                  style: AppText.h3,
+                ),
+              ),
+              BrutalChip(
+                label: 'All goals',
+                icon: Icons.flag_rounded,
+                onTap: () => context.go('/goals'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (goals.isEmpty && reached)
+            const Text(
+              'None yet. Every goal you reach lands here, and Penny '
+              'celebrates it.',
+              style: AppText.body,
+            )
+          else if (goals.isEmpty) ...[
+            const Text(
+              'Nothing to reach right now. Save for something, and Penny '
+              'works out what to put aside each week.',
+              style: AppText.body,
+            ),
+            const SizedBox(height: 12),
+            BrutalButton(
+              key: const ValueKey('home-add-goal'),
+              label: 'Add a goal',
+              icon: Icons.flag_rounded,
+              color: AppColors.white,
+              expand: true,
+              onPressed: () => context.push('/goals/new'),
+            ),
+          ],
+          for (final (i, goal) in goals.take(_shown).indexed) ...[
+            if (i > 0) const SizedBox(height: 14),
+            _GoalRow(progress: goal, today: today),
+          ],
+          if (more > 0) ...[
+            const SizedBox(height: 12),
+            Text(
+              more == 1 ? 'And 1 more on Goals' : 'And $more more on Goals',
+              style: AppText.small.copyWith(color: AppColors.ink),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// One goal on the goals card: how far along it is, and what it still
+/// needs. Tap it for its page.
+class _GoalRow extends StatelessWidget {
+  const _GoalRow({required this.progress, required this.today});
+
+  final GoalProgress progress;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final goal = progress.goal;
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
+          key: ValueKey('home-goal-${goal.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => context.push('/goals/${goal.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      goal.title,
+                      style: AppText.bodyStrong,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    progress.reached
+                        ? formatPaise(goal.targetPaise)
+                        : '${formatPaise(progress.savedPaise)} of '
+                              '${formatPaise(goal.targetPaise)}',
+                    style: AppText.label,
+                  ),
+                ],
+              ),
+              if (!progress.reached) ...[
+                const SizedBox(height: 6),
+                GoalProgressBar(progress: progress.progress),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                goalNeedLine(progress, today),
+                style: AppText.small.copyWith(color: AppColors.ink),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

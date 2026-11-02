@@ -5,6 +5,10 @@ import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/services/goal_math.dart';
 
+/// Penny's cheer for a goal just reached, naming it.
+String celebrationLine(GoalProgress progress) =>
+    '${progress.goal.title} reached! You did it!';
+
 /// What a goal still needs, in one line: reached, missed, or to go and
 /// what a week until the deadline.
 String goalNeedLine(GoalProgress progress, DateTime today) {

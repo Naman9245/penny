@@ -102,6 +102,24 @@ void main() {
     expect(justReached(const [], today), isFalse);
   });
 
+  test('of two goals just reached, Penny celebrates the later one', () {
+    final both = goalProgress(
+      [goal(id: 'a'), goal(id: 'b')],
+      [
+        money(15000, DateTime(2026, 11, 2, 9), goalId: 'b'),
+        money(15000, DateTime(2026, 11, 1, 22), goalId: 'a'),
+      ],
+    );
+    expect(justReachedGoal(both, today)?.goal.id, 'b');
+    expect(justReachedGoal(both.take(1), today)?.goal.id, 'a');
+    expect(
+      justReachedGoal([
+        progressOf([money(15000, DateTime(2026, 10, 31))]),
+      ], today),
+      isNull,
+    );
+  });
+
   test('saved in a month counts money in, less taken out', () {
     final deposits = [
       money(500, DateTime(2026, 10, 31, 23)),

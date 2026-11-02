@@ -79,10 +79,11 @@ class _Cheer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final celebrated = justReachedGoal(goals, today);
     final (mood, line) = switch (savedThisMonth) {
-      _ when justReached(goals, today) => (
+      _ when celebrated != null => (
         PennyMood.celebrating,
-        PennyMood.celebrating.line,
+        celebrationLine(celebrated),
       ),
       _ when goals.isEmpty => (
         PennyMood.happy,

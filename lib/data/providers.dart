@@ -122,11 +122,17 @@ final budgetStatusProvider = Provider.autoDispose<BudgetStatus>((ref) {
   );
 });
 
+/// The goal Penny is celebrating, if any: the latest reached today or
+/// yesterday.
+final celebratedGoalProvider = Provider.autoDispose<GoalProgress?>((ref) {
+  final goals = ref.watch(goalProgressProvider).value ?? const [];
+  return justReachedGoal(goals, DateTime.now());
+});
+
 /// Penny's current mood: celebrating a goal reached today or yesterday,
 /// otherwise from where the month stands against the budget.
 final pennyMoodProvider = Provider.autoDispose<PennyMood>((ref) {
-  final goals = ref.watch(goalProgressProvider).value ?? const [];
-  if (justReached(goals, DateTime.now())) return PennyMood.celebrating;
+  if (ref.watch(celebratedGoalProvider) != null) return PennyMood.celebrating;
   return ref.watch(budgetStatusProvider).mood;
 });
 

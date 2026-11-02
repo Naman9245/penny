@@ -83,7 +83,8 @@ void main() {
     // ₹6,000 of ₹7,000 everyday is past 85%; rent doesn't count.
     expect(find.text("You're close to your spending cap."), findsOneWidget);
     expect(find.text('Food is near its budget'), findsOneWidget);
-    expect(find.text('₹6,000 of ₹7,000 · $left'), findsOneWidget);
+    expect(find.text('Everyday budget · $left'), findsOneWidget);
+    expect(find.text('₹6,000 of ₹7,000'), findsOneWidget);
     expect(find.byKey(const ValueKey('set-budget')), findsNothing);
     await closeApp(tester, db);
   });

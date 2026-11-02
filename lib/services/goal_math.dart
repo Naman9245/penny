@@ -96,13 +96,21 @@ int savedBetween(Iterable<GoalDeposit> deposits, DateTime from, DateTime to) =>
         .where((d) => !d.occurredAt.isBefore(from) && d.occurredAt.isBefore(to))
         .fold(0, (sum, d) => sum + d.amountPaise);
 
-/// Whether a goal was reached on [today] or the day before: Penny is still
-/// celebrating.
-bool justReached(Iterable<GoalProgress> goals, DateTime today) {
+/// The goal reached on [today] or the day before, the latest if there are
+/// several: Penny is still celebrating it.
+GoalProgress? justReachedGoal(Iterable<GoalProgress> goals, DateTime today) {
   final yesterday = dayStart(today).subtract(const Duration(days: 1));
-  return goals.any(
-    (goal) => goal.reachedOn != null && !goal.reachedOn!.isBefore(yesterday),
-  );
+  GoalProgress? latest;
+  for (final goal in goals) {
+    final reachedOn = goal.reachedOn;
+    if (reachedOn == null || reachedOn.isBefore(yesterday)) continue;
+    if (latest == null || reachedOn.isAfter(latest.reachedOn!)) latest = goal;
+  }
+  return latest;
 }
+
+/// Whether a goal was reached on [today] or the day before.
+bool justReached(Iterable<GoalProgress> goals, DateTime today) =>
+    justReachedGoal(goals, today) != null;
 
 int _upToRupee(int paise) => (paise + 99) ~/ 100 * 100;
