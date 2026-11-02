@@ -10,6 +10,7 @@ class Category {
     required this.emoji,
     required this.color,
     required this.type,
+    this.oneGo = false,
   });
 
   /// Stored on every transaction, so never rename one.
@@ -18,6 +19,11 @@ class Category {
   final String emoji;
   final Color color;
   final TxnType type;
+
+  /// Paid in one go, like rent, so it stays out of the everyday budget and
+  /// its daily share. Must match ONE_GO_IDS in
+  /// supabase/functions/_shared/month.ts.
+  final bool oneGo;
 }
 
 const spendCategories = <Category>[
@@ -55,6 +61,7 @@ const spendCategories = <Category>[
     emoji: '⚡',
     color: AppColors.yellow,
     type: TxnType.debit,
+    oneGo: true,
   ),
   Category(
     id: 'rent',
@@ -62,6 +69,7 @@ const spendCategories = <Category>[
     emoji: '🏠',
     color: AppColors.sky,
     type: TxnType.debit,
+    oneGo: true,
   ),
   Category(
     id: 'subscriptions',
@@ -69,6 +77,7 @@ const spendCategories = <Category>[
     emoji: '📺',
     color: AppColors.pink,
     type: TxnType.debit,
+    oneGo: true,
   ),
   Category(
     id: 'fun',
@@ -90,6 +99,7 @@ const spendCategories = <Category>[
     emoji: '📚',
     color: AppColors.yellow,
     type: TxnType.debit,
+    oneGo: true,
   ),
   Category(
     id: 'other',

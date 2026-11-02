@@ -11,6 +11,7 @@ import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
+import 'generated/schema_v5.dart' as v5;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -181,6 +182,70 @@ void main() {
         expect(await newDb.select(newDb.tagRules).get(), isEmpty);
         expect(await newDb.select(newDb.prefs).get(), isEmpty);
         expect(await newDb.select(newDb.chatMessages).get(), isEmpty);
+      },
+    );
+  });
+
+  // Entries, My needs, the note and the chat carry over; the budget and
+  // goals start empty.
+  test('migration from v4 to v5 does not corrupt data', () async {
+    const at = 1793500000;
+    const txn = v4.TxnsData(
+      id: '0192f0c0-0000-7000-8000-000000000004',
+      amountPaise: 34900,
+      type: 'debit',
+      categoryId: 'food',
+      merchant: 'Swiggy',
+      occurredAt: at,
+      source: 'manual',
+      createdAt: at,
+      updatedAt: at,
+    );
+    const rule = v4.TagRulesData(
+      id: '0192f0c0-0000-7000-8000-000000000005',
+      kind: 'shop',
+      ruleKey: 'swiggy',
+      tag: 'wasteful',
+      createdAt: at,
+      updatedAt: at,
+    );
+    const note = v4.PrefsData(
+      name: 'penny_note',
+      value: 'Student in a PG',
+      updatedAt: at,
+    );
+    const message = v4.ChatMessagesData(
+      id: '0192f0c0-0000-7000-8000-000000000006',
+      role: 'user',
+      body: 'How can I save?',
+      createdAt: at,
+    );
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 4,
+      newVersion: 5,
+      createOld: v4.DatabaseAtV4.new,
+      createNew: v5.DatabaseAtV5.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.txns, [txn]);
+        batch.insertAll(oldDb.tagRules, [rule]);
+        batch.insertAll(oldDb.prefs, [note]);
+        batch.insertAll(oldDb.chatMessages, [message]);
+      },
+      validateItems: (newDb) async {
+        final txns = await newDb.select(newDb.txns).get();
+        expect(txns.single.toJson(), txn.toJson());
+        final rules = await newDb.select(newDb.tagRules).get();
+        expect(rules.single.toJson(), rule.toJson());
+        final prefs = await newDb.select(newDb.prefs).get();
+        expect(prefs.single.toJson(), note.toJson());
+        final messages = await newDb.select(newDb.chatMessages).get();
+        expect(messages.single.toJson(), message.toJson());
+        expect(await newDb.select(newDb.budgets).get(), isEmpty);
+        expect(await newDb.select(newDb.goals).get(), isEmpty);
+        expect(await newDb.select(newDb.goalDeposits).get(), isEmpty);
+        expect(await newDb.select(newDb.goalPlans).get(), isEmpty);
       },
     );
   });

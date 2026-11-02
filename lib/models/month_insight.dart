@@ -51,8 +51,9 @@ enum Steadiness {
   }
 }
 
-/// A wasteful habit Penny picked out: which groups, how much to cut, and a
-/// tip. The amounts are worked out on the phone, never by Penny.
+/// A wasteful habit Penny picked out, or a cut in her plan for a goal:
+/// which groups, how much to cut, and a tip. The amounts are worked out on
+/// the phone, never by Penny.
 @immutable
 class InsightHabit {
   const InsightHabit({
@@ -68,6 +69,39 @@ class InsightHabit {
   final List<String> groupIds;
   final Cut cut;
   final String tip;
+
+  /// The habits in [raw] that make sense: known cuts, with groups among
+  /// [groupIds] when given.
+  static List<InsightHabit> listFromJson(Object? raw, {Set<String>? groupIds}) {
+    if (raw is! List) return const [];
+    final habits = <InsightHabit>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final cut = Cut.fromWire(item['cut']);
+      final groups = [
+        if (item['groups'] case final List ids)
+          for (final id in ids)
+            if (id is String && (groupIds == null || groupIds.contains(id))) id,
+      ];
+      if (cut == null || groups.isEmpty) continue;
+      habits.add(
+        InsightHabit(
+          title: _text(item['title']),
+          groupIds: groups,
+          cut: cut,
+          tip: _text(item['tip']),
+        ),
+      );
+    }
+    return habits;
+  }
+
+  Map<String, Object?> toJson() => {
+    'title': title,
+    'groups': groupIds,
+    'cut': cut.wire,
+    'tip': tip,
+  };
 }
 
 /// Penny's answer for a month, as the server cleaned it. Group ids ("s1"…)
@@ -107,31 +141,9 @@ class MonthInsight {
       }
     }
 
-    final habits = <InsightHabit>[];
-    if (json['habits'] case final List raw) {
-      for (final item in raw) {
-        if (item is! Map) continue;
-        final cut = Cut.fromWire(item['cut']);
-        final groups = [
-          if (item['groups'] case final List ids)
-            for (final id in ids)
-              if (known(id)) id as String,
-        ];
-        if (cut == null || groups.isEmpty) continue;
-        habits.add(
-          InsightHabit(
-            title: _text(item['title']),
-            groupIds: groups,
-            cut: cut,
-            tip: _text(item['tip']),
-          ),
-        );
-      }
-    }
-
     return MonthInsight(
       tags: tags,
-      habits: habits,
+      habits: InsightHabit.listFromJson(json['habits'], groupIds: groupIds),
       summary: _text(json['summary']),
       incomeNote: _text(json['incomeNote']),
       earnIdeas: [
@@ -146,22 +158,14 @@ class MonthInsight {
     'tags': {
       for (final MapEntry(:key, :value) in tags.entries) key: value.name,
     },
-    'habits': [
-      for (final habit in habits)
-        {
-          'title': habit.title,
-          'groups': habit.groupIds,
-          'cut': habit.cut.wire,
-          'tip': habit.tip,
-        },
-    ],
+    'habits': [for (final habit in habits) habit.toJson()],
     'summary': summary,
     'incomeNote': incomeNote,
     'earnIdeas': earnIdeas,
   };
-
-  static String _text(Object? value) => value is String ? value.trim() : '';
 }
+
+String _text(Object? value) => value is String ? value.trim() : '';
 
 /// A report kept on the phone for one month.
 @immutable

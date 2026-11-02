@@ -121,3 +121,92 @@ class ChatMessages extends Table {
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
+
+/// What the user means to spend each month: the everyday budget, or one
+/// category's cap. Kept like entries (UUIDv7 ids, soft deletes), ready for
+/// sync.
+@DataClassName('BudgetRow')
+@TableIndex.sql(
+  'CREATE UNIQUE INDEX budgets_budget_key ON budgets (budget_key) '
+  'WHERE deleted_at IS NULL',
+)
+class Budgets extends Table {
+  TextColumn get id => text()();
+
+  /// "everyday", or a spend category's id.
+  TextColumn get budgetKey => text()();
+  IntColumn get amountPaise =>
+      // ignore: recursive_getters
+      integer().check(amountPaise.isBiggerThanValue(0))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Something the user is saving for. Kept like entries, ready for sync.
+@DataClassName('Goal')
+class Goals extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  IntColumn get targetPaise =>
+      // ignore: recursive_getters
+      integer().check(targetPaise.isBiggerThanValue(0))();
+
+  /// The day it's due, at midnight.
+  DateTimeColumn get deadline => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Money put toward a goal, or taken back out as a negative amount. What a
+/// goal has saved is their sum, so two phones can't overwrite each other's
+/// total once sync arrives. Kept like entries, ready for sync.
+@DataClassName('GoalDeposit')
+@TableIndex(name: 'goal_deposits_goal_id', columns: {#goalId})
+class GoalDeposits extends Table {
+  TextColumn get id => text()();
+  TextColumn get goalId => text()();
+  IntColumn get amountPaise =>
+      // ignore: recursive_getters
+      integer().check(amountPaise.equals(0).not())();
+  DateTimeColumn get occurredAt => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Penny's plan for one goal: the plan-goal answer, already cleaned by the
+/// server. It is worked out from this phone's entries, so it stays here and
+/// is never synced.
+@DataClassName('GoalPlanRow')
+class GoalPlans extends Table {
+  TextColumn get goalId => text()();
+
+  /// The month the plan went by, as "2026-10".
+  TextColumn get month => text()();
+
+  /// Fingerprint of the goal as it was: a different one now means its
+  /// target, deadline or money changed since Penny planned.
+  TextColumn get inputHash => text()();
+
+  /// JSON object from the group ids Penny saw to this phone's group keys.
+  TextColumn get groupKeys => text()();
+
+  /// The cleaned answer, as JSON.
+  TextColumn get answer => text()();
+  TextColumn get model => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {goalId};
+}

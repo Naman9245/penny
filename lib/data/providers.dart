@@ -1,12 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/chat_repository.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/goal_plan_repository.dart';
+import 'package:penny/data/goal_repository.dart';
 import 'package:penny/data/insight_repository.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/rules_repository.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/analysis_totals.dart';
+import 'package:penny/models/budget.dart';
+import 'package:penny/models/goal_plan.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
@@ -127,6 +132,39 @@ final chatRepositoryProvider = Provider<ChatRepository>(
 final chatMessagesProvider = StreamProvider.autoDispose<List<ChatMessage>>(
   (ref) => ref.watch(chatRepositoryProvider).watch(),
 );
+
+final budgetRepositoryProvider = Provider<BudgetRepository>(
+  (ref) => BudgetRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// What the user means to spend each month.
+final budgetProvider = StreamProvider.autoDispose<Budget>(
+  (ref) => ref.watch(budgetRepositoryProvider).watch(),
+);
+
+final goalRepositoryProvider = Provider<GoalRepository>(
+  (ref) => GoalRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// Live goals, soonest deadline first.
+final goalsProvider = StreamProvider.autoDispose<List<Goal>>(
+  (ref) => ref.watch(goalRepositoryProvider).watchGoals(),
+);
+
+/// The money put toward every live goal, oldest first.
+final goalDepositsProvider = StreamProvider.autoDispose<List<GoalDeposit>>(
+  (ref) => ref.watch(goalRepositoryProvider).watchDeposits(),
+);
+
+final goalPlanRepositoryProvider = Provider<GoalPlanRepository>(
+  (ref) => GoalPlanRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// Penny's saved plan for a goal, if any.
+final goalPlanProvider = StreamProvider.autoDispose
+    .family<SavedGoalPlan?, String>(
+      (ref, goalId) => ref.watch(goalPlanRepositoryProvider).watch(goalId),
+    );
 
 /// That month's spending split into necessary, wasteful and not sorted.
 final tagSplitProvider = Provider.autoDispose

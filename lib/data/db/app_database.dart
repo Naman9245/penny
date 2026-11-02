@@ -8,7 +8,19 @@ import 'package:penny/models/txn_enums.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Txns, Insights, TagRules, Prefs, ChatMessages])
+@DriftDatabase(
+  tables: [
+    Txns,
+    Insights,
+    TagRules,
+    Prefs,
+    ChatMessages,
+    Budgets,
+    Goals,
+    GoalDeposits,
+    GoalPlans,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   /// Opens `penny.sqlite` in the app's documents folder. Tests pass an
   /// in-memory executor instead.
@@ -18,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +53,16 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.prefs);
         await m.createTable(schema.chatMessages);
         await m.createIndex(schema.chatMessagesCreatedAt);
+      },
+      // v5: the budget, goals with the money put toward them, and Penny's
+      // plans for them.
+      from4To5: (m, schema) async {
+        await m.createTable(schema.budgets);
+        await m.createIndex(schema.budgetsBudgetKey);
+        await m.createTable(schema.goals);
+        await m.createTable(schema.goalDeposits);
+        await m.createIndex(schema.goalDepositsGoalId);
+        await m.createTable(schema.goalPlans);
       },
     ),
   );
