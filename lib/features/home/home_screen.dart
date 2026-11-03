@@ -13,6 +13,7 @@ import 'package:penny/features/settings/settings_sheet.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/models/penny_pose.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/widgets/brutal_button.dart';
@@ -134,10 +135,18 @@ class HomeScreen extends ConsumerWidget {
           recent.when(
             data: (txns) => txns.isEmpty
                 ? const BrutalCard(
-                    child: Text(
-                      'Nothing logged yet. Tap Add, type the amount, then tap '
-                      'a category.',
-                      style: AppText.body,
+                    child: Row(
+                      children: [
+                        PennyMascot(pose: PennyPose.sleepy, size: 56),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Nothing logged yet. Tap Add, type the amount, '
+                            'then tap a category.',
+                            style: AppText.body,
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : BrutalCard(

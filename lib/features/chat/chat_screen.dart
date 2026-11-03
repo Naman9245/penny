@@ -10,6 +10,7 @@ import 'package:penny/features/chat/chat_controller.dart';
 import 'package:penny/features/report/sent_sheet.dart';
 import 'package:penny/models/chat.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/models/penny_pose.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
@@ -294,7 +295,7 @@ class _Typing extends StatelessWidget {
     return const Row(
       key: ValueKey('penny-typing'),
       children: [
-        PennyMascot(size: 34),
+        PennyMascot(pose: PennyPose.thinking, size: 34),
         SizedBox(width: 8),
         Text('Penny is typing…', style: AppText.bodyMuted),
       ],

@@ -9,6 +9,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/category.dart';
+import 'package:penny/models/penny_pose.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -278,7 +279,7 @@ class _EmptyMonth extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PennyMascot(size: 100),
+            const PennyMascot(pose: PennyPose.sleepy, size: 100),
             const SizedBox(height: 16),
             Text(
               'Nothing in ${monthLabel(month)}',

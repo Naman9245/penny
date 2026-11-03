@@ -13,6 +13,7 @@ import 'package:penny/features/report/sent_sheet.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/models/penny_pose.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -227,7 +228,7 @@ class _Thinking extends StatelessWidget {
         children: [
           Row(
             children: [
-              PennyMascot(size: 72),
+              PennyMascot(pose: PennyPose.analyzing, size: 72),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -568,7 +569,7 @@ class _HabitCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const PennyMascot(size: 30, bob: false),
+                const PennyMascot(pose: PennyPose.idea, size: 30, bob: false),
                 const SizedBox(width: 8),
                 Expanded(child: Text(habit.habit.tip, style: AppText.body)),
               ],
@@ -668,20 +669,29 @@ class _EarnIdeas extends StatelessWidget {
     return BrutalCard(
       key: const ValueKey('earn-ideas'),
       color: AppColors.mint,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final (i, idea) in ideas.indexed) ...[
-            if (i > 0) const SizedBox(height: 10),
-            Row(
+          const PennyMascot(pose: PennyPose.idea, size: 44, bob: false),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('•', style: AppText.h3),
-                const SizedBox(width: 10),
-                Expanded(child: Text(idea, style: AppText.body)),
+                for (final (i, idea) in ideas.indexed) ...[
+                  if (i > 0) const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('•', style: AppText.h3),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(idea, style: AppText.body)),
+                    ],
+                  ),
+                ],
               ],
             ),
-          ],
+          ),
         ],
       ),
     );

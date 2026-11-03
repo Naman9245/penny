@@ -11,6 +11,7 @@ import 'package:penny/features/goals/goal_plan_controller.dart';
 import 'package:penny/features/report/sent_sheet.dart';
 import 'package:penny/models/goal_plan.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/models/penny_pose.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/goal_plan.dart';
 import 'package:penny/services/penny_ai.dart';
@@ -113,7 +114,12 @@ class _Ask extends StatelessWidget {
         children: [
           Row(
             children: [
-              const PennyMascot(size: 56, bob: false),
+              // Glasses on while she works the plan out.
+              PennyMascot(
+                pose: state.asking ? PennyPose.analyzing : null,
+                size: 56,
+                bob: state.asking,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -208,7 +214,11 @@ class _Plan extends StatelessWidget {
             color: AppColors.lavender,
             child: Row(
               children: [
-                const PennyMascot(mood: PennyMood.happy, size: 56),
+                PennyMascot(
+                  mood: PennyMood.happy,
+                  pose: state.asking ? PennyPose.analyzing : null,
+                  size: 56,
+                ),
                 const SizedBox(width: 12),
                 Expanded(child: Text(summary, style: AppText.h3)),
               ],
