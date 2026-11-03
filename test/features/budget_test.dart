@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/features/budget/budget_screen.dart';
@@ -80,11 +81,17 @@ void main() {
     // The header scrolled away with the list, so leave the way Back would.
     routerOf(tester).pop();
     await tester.pumpAndSettle();
-    // ₹6,000 of ₹7,000 everyday is past 85%; rent doesn't count.
-    expect(find.text("You're close to your spending cap."), findsOneWidget);
-    expect(find.text('Food is near its budget'), findsOneWidget);
+    // ₹6,000 today is far over a day's share of ₹7,000, and the month is
+    // past 85% of it; rent doesn't count.
+    final share = formatPaise(dailySharePaise(700000, month));
+    expect(
+      find.text("You've gone over budget. Let's plan a quick fix!"),
+      findsOneWidget,
+    );
     expect(find.text('Everyday budget · $left'), findsOneWidget);
     expect(find.text('₹6,000 of ₹7,000'), findsOneWidget);
+    expect(find.text('Today ₹6,000 of your $share share'), findsOneWidget);
+    expect(find.text('Food is near its budget'), findsOneWidget);
     expect(find.byKey(const ValueKey('set-budget')), findsNothing);
     await closeApp(tester, db);
   });

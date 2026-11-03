@@ -45,16 +45,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       goalDays: ref.watch(goalDaysProvider),
     );
 
-    void openDay(DateTime date) => showDaySheet(
-      context,
-      date: date,
-      mood: moods[date.day],
-      entries: [
+    void openDay(DateTime date) {
+      final mood = moods[date.day];
+      final entries = [
         for (final txn in txns)
           if (dayStart(txn.occurredAt) == date) txn,
-      ],
-      sharePaise: share,
-    );
+      ];
+      showDaySheet(
+        context,
+        date: date,
+        mood: mood,
+        entries: entries,
+        spend: splitDaySpending(budget, entries),
+        sharePaise: share,
+        // A goal day is about the goal.
+        monthNote: mood == PennyMood.celebrating
+            ? null
+            : monthNoteOn(budget: budget, monthTxns: txns, date: date),
+      );
+    }
 
     return SafeArea(
       bottom: false,
@@ -293,8 +302,8 @@ class _MonthSummary extends StatelessWidget {
 
   static const _lines = {
     PennyMood.happy: 'Most days stayed within your share. Keep it up!',
-    PennyMood.worried: 'Lots of days went a little over your share.',
-    PennyMood.sad: "Many days went well over your share. Let's plan a fix!",
+    PennyMood.worried: 'Lots of days went a little over, or near the budget.',
+    PennyMood.sad: "Many days went over budget. Let's plan a fix!",
     PennyMood.celebrating: 'A goal reached! You did it!',
   };
 
@@ -359,27 +368,39 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 14,
-      runSpacing: 8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final (mood, text) in _keys)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: mood.color,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(color: AppColors.ink, width: 1.5),
-                ),
+        Wrap(
+          spacing: 14,
+          runSpacing: 8,
+          children: [
+            for (final (mood, text) in _keys)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: mood.color,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: AppColors.ink, width: 1.5),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(text, style: AppText.small),
+                ],
               ),
-              const SizedBox(width: 6),
-              Text(text, style: AppText.small),
-            ],
-          ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'A day also turns yellow once the month nears its everyday budget, '
+          "and pink once that or a category goes over. Home shows today's "
+          'face.',
+          style: AppText.small,
+        ),
       ],
     );
   }

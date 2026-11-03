@@ -217,14 +217,16 @@ Future<void> _fill(AppDatabase db, DateTime now) async {
   }
   await db.batch((batch) => batch.insertAll(db.txns, txns));
 
-  // A budget per category: everyday ₹12,500, so a day's share is about ₹400.
+  // A budget per category: everyday ₹17,900, so a day's share is about
+  // ₹600. Most days stay within it; some months food or groceries run over
+  // near the end.
   final budget = BudgetRepository(db, clock: () => now);
   for (final (categoryId, rupees) in const [
-    ('food', 5000),
-    ('groceries', 3000),
-    ('travel', 1500),
-    ('shopping', 1500),
-    ('fun', 1000),
+    ('food', 7500),
+    ('groceries', 4000),
+    ('travel', 2200),
+    ('shopping', 2500),
+    ('fun', 1200),
     ('health', 500),
     ('rent', 8500),
     ('bills', 300),
@@ -243,7 +245,8 @@ Future<void> _fill(AppDatabase db, DateTime now) async {
     'Delhi trip.',
   );
 
-  // Goals: one going, one reached yesterday, one whose date has passed.
+  // Goals: one going, one reached as the demo opens, so Penny celebrates,
+  // and one whose date has passed.
   DateTime daysAgo(int days, int hour) =>
       today.subtract(Duration(days: days)).add(Duration(hours: hour));
   Future<void> goal(
@@ -289,7 +292,7 @@ Future<void> _fill(AppDatabase db, DateTime now) async {
   ]);
   await goal('Headphones', 2500, today.add(const Duration(days: 20)), [
     (1500, daysAgo(25, 19)),
-    (1000, daysAgo(1, 19)),
+    (1000, now),
   ]);
   await goal('Concert ticket', 3000, today.subtract(const Duration(days: 5)), [
     (1200, daysAgo(20, 18)),

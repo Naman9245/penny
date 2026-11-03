@@ -81,12 +81,12 @@ void main() {
       final budget = await BudgetRepository(db).watch().first;
 
       expect(budget.byCategory, hasLength(9));
-      expect(budget.everydayPaise, 1250000);
+      expect(budget.everydayPaise, 1790000);
       expect(budget.oneGoPaise, 915000);
-      expect(budget.totalPaise, 2165000);
+      expect(budget.totalPaise, 2705000);
     });
 
-    test('has a goal going, one reached yesterday and one missed', () async {
+    test('has a goal going, one reached today and one missed', () async {
       await fillDemoData(db, now);
       final progress = {for (final p in await goals(db)) p.goal.title: p};
 
@@ -96,7 +96,7 @@ void main() {
       );
       expect(progress['Delhi trip']!.savedPaise, 450000);
       expect(progress['Delhi trip']!.daysLeft(now), 100);
-      expect(progress['Headphones']!.reachedOn, DateTime(2026, 11, 1));
+      expect(progress['Headphones']!.reachedOn, DateTime(2026, 11, 2));
       expect(justReached(progress.values, now), isTrue);
       expect(progress['Concert ticket']!.isMissed(now), isTrue);
     });
@@ -116,7 +116,7 @@ void main() {
       expect(await db.select(db.goalPlans).get(), isEmpty);
     });
 
-    test('gives last month every mood, and yesterday a goal', () async {
+    test('gives last month every mood, and today a goal', () async {
       await fillDemoData(db, now);
       final budget = await BudgetRepository(db).watch().first;
       final txns = await db.select(db.txns).get();
@@ -141,7 +141,7 @@ void main() {
       expect(moodSummary(october)!.mostly, PennyMood.happy);
 
       final goalDays = {for (final p in await goals(db)) ?p.reachedOn};
-      expect(moodsOf(DateTime(2026, 11), goalDays)[1], PennyMood.celebrating);
+      expect(moodsOf(DateTime(2026, 11), goalDays)[2], PennyMood.celebrating);
     });
 
     test('is the same every time for the same day', () async {

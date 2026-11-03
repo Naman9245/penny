@@ -94,15 +94,15 @@ void main() {
     expect(missed.perMonthPaise(today), 0);
   });
 
-  test('Penny celebrates a goal reached today or yesterday', () {
+  test('Penny celebrates a goal on the day it was reached', () {
     GoalProgress reachedOn(DateTime day) => progressOf([money(15000, day)]);
     expect(justReached([reachedOn(DateTime(2026, 11, 2, 9))], today), isTrue);
-    expect(justReached([reachedOn(DateTime(2026, 11, 1, 22))], today), isTrue);
-    expect(justReached([reachedOn(DateTime(2026, 10, 31))], today), isFalse);
+    // Like the mood calendar, where only that day is sky blue.
+    expect(justReached([reachedOn(DateTime(2026, 11, 1, 22))], today), isFalse);
     expect(justReached(const [], today), isFalse);
   });
 
-  test('of two goals just reached, Penny celebrates the later one', () {
+  test("she names the goal reached today, not yesterday's", () {
     final both = goalProgress(
       [goal(id: 'a'), goal(id: 'b')],
       [
@@ -111,13 +111,7 @@ void main() {
       ],
     );
     expect(justReachedGoal(both, today)?.goal.id, 'b');
-    expect(justReachedGoal(both.take(1), today)?.goal.id, 'a');
-    expect(
-      justReachedGoal([
-        progressOf([money(15000, DateTime(2026, 10, 31))]),
-      ], today),
-      isNull,
-    );
+    expect(justReachedGoal(both.take(1), today), isNull);
   });
 
   test('saved in a month counts money in, less taken out', () {

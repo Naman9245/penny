@@ -5,20 +5,20 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
-import 'package:penny/models/category.dart';
 import 'package:penny/models/penny_mood.dart';
-import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 
-/// One day from the mood calendar: Penny's face for it, what was spent
-/// against the day's share, and the day's entries.
+/// One day from the mood calendar: Penny's face for it, the numbers behind
+/// the face, and the day's entries.
 Future<void> showDaySheet(
   BuildContext context, {
   required DateTime date,
   required PennyMood? mood,
   required List<Txn> entries,
+  required ({int counted, int noBudget, int oneGo}) spend,
   required int? sharePaise,
+  String? monthNote,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -29,7 +29,9 @@ Future<void> showDaySheet(
       date: date,
       mood: mood,
       entries: entries,
+      spend: spend,
       sharePaise: sharePaise,
+      monthNote: monthNote,
     ),
   );
 }
@@ -39,27 +41,27 @@ class _DaySheet extends StatelessWidget {
     required this.date,
     required this.mood,
     required this.entries,
+    required this.spend,
     required this.sharePaise,
+    required this.monthNote,
   });
 
   final DateTime date;
   final PennyMood? mood;
   final List<Txn> entries;
+
+  /// The day's spending as Penny counts it.
+  final ({int counted, int noBudget, int oneGo}) spend;
   final int? sharePaise;
+
+  /// How far the month had gone, when that made the day worse than its own
+  /// spending.
+  final String? monthNote;
 
   @override
   Widget build(BuildContext context) {
-    var everyday = 0;
-    var oneGo = 0;
-    for (final txn in entries) {
-      if (txn.type != TxnType.debit) continue;
-      if (categoryById(txn.categoryId).oneGo) {
-        oneGo += txn.amountPaise;
-      } else {
-        everyday += txn.amountPaise;
-      }
-    }
     final share = sharePaise;
+    final monthNote = this.monthNote;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -83,17 +85,31 @@ class _DaySheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // With a budget, only what the face goes by is set
+                    // against the share; the rest is listed apart.
                     Text(
                       share == null
-                          ? '${formatPaise(everyday)} spent'
-                          : '${formatPaise(everyday)} spent · your share '
-                                '${formatPaise(share)}',
+                          ? '${formatPaise(spend.counted + spend.noBudget)} '
+                                'spent'
+                          : '${formatPaise(spend.counted)} of your '
+                                '${formatPaise(share)} share',
                       key: const ValueKey('day-spent'),
                       style: AppText.bodyStrong,
                     ),
-                    if (oneGo > 0)
+                    if (monthNote != null)
                       Text(
-                        'Plus ${formatPaise(oneGo)} paid in one go',
+                        monthNote,
+                        key: const ValueKey('day-month-note'),
+                        style: AppText.body,
+                      ),
+                    if (share != null && spend.noBudget > 0)
+                      Text(
+                        'Plus ${formatPaise(spend.noBudget)} with no budget',
+                        style: AppText.small,
+                      ),
+                    if (spend.oneGo > 0)
+                      Text(
+                        'Plus ${formatPaise(spend.oneGo)} paid in one go',
                         style: AppText.small,
                       ),
                   ],

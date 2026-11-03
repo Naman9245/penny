@@ -122,18 +122,25 @@ final budgetStatusProvider = Provider.autoDispose<BudgetStatus>((ref) {
   );
 });
 
-/// The goal Penny is celebrating, if any: the latest reached today or
-/// yesterday.
+/// The goal Penny is celebrating, if any: one reached today.
 final celebratedGoalProvider = Provider.autoDispose<GoalProgress?>((ref) {
   final goals = ref.watch(goalProgressProvider).value ?? const [];
   return justReachedGoal(goals, DateTime.now());
 });
 
-/// Penny's current mood: celebrating a goal reached today or yesterday,
-/// otherwise from where the month stands against the budget.
+/// Penny's mood now: today's on the mood calendar, by the same rule, so
+/// Home and the calendar always agree. Neutral without an everyday budget.
 final pennyMoodProvider = Provider.autoDispose<PennyMood>((ref) {
-  if (ref.watch(celebratedGoalProvider) != null) return PennyMood.celebrating;
-  return ref.watch(budgetStatusProvider).mood;
+  final now = DateTime.now();
+  final month = monthStart(now);
+  final moods = dayMoods(
+    budget: ref.watch(budgetProvider).value ?? Budget.none,
+    monthTxns: ref.watch(monthTxnsProvider(month)).value ?? const [],
+    month: month,
+    now: now,
+    goalDays: ref.watch(goalDaysProvider),
+  );
+  return moods[now.day] ?? PennyMood.neutral;
 });
 
 /// Per-category totals for the month containing the given date.

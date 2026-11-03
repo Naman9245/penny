@@ -223,8 +223,7 @@ class _PennyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final celebrated = this.celebrated;
-    final budget =
-        status.budget.everydayPaise > 0 || status.categoryNote != null;
+    final budget = status.budget.everydayPaise > 0 || status.oneGoNote != null;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
@@ -298,8 +297,9 @@ class _PennyCard extends StatelessWidget {
   }
 }
 
-/// Where the month stands against the budget, boxed off from Penny's line
-/// so it can't be read as a goal.
+/// Where the month and today stand against the budget, boxed off from
+/// Penny's line so it can't be read as a goal. Today's line is the one the
+/// mood calendar colours today by.
 class _BudgetBox extends StatelessWidget {
   const _BudgetBox({required this.status});
 
@@ -308,7 +308,6 @@ class _BudgetBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final everyday = status.budget.everydayPaise;
-    final note = status.categoryNote;
     return Container(
       key: const ValueKey('budget-box'),
       width: double.infinity,
@@ -327,14 +326,22 @@ class _BudgetBox extends StatelessWidget {
                 : 'Budget',
             style: AppText.small,
           ),
-          if (everyday > 0)
+          if (everyday > 0) ...[
             Text(
               '${formatPaise(status.everydaySpentPaise)} of '
               '${formatPaise(everyday)}',
               key: const ValueKey('budget-line'),
               style: AppText.bodyStrong,
             ),
-          if (note != null) Text(note, style: AppText.body),
+            Text(
+              'Today ${formatPaise(status.todaySpentPaise)} of your '
+              '${formatPaise(status.sharePaise)} share',
+              key: const ValueKey('today-line'),
+              style: AppText.body,
+            ),
+          ],
+          for (final note in [?status.categoryNote, ?status.oneGoNote])
+            Text(note, style: AppText.body),
         ],
       ),
     );
