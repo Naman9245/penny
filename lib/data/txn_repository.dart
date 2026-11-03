@@ -83,6 +83,7 @@ class TxnRepository {
         tag: Value(tag),
         payeeIsPerson: Value(payeeIsPerson),
         updatedAt: Value(_clock()),
+        dirty: const Value(true),
       ),
     );
   }
@@ -95,7 +96,11 @@ class TxnRepository {
       for (final MapEntry(key: id, value: tag) in tags.entries) {
         batch.update(
           _txns,
-          TxnsCompanion(tag: Value(tag), updatedAt: Value(now)),
+          TxnsCompanion(
+            tag: Value(tag),
+            updatedAt: Value(now),
+            dirty: const Value(true),
+          ),
           where: (t) => t.id.equals(id),
         );
       }
@@ -117,6 +122,7 @@ class TxnRepository {
         TxnsCompanion(
           deletedAt: const Value(null),
           updatedAt: Value(_clock()),
+          dirty: const Value(true),
           dedupeKey: clash ? const Value(null) : const Value.absent(),
         ),
       );
@@ -259,7 +265,11 @@ class TxnRepository {
 
   Future<void> _setDeletedAt(String id, DateTime? at) async {
     await (_db.update(_txns)..where((t) => t.id.equals(id))).write(
-      TxnsCompanion(deletedAt: Value(at), updatedAt: Value(_clock())),
+      TxnsCompanion(
+        deletedAt: Value(at),
+        updatedAt: Value(_clock()),
+        dirty: const Value(true),
+      ),
     );
   }
 

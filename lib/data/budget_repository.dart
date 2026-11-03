@@ -56,10 +56,15 @@ class BudgetRepository {
       }
       await (_db.update(_db.budgets)..where((b) => b.id.equals(live.id))).write(
         amount == null
-            ? BudgetsCompanion(deletedAt: Value(now), updatedAt: Value(now))
+            ? BudgetsCompanion(
+                deletedAt: Value(now),
+                updatedAt: Value(now),
+                dirty: const Value(true),
+              )
             : BudgetsCompanion(
                 amountPaise: Value(amount),
                 updatedAt: Value(now),
+                dirty: const Value(true),
               ),
       );
     });

@@ -19,6 +19,7 @@ part 'app_database.g.dart';
     Goals,
     GoalDeposits,
     GoalPlans,
+    SyncCursors,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -32,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +66,17 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.goalDeposits);
         await m.createIndex(schema.goalDepositsGoalId);
         await m.createTable(schema.goalPlans);
+      },
+      // v6: sync. Every row that can be backed up gets a "needs upload"
+      // mark, set on what's already here so a first sync sends it all.
+      from5To6: (m, schema) async {
+        await m.addColumn(schema.txns, schema.txns.dirty);
+        await m.addColumn(schema.tagRules, schema.tagRules.dirty);
+        await m.addColumn(schema.prefs, schema.prefs.dirty);
+        await m.addColumn(schema.budgets, schema.budgets.dirty);
+        await m.addColumn(schema.goals, schema.goals.dirty);
+        await m.addColumn(schema.goalDeposits, schema.goalDeposits.dirty);
+        await m.createTable(schema.syncCursors);
       },
     ),
   );

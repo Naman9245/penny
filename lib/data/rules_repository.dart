@@ -64,8 +64,16 @@ class RulesRepository {
         _db.tagRules,
       )..where((r) => r.id.equals(live.id))).write(
         tag == null
-            ? TagRulesCompanion(deletedAt: Value(now), updatedAt: Value(now))
-            : TagRulesCompanion(tag: Value(tag), updatedAt: Value(now)),
+            ? TagRulesCompanion(
+                deletedAt: Value(now),
+                updatedAt: Value(now),
+                dirty: const Value(true),
+              )
+            : TagRulesCompanion(
+                tag: Value(tag),
+                updatedAt: Value(now),
+                dirty: const Value(true),
+              ),
       );
     });
   }

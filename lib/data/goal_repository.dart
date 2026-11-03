@@ -74,6 +74,7 @@ class GoalRepository {
         targetPaise: Value(targetPaise),
         deadline: Value(dayStart(deadline)),
         updatedAt: Value(_clock()),
+        dirty: const Value(true),
       ),
     );
   }
@@ -83,12 +84,20 @@ class GoalRepository {
     final now = _clock();
     return _db.transaction(() async {
       await (_db.update(_db.goals)..where((g) => g.id.equals(id))).write(
-        GoalsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        GoalsCompanion(
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+          dirty: const Value(true),
+        ),
       );
       await (_db.update(
         _db.goalDeposits,
       )..where((d) => d.goalId.equals(id) & d.deletedAt.isNull())).write(
-        GoalDepositsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+        GoalDepositsCompanion(
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+          dirty: const Value(true),
+        ),
       );
       // The plan never left the phone, so it can go for good.
       await (_db.delete(_db.goalPlans)..where((p) => p.goalId.equals(id))).go();
@@ -121,7 +130,11 @@ class GoalRepository {
 
   Future<void> _setDepositDeletedAt(String id, DateTime? at) {
     return (_db.update(_db.goalDeposits)..where((d) => d.id.equals(id))).write(
-      GoalDepositsCompanion(deletedAt: Value(at), updatedAt: Value(_clock())),
+      GoalDepositsCompanion(
+        deletedAt: Value(at),
+        updatedAt: Value(_clock()),
+        dirty: const Value(true),
+      ),
     );
   }
 

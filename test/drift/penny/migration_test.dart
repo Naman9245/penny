@@ -12,6 +12,7 @@ import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
 import 'generated/schema_v4.dart' as v4;
 import 'generated/schema_v5.dart' as v5;
+import 'generated/schema_v6.dart' as v6;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -246,6 +247,66 @@ void main() {
         expect(await newDb.select(newDb.goals).get(), isEmpty);
         expect(await newDb.select(newDb.goalDeposits).get(), isEmpty);
         expect(await newDb.select(newDb.goalPlans).get(), isEmpty);
+      },
+    );
+  });
+
+  // Everything carries over, marked to send on the first sync; the chat,
+  // which never syncs, is untouched, and nothing has synced yet.
+  test('migration from v5 to v6 does not corrupt data', () async {
+    const at = 1793500000;
+    const txn = v5.TxnsData(
+      id: '0192f0c0-0000-7000-8000-000000000007',
+      amountPaise: 34900,
+      type: 'debit',
+      categoryId: 'food',
+      merchant: 'Swiggy',
+      occurredAt: at,
+      source: 'manual',
+      createdAt: at,
+      updatedAt: at,
+    );
+    const budget = v5.BudgetsData(
+      id: '0192f0c0-0000-7000-8000-000000000008',
+      budgetKey: 'food',
+      amountPaise: 500000,
+      createdAt: at,
+      updatedAt: at,
+    );
+    const note = v5.PrefsData(
+      name: 'penny_note',
+      value: 'Student in a PG',
+      updatedAt: at,
+    );
+    const message = v5.ChatMessagesData(
+      id: '0192f0c0-0000-7000-8000-000000000009',
+      role: 'user',
+      body: 'How can I save?',
+      createdAt: at,
+    );
+
+    await verifier.testWithDataIntegrity(
+      oldVersion: 5,
+      newVersion: 6,
+      createOld: v5.DatabaseAtV5.new,
+      createNew: v6.DatabaseAtV6.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.txns, [txn]);
+        batch.insertAll(oldDb.budgets, [budget]);
+        batch.insertAll(oldDb.prefs, [note]);
+        batch.insertAll(oldDb.chatMessages, [message]);
+      },
+      validateItems: (newDb) async {
+        final txns = await newDb.select(newDb.txns).get();
+        expect(txns.single.toJson(), {...txn.toJson(), 'dirty': 1});
+        final budgets = await newDb.select(newDb.budgets).get();
+        expect(budgets.single.toJson(), {...budget.toJson(), 'dirty': 1});
+        final prefs = await newDb.select(newDb.prefs).get();
+        expect(prefs.single.toJson(), {...note.toJson(), 'dirty': 1});
+        final messages = await newDb.select(newDb.chatMessages).get();
+        expect(messages.single.toJson(), message.toJson());
+        expect(await newDb.select(newDb.syncCursors).get(), isEmpty);
       },
     );
   });

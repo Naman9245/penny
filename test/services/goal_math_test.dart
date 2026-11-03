@@ -14,6 +14,7 @@ void main() {
     deadline: deadline ?? DateTime(2027, 2, 15),
     createdAt: DateTime(2026, 11),
     updatedAt: DateTime(2026, 11),
+    dirty: false,
   );
 
   GoalDeposit money(int rupees, DateTime at, {String goalId = 'g1'}) =>
@@ -24,6 +25,7 @@ void main() {
         occurredAt: at,
         createdAt: at,
         updatedAt: at,
+        dirty: false,
       );
 
   GoalProgress progressOf(List<GoalDeposit> deposits, {Goal? of}) =>

@@ -3,6 +3,13 @@ import 'package:penny/models/chat.dart';
 import 'package:penny/models/rule_kind.dart';
 import 'package:penny/models/txn_enums.dart';
 
+/// A table backed up to the signed-in account's copy.
+mixin Synced on Table {
+  /// Changed on this phone since it was last sent to the account's copy.
+  /// New rows are; rows that came from the copy aren't. Every save sets it.
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+}
+
 /// Every money movement.
 ///
 /// Rows are ready for cloud sync from day one: ids are UUIDv7 made on the
@@ -16,7 +23,7 @@ import 'package:penny/models/txn_enums.dart';
   'CREATE UNIQUE INDEX txns_dedupe_key ON txns (dedupe_key) '
   'WHERE deleted_at IS NULL',
 )
-class Txns extends Table {
+class Txns extends Table with Synced {
   TextColumn get id => text()();
   // Drift reads this getter as a schema description; the self-reference
   // becomes `CHECK (amount_paise > 0)`, not a call.
@@ -83,7 +90,7 @@ class Insights extends Table {
   'CREATE UNIQUE INDEX tag_rules_kind_rule_key ON tag_rules (kind, rule_key) '
   'WHERE deleted_at IS NULL',
 )
-class TagRules extends Table {
+class TagRules extends Table with Synced {
   TextColumn get id => text()();
   TextColumn get kind => textEnum<RuleKind>()();
 
@@ -98,9 +105,9 @@ class TagRules extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Small settings, one text value each. For now, the note to Penny.
+/// Small settings, one text value each. Only the note to Penny is synced.
 @DataClassName('Pref')
-class Prefs extends Table {
+class Prefs extends Table with Synced {
   TextColumn get name => text()();
   TextColumn get value => text()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -130,7 +137,7 @@ class ChatMessages extends Table {
   'CREATE UNIQUE INDEX budgets_budget_key ON budgets (budget_key) '
   'WHERE deleted_at IS NULL',
 )
-class Budgets extends Table {
+class Budgets extends Table with Synced {
   TextColumn get id => text()();
 
   /// "everyday", or a spend category's id.
@@ -148,7 +155,7 @@ class Budgets extends Table {
 
 /// Something the user is saving for. Kept like entries, ready for sync.
 @DataClassName('Goal')
-class Goals extends Table {
+class Goals extends Table with Synced {
   TextColumn get id => text()();
   TextColumn get title => text()();
   IntColumn get targetPaise =>
@@ -170,7 +177,7 @@ class Goals extends Table {
 /// total once sync arrives. Kept like entries, ready for sync.
 @DataClassName('GoalDeposit')
 @TableIndex(name: 'goal_deposits_goal_id', columns: {#goalId})
-class GoalDeposits extends Table {
+class GoalDeposits extends Table with Synced {
   TextColumn get id => text()();
   TextColumn get goalId => text()();
   IntColumn get amountPaise =>
@@ -183,6 +190,21 @@ class GoalDeposits extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+/// How far this phone has downloaded each synced table from the signed-in
+/// account's copy: the last change number it has.
+@DataClassName('SyncCursor')
+class SyncCursors extends Table {
+  /// The synced table, by its name on the server.
+  TextColumn get kind => text()();
+
+  /// The account whose copy it is. Another account starts again from 0.
+  TextColumn get account => text()();
+  IntColumn get seq => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {kind};
 }
 
 /// Penny's plan for one goal: the plan-goal answer, already cleaned by the

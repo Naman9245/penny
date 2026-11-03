@@ -21,6 +21,7 @@ void main() {
     deadline: deadline ?? DateTime(2027, 2, 15),
     createdAt: DateTime(2026, 11),
     updatedAt: DateTime(2026, 11),
+    dirty: false,
   );
 
   GoalProgress progress({int savedRupees = 3000, Goal? of}) => GoalProgress(

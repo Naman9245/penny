@@ -27,5 +27,6 @@ Txn txn(
     createdAt: at,
     updatedAt: at,
     payeeIsPerson: payeeIsPerson,
+    dirty: false,
   );
 }
