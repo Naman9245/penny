@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:penny/core/router/app_shell.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/data/providers.dart';
 import 'package:penny/features/add_txn/add_txn_screen.dart';
 import 'package:penny/features/analysis/analysis_screen.dart';
 import 'package:penny/features/budget/budget_screen.dart';
@@ -15,13 +16,16 @@ import 'package:penny/features/import/import_screen.dart';
 import 'package:penny/features/needs/needs_screen.dart';
 import 'package:penny/features/report/report_screen.dart';
 import 'package:penny/features/transactions/txn_list_screen.dart';
+import 'package:penny/features/welcome/welcome_screen.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/sms_parser.dart';
 
-/// A provider, so Milestone 5 can add sign-in redirects that watch auth state.
+/// The app's routes. A first launch opens on the welcome.
 final routerProvider = Provider<GoRouter>((ref) {
+  final welcomed =
+      ref.read(sharedPrefsProvider).getBool(welcomeSeenKey) ?? false;
   final router = GoRouter(
-    initialLocation: '/home',
+    initialLocation: welcomed ? '/home' : '/welcome',
     routes: [
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -62,6 +66,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // Full-screen routes that cover the tab bar.
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen(),
+      ),
       GoRoute(
         path: '/add',
         builder: (context, state) => AddTxnScreen(

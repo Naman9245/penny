@@ -20,6 +20,8 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 - **Mood calendar**: every day by the same rule, Penny's face on its colour: mint happy, yellow worried, pink sad, sky blue for a goal reached. Under the month, its mood: what most days were, and how many days had each. Tap a day for its entries and the numbers behind its face: what counted against the share, what had no budget or was paid in one go, and the month so far when that's what coloured it.
 - **Demo data**: Settings (the gear on Home) swaps in four months of made-up money, with a budget, goals and My needs, to try every screen on. It lives in its own database, so your own entries stay untouched and come back when you turn it off. Reset starts it again from today, and sample bank SMS are there to paste.
 - **Goals** (Gemini plans): save for something by a date, with what's needed each week. Note money in and out; reaching the target sets Penny celebrating. Plan with Penny picks up to four cuts from last month's spending, and the phone works out what each saves a month against what the goal needs.
+- **Penny moves**: she floats and blinks, bops to her headphones when happy, sweats when worried, cries when sad, and hops in confetti when celebrating; a new mood lands with a bounce. Moments get their own faces: thinking while the chat waits, glasses on while a report or plan is worked out, an idea beside tips, sleepy where nothing's logged. She keeps still when the phone asks for less motion. All of it is drawn in code, no animation files.
+- **First launch**: three short pages (meet Penny, what stays private, where to start), shown once and again from Settings. The app icon and launch screen are Penny too, drawn from her own painter by `tool/render_icons_test.dart`.
 - **Offline-first**: everything lives on the phone in SQLite (Drift). Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, ready for sync.
 
 ## Privacy
@@ -43,6 +45,20 @@ flutter run --dart-define-from-file=env/supabase.json
 ```
 
 `env/supabase.json` holds your Supabase project's URL and publishable key (copy `env/supabase.example.json`). Without it the app runs fully offline and the report says the AI isn't set up.
+
+To install on a phone, build one APK per phone type and use the one that matches (`app-arm64-v8a-release.apk` for most phones today):
+
+```bash
+flutter build apk --release --split-per-abi --dart-define-from-file=env/supabase.json
+```
+
+After changing how Penny looks, redraw the icon and launch images, then regenerate them:
+
+```bash
+flutter test tool/render_icons_test.dart
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
 
 ## Backend
 
@@ -74,9 +90,11 @@ lib/
   services/   SMS parser, share inbox, what Penny sends, report, budget, goal
               and plan maths, AI client
   features/   home, add_txn, import, transactions, analysis, report, needs,
-              chat, budget, goals, calendar, settings
+              chat, budget, goals, calendar, settings, welcome
   widgets/    brutal card/button/chip/pill, keypad, pill nav bar, split bar,
               Penny
+assets/icon/  the icon and launch images Penny's painter draws
+tool/         render_icons_test.dart, which draws them
 supabase/     migrations, and the analyze-month, penny-chat and plan-goal Edge
               Functions
 ```

@@ -12,6 +12,7 @@ import 'package:penny/core/router/app_router.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/features/welcome/welcome_screen.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,6 +29,7 @@ Future<AppDatabase> pumpApp(
   Future<void> Function(TxnRepository repo)? seed,
   Future<void> Function(AppDatabase db)? seedDb,
   AiClient? ai,
+  Map<String, Object> prefs = const {},
 }) async {
   final db = AppDatabase(
     DatabaseConnection(
@@ -40,6 +42,7 @@ Future<AppDatabase> pumpApp(
   await pumpPenny(
     tester,
     overrides: [appDatabaseProvider.overrideWithValue(db)],
+    prefs: prefs,
     ai: ai,
   );
   return db;
@@ -47,7 +50,7 @@ Future<AppDatabase> pumpApp(
 
 /// Starts the app on a phone-sized screen with [overrides], the phone's
 /// saved settings as [prefs], and Penny's server as [ai] or a fake that
-/// isn't set up.
+/// isn't set up. The welcome counts as seen unless [prefs] says otherwise.
 Future<void> pumpPenny(
   WidgetTester tester, {
   List<Override> overrides = const [],
@@ -62,7 +65,7 @@ Future<void> pumpPenny(
       const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
-  SharedPreferences.setMockInitialValues(prefs);
+  SharedPreferences.setMockInitialValues({welcomeSeenKey: true, ...prefs});
   final sharedPrefs = await SharedPreferences.getInstance();
   await tester.pumpWidget(
     ProviderScope(
