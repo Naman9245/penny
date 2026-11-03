@@ -16,6 +16,7 @@ import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/pressable_area.dart';
 
 /// Every day of a month coloured by Penny's mood that day, so spending
 /// patterns show at a glance. Tap a day for what was spent.
@@ -239,8 +240,10 @@ class _DayCell extends StatelessWidget {
       button: !future,
       label: label,
       excludeSemantics: true,
-      child: GestureDetector(
+      child: PressableArea(
         key: ValueKey('day-${date.day}'),
+        pressedScale: 0.9,
+        radius: 12,
         onTap: future ? null : () => onTap(date),
         child: DecoratedBox(
           decoration: BoxDecoration(

@@ -14,6 +14,7 @@ import 'package:penny/widgets/amount_sheet.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/money_text.dart';
+import 'package:penny/widgets/pressable_area.dart';
 
 /// The budget: what the user means to spend on each category a month. The
 /// monthly budget is their total; Penny's mood and the calendar go by its
@@ -177,7 +178,7 @@ class _CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amount = amountPaise;
-    return InkWell(
+    return PressableArea(
       key: ValueKey('budget-${category.id}'),
       onTap: onTap,
       child: Padding(

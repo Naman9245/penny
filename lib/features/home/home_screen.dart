@@ -23,6 +23,7 @@ import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/card_pager.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/pressable_area.dart';
 
 /// Penny's mood, this month at a glance, and the latest entries.
 class HomeScreen extends ConsumerWidget {
@@ -465,9 +466,9 @@ class _GoalRow extends StatelessWidget {
     return MergeSemantics(
       child: Semantics(
         button: true,
-        child: GestureDetector(
+        child: PressableArea(
           key: ValueKey('home-goal-${goal.id}'),
-          behavior: HitTestBehavior.opaque,
+          radius: 8,
           onTap: () => context.push('/goals/${goal.id}'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

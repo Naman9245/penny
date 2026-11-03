@@ -105,6 +105,7 @@ class AmountKeypad extends StatelessWidget {
                     key: const ValueKey('key-done'),
                     semanticLabel: 'Save',
                     color: ready ? AppColors.yellow : AppColors.white,
+                    types: false,
                     onTap: onDone,
                     child: const Icon(
                       Icons.check_rounded,
@@ -131,6 +132,7 @@ class _Key extends StatelessWidget {
     this.onLongPress,
     this.semanticLabel,
     this.color = AppColors.white,
+    this.types = true,
   });
 
   final VoidCallback onTap;
@@ -139,12 +141,17 @@ class _Key extends StatelessWidget {
   final Color color;
   final Widget child;
 
+  /// A key that types acts at once; ✓ shows its press first, like any
+  /// button that closes the screen.
+  final bool types;
+
   @override
   Widget build(BuildContext context) {
     return BrutalPressable(
       onPressed: onTap,
       onLongPress: onLongPress,
       haptics: false,
+      waitForPress: !types,
       color: color,
       radius: 16,
       shadowOffset: const Offset(3, 3),

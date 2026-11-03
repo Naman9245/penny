@@ -7,6 +7,7 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/money_text.dart';
+import 'package:penny/widgets/pressable_area.dart';
 
 /// One transaction row: category face, what it was, when, and the signed
 /// amount.
@@ -40,8 +41,7 @@ class TxnTile extends StatelessWidget {
     return MergeSemantics(
       child: Semantics(
         button: onTap != null,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        child: PressableArea(
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
