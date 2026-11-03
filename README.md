@@ -64,13 +64,14 @@ dart run flutter_native_splash:create
 
 `supabase/` holds the server side:
 
-- `migrations/`: the `ai_usage` table and the functions behind the daily limits, counted apart for reports, chat and plans.
+- `migrations/`: the `ai_usage` table and the functions behind the daily limits, counted apart for reports, chat and plans; and the sync tables (`txns`, `budgets`, `goals`, `goal_deposits`, `tag_rules`, and `prefs` for the note). Only the signed-in account can read or write its rows, never an anonymous one. Every change gets the next number from `sync_seq`, one account's changes commit in order, the newer edit wins, and deletes stay soft so they reach every phone.
 - `functions/_shared/`: what the functions share: the month's schema with the budget, masking, the Gemini call and the limits.
 - `functions/analyze-month/`: the report. It checks the request, counts the call, asks Gemini for JSON in a fixed schema, and cleans the answer before returning it.
 - `functions/penny-chat/`: the chat. It checks the month, the goals and the last 12 messages, masks long digit runs, and returns Penny's reply as plain text.
 - `functions/plan-goal/`: a goal's plan. It checks the month and the goal, asks Gemini for up to four cuts in a fixed schema, and drops any that touch a need.
+- `functions/delete-account/`: deletes the signed-in account; its synced rows and call counts go with it.
 
-To use your own project: create one, apply the migrations, deploy the three functions (`supabase functions deploy analyze-month`, `penny-chat` and `plan-goal`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, the fastest), `CHAT_MODEL` and `PLAN_MODEL` (if different), `DAILY_USER_LIMIT` (10 reports) and `DAILY_TOTAL_LIMIT` (50), `CHAT_USER_LIMIT` (30 messages) and `CHAT_TOTAL_LIMIT` (200), `PLAN_USER_LIMIT` (10 plans) and `PLAN_TOTAL_LIMIT` (50).
+To use your own project: create one, apply the migrations, deploy the four functions (`supabase functions deploy analyze-month`, `penny-chat`, `plan-goal` and `delete-account`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, the fastest), `CHAT_MODEL` and `PLAN_MODEL` (if different), `DAILY_USER_LIMIT` (10 reports) and `DAILY_TOTAL_LIMIT` (50), `CHAT_USER_LIMIT` (30 messages) and `CHAT_TOTAL_LIMIT` (200), `PLAN_USER_LIMIT` (10 plans) and `PLAN_TOTAL_LIMIT` (50).
 
 ## Test
 
@@ -95,8 +96,8 @@ lib/
               Penny
 assets/icon/  the icon and launch images Penny's painter draws
 tool/         render_icons_test.dart, which draws them
-supabase/     migrations, and the analyze-month, penny-chat and plan-goal Edge
-              Functions
+supabase/     migrations, and the analyze-month, penny-chat, plan-goal and
+              delete-account Edge Functions
 ```
 
 ## Roadmap
