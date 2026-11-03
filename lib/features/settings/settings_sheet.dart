@@ -6,12 +6,13 @@ import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/data/demo_data.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/settings/account_card.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 
-/// Penny's settings, in a bottom sheet: demo data to try every part of the
-/// app on, and the welcome again.
+/// Penny's settings, in a bottom sheet: backing up with Google, demo data
+/// to try every part of the app on, and the welcome again.
 Future<void> showSettingsSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -70,6 +71,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           const Text('Settings', style: AppText.h2),
+          const SizedBox(height: 16),
+          const AccountCard(),
           const SizedBox(height: 16),
           BrutalCard(
             color: demo ? AppColors.sky : AppColors.white,

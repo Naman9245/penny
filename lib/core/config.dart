@@ -10,4 +10,13 @@ abstract final class SupabaseConfig {
   static const publishableKey = String.fromEnvironment(
     'SUPABASE_PUBLISHABLE_KEY',
   );
+
+  /// Google's id for the server side of sign-in, which Supabase checks
+  /// Google sign-ins against. Public, like the key. Without it there's no
+  /// "Back up with Google".
+  static const googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+  );
+
+  static bool get isSet => url.isNotEmpty && publishableKey.isNotEmpty;
 }

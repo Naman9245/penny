@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/config.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/supabase_start.dart';
 import 'package:penny/models/chat.dart';
 import 'package:penny/models/goal_plan.dart';
 import 'package:penny/models/month_insight.dart';
@@ -190,9 +191,9 @@ abstract interface class AiClient {
   Future<PlanAnswer> planGoal(GoalPlanRequest request);
 }
 
-/// [AiClient] over the analyze-month and penny-chat Edge Functions.
-/// Supabase starts, and the phone signs in anonymously (no email, no name),
-/// only the first time Penny is asked.
+/// [AiClient] over the analyze-month, penny-chat and plan-goal Edge
+/// Functions. Unless the phone is signed in for backup, it signs in
+/// anonymously (no email, no name) the first time Penny is asked.
 class SupabaseAiClient implements AiClient {
   SupabaseAiClient({
     this._url = SupabaseConfig.url,
@@ -201,7 +202,6 @@ class SupabaseAiClient implements AiClient {
 
   final String _url;
   final String _publishableKey;
-  Future<SupabaseClient>? _client;
 
   @override
   bool get isSetUp => _url.isNotEmpty && _publishableKey.isNotEmpty;
@@ -230,7 +230,7 @@ class SupabaseAiClient implements AiClient {
   ) async {
     if (!isSetUp) throw const AiException(AiFailure.notSetUp);
     try {
-      final client = await (_client ??= _start());
+      final client = await startSupabase();
       if (client.auth.currentSession == null) {
         await client.auth.signInAnonymously();
       }
@@ -267,19 +267,6 @@ class SupabaseAiClient implements AiClient {
       throw const AiException(AiFailure.slow);
     } on Exception {
       throw const AiException(AiFailure.unavailable);
-    }
-  }
-
-  Future<SupabaseClient> _start() async {
-    try {
-      final supabase = await Supabase.initialize(
-        url: _url,
-        publishableKey: _publishableKey,
-      );
-      return supabase.client;
-    } catch (_) {
-      _client = null;
-      rethrow;
     }
   }
 

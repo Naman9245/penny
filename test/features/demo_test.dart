@@ -68,7 +68,15 @@ void main() {
     await tester.tap(demoSwitch);
     await tester.pumpAndSettle();
     expect(reset, findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('sms-copy-0')));
+    // The samples sit below the account and demo cards.
+    final copy = find.byKey(const ValueKey('sms-copy-0'));
+    await tester.scrollUntilVisible(
+      copy,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(copy);
     await tester.pumpAndSettle();
     expect(find.text('Copied'), findsOneWidget);
     await closeSettings();

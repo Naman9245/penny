@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:penny/data/supabase_start.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The signed-in account's copy of its synced tables, as rows keyed by the
@@ -39,23 +40,25 @@ class SyncException implements Exception {
 /// [SyncRemote] over Supabase's tables, as the signed-in user. Row-level
 /// security keeps each account to its own rows.
 class SupabaseSyncRemote implements SyncRemote {
-  SupabaseSyncRemote(this._client);
+  SupabaseSyncRemote([this._connect = startSupabase]);
 
-  final SupabaseClient _client;
+  final Future<SupabaseClient> Function() _connect;
 
   static const _timeout = Duration(seconds: 30);
 
   @override
-  Future<void> push(String table, List<Map<String, Object?>> rows) => _guard(
-    () => _client
-        .from(table)
-        .upsert(
-          rows,
-          // The note is one per account; everything else has its own id.
-          onConflict: table == 'prefs' ? 'user_id,name' : 'id',
-          defaultToNull: false,
-        ),
-  );
+  Future<void> push(String table, List<Map<String, Object?>> rows) =>
+      _guard(() async {
+        final client = await _connect();
+        await client
+            .from(table)
+            .upsert(
+              rows,
+              // The note is one per account; everything else has its id.
+              onConflict: table == 'prefs' ? 'user_id,name' : 'id',
+              defaultToNull: false,
+            );
+      });
 
   @override
   Future<List<Map<String, Object?>>> pull(
@@ -63,7 +66,8 @@ class SupabaseSyncRemote implements SyncRemote {
     required int after,
     required int limit,
   }) => _guard(() async {
-    final rows = await _client
+    final client = await _connect();
+    final rows = await client
         .from(table)
         .select()
         .gt('seq', after)

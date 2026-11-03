@@ -30,6 +30,14 @@ class AppDatabase extends _$AppDatabase {
   /// user's own money, or the demo's.
   AppDatabase.named(String name) : super(driftDatabase(name: name));
 
+  /// Deletes every row of every table: "Also clear this phone" when the
+  /// account is deleted.
+  Future<void> wipe() => transaction(() async {
+    for (final table in allTables) {
+      await delete(table).go();
+    }
+  });
+
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override

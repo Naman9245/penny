@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/router/app_router.dart';
 import 'package:penny/core/theme/app_theme.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/data/sync/sync_controller.dart';
 import 'package:penny/services/share_inbox.dart';
 import 'package:penny/services/sms_parser.dart';
 
@@ -28,12 +29,16 @@ class _PennyAppState extends ConsumerState<PennyApp> {
       final text = await inbox.takeLaunchShare();
       if (text != null && mounted) _review(text);
     });
-    // Sharing from Messages can open a second copy of Penny on top of it.
-    // When this copy comes back to the front, re-read what that one saved.
+    // Backup, if signed in: it syncs as the app opens, and keeps up.
+    ref.read(syncControllerProvider);
     _lifecycle = AppLifecycleListener(
       onResume: () {
+        // Sharing from Messages can open a second copy of Penny on top of
+        // it. When this copy comes back to the front, re-read what that one
+        // saved.
         final db = ref.read(appDatabaseProvider);
         db.markTablesUpdated([db.txns]);
+        ref.read(syncControllerProvider.notifier).syncNow();
       },
     );
   }

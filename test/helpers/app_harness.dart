@@ -30,6 +30,7 @@ Future<AppDatabase> pumpApp(
   Future<void> Function(AppDatabase db)? seedDb,
   AiClient? ai,
   Map<String, Object> prefs = const {},
+  List<Override> overrides = const [],
 }) async {
   final db = AppDatabase(
     DatabaseConnection(
@@ -41,7 +42,7 @@ Future<AppDatabase> pumpApp(
   if (seedDb != null) await tester.runAsync(() => seedDb(db));
   await pumpPenny(
     tester,
-    overrides: [appDatabaseProvider.overrideWithValue(db)],
+    overrides: [appDatabaseProvider.overrideWithValue(db), ...overrides],
     prefs: prefs,
     ai: ai,
   );
