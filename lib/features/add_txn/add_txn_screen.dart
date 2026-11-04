@@ -16,6 +16,7 @@ import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_math.dart';
+import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -170,13 +171,25 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     if (picked != null && mounted) _controller.setDay(picked);
   }
 
-  Future<void> _editWhere(String? current) async {
-    final result = await showModalBottomSheet<String>(
+  Future<void> _editWhere(AddTxnState state) async {
+    final result = await showModalBottomSheet<_Where>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _WhereSheet(initial: current),
+      builder: (context) => _WhereSheet(
+        type: state.type,
+        initial: state.merchant,
+        // Only while there's no amount yet, so a place like "Sector 18"
+        // never changes one already typed.
+        readsAmount: state.amountPaise <= 0,
+        categoryId: state.categoryId,
+      ),
     );
-    if (result != null && mounted) _controller.setMerchant(result);
+    if (result == null || !mounted) return;
+    if (result.typed case final typed?) {
+      _controller.useTyped(typed);
+    } else {
+      _controller.setMerchant(result.text);
+    }
   }
 
   /// Reads a copied bank SMS and swaps this screen for its review.
@@ -215,6 +228,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(addTxnControllerProvider(widget.args));
+    // Offered only for something new, not over an entry or an SMS.
+    final usual = _editing || _importing
+        ? const <UsualEntry>[]
+        : ref.watch(usualEntriesProvider(state.type)).value ?? const [];
 
     return Scaffold(
       body: SafeArea(
@@ -267,6 +284,7 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                       const SizedBox(height: 2),
                       _AmountDisplay(
                         text: state.amountText,
+                        split: state.split,
                         shake: _shakeAmount,
                       ),
                       const SizedBox(height: 14),
@@ -274,13 +292,21 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                         state: state,
                         onDay: _controller.setDay,
                         onPickDay: () => _pickDay(state.occurredAt),
-                        onWhere: () => _editWhere(state.merchant),
+                        onWhere: () => _editWhere(state),
                         onPaste: _editing || _importing ? null : _paste,
                         // A person read from the SMS, until the name is changed.
                         payeeIsPerson:
                             (widget.args.sms?.payeeIsPerson ?? false) &&
                             state.merchant == widget.args.sms?.payee,
                       ),
+                      if (usual.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _Again(
+                          entries: usual,
+                          state: state,
+                          onTap: _controller.useUsual,
+                        ),
+                      ],
                       if (widget.args.editing case final txn?
                           when state.type == TxnType.debit) ...[
                         const SizedBox(height: 16),
@@ -313,6 +339,7 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                 ),
               ),
             ),
+            _SplitRow(shown: state.amountPaise > 0, onSplit: _controller.split),
             AmountKeypad(
               onKey: _controller.press,
               onBackspace: _controller.backspace,
@@ -328,21 +355,34 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
 }
 
 class _AmountDisplay extends StatelessWidget {
-  const _AmountDisplay({required this.text, required this.shake});
+  const _AmountDisplay({required this.text, required this.shake, this.split});
 
   final String text;
   final AnimationController shake;
+
+  /// The bill this amount is a share of.
+  final BillSplit? split;
 
   @override
   Widget build(BuildContext context) {
     final sum = isSum(text);
     final total = sumTextToPaise(text);
-    // A sum shows what was typed small, with its total big.
+    final split = this.split;
+    // A sum or a split shows how it was worked out small, with what it
+    // comes to big.
     final shown = sum ? formatPaise(total) : formatAmountText(text);
+    final working = sum
+        ? formatSumText(text)
+        : split == null
+        ? null
+        : '${formatPaise(split.totalPaise)} ÷ ${split.ways}';
     return Semantics(
       liveRegion: true,
       label: sum
           ? 'Amount $shown, from ${formatSumText(text)}'
+          : split != null
+          ? 'Amount $shown, ${formatPaise(split.totalPaise)} split '
+                '${split.ways} ways'
           : 'Amount $shown',
       excludeSemantics: true,
       child: Column(
@@ -350,16 +390,16 @@ class _AmountDisplay extends StatelessWidget {
         children: [
           SizedBox(
             height: 22,
-            child: sum
-                ? FittedBox(
+            child: working == null
+                ? null
+                : FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      formatSumText(text),
-                      key: const ValueKey('amount-sum'),
+                      working,
+                      key: ValueKey(sum ? 'amount-sum' : 'split-note'),
                       style: AppText.bodyStrong,
                     ),
-                  )
-                : null,
+                  ),
           ),
           SizedBox(
             height: 64,
@@ -444,6 +484,99 @@ class _DayAndWhere extends StatelessWidget {
             onTap: paste,
           ),
       ],
+    );
+  }
+}
+
+/// The entries the user logs again and again, a tap from filled in. ✓ still
+/// saves.
+class _Again extends StatelessWidget {
+  const _Again({
+    required this.entries,
+    required this.state,
+    required this.onTap,
+  });
+
+  final List<UsualEntry> entries;
+  final AddTxnState state;
+  final ValueChanged<UsualEntry> onTap;
+
+  bool _filledIn(UsualEntry entry) =>
+      state.amountPaise == entry.amountPaise &&
+      state.categoryId == entry.categoryId &&
+      state.merchant == entry.place;
+
+  @override
+  Widget build(BuildContext context) {
+    // One line that scrolls sideways, so the categories stay where they are.
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        child: Row(
+          children: [
+            const Text('Again?', style: AppText.small),
+            for (final (i, entry) in entries.indexed) ...[
+              const SizedBox(width: 8),
+              BrutalChip(
+                key: ValueKey('again-$i'),
+                label: _label(entry),
+                selected: _filledIn(entry),
+                onTap: () => onTap(entry),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _label(UsualEntry entry) {
+    final category = categoryById(entry.categoryId);
+    return '${category.emoji} ${entry.place ?? category.label} · '
+        '${formatPaise(entry.amountPaise)}';
+  }
+}
+
+/// ÷2 ÷3 ÷4, for a bill shared with friends. Its place is kept while
+/// there's no amount, so the screen doesn't move when one is typed.
+class _SplitRow extends StatelessWidget {
+  const _SplitRow({required this.shown, required this.onSplit});
+
+  final bool shown;
+  final ValueChanged<int> onSplit;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: shown ? 1 : 0,
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 150),
+      child: IgnorePointer(
+        ignoring: !shown,
+        child: ExcludeSemantics(
+          excluding: !shown,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Split it', style: AppText.small),
+                for (final ways in const [2, 3, 4]) ...[
+                  const SizedBox(width: 8),
+                  BrutalChip(
+                    key: ValueKey('split-$ways'),
+                    label: '÷$ways',
+                    semanticLabel: 'Split $ways ways',
+                    onTap: () => onSplit(ways),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -533,12 +666,28 @@ class _TagChoice extends StatelessWidget {
   }
 }
 
-/// Asks where the money went. Pops with the text, '' to clear it, or null
-/// when dismissed.
-class _WhereSheet extends StatefulWidget {
-  const _WhereSheet({this.initial});
+/// What the Where sheet gives back: the words as typed, '' to clear the
+/// place, and the whole entry when an amount came with them.
+typedef _Where = ({String text, TypedEntry? typed});
 
+/// Asks where the money went. While there's no amount yet it also takes one
+/// typed with the words, like "240 swiggy". Pops null when dismissed.
+class _WhereSheet extends StatefulWidget {
+  const _WhereSheet({
+    required this.type,
+    required this.readsAmount,
+    this.initial,
+    this.categoryId,
+  });
+
+  final TxnType type;
+
+  /// Whether an amount among the words fills in the amount too.
+  final bool readsAmount;
   final String? initial;
+
+  /// The category already picked, which wins over one the words suggest.
+  final String? categoryId;
 
   @override
   State<_WhereSheet> createState() => _WhereSheetState();
@@ -553,7 +702,22 @@ class _WhereSheetState extends State<_WhereSheet> {
     super.dispose();
   }
 
-  void _done() => Navigator.pop(context, _text.text);
+  TypedEntry? get _typed =>
+      widget.readsAmount ? readTypedEntry(_text.text, type: widget.type) : null;
+
+  void _done() =>
+      Navigator.pop<_Where>(context, (text: _text.text, typed: _typed));
+
+  /// "₹240 · 🍔 Food · Swiggy": what Done will fill in.
+  String _preview(TypedEntry typed) {
+    final categoryId = widget.categoryId ?? typed.categoryId;
+    final category = categoryId == null ? null : categoryById(categoryId);
+    return [
+      formatPaise(typed.amountPaise),
+      if (category != null) '${category.emoji} ${category.label}',
+      ?typed.place,
+    ].join(' · ');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -561,6 +725,7 @@ class _WhereSheetState extends State<_WhereSheet> {
       borderRadius: BorderRadius.all(Radius.circular(16)),
       borderSide: BorderSide(color: AppColors.ink, width: 2.5),
     );
+    final typed = _typed;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -580,14 +745,17 @@ class _WhereSheetState extends State<_WhereSheet> {
             maxLength: 40,
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _done(),
             style: AppText.body,
-            decoration: const InputDecoration(
-              hintText: 'Canteen, Swiggy, Metro…',
+            decoration: InputDecoration(
+              hintText: widget.readsAmount
+                  ? 'Swiggy, Metro… or 240 swiggy'
+                  : 'Canteen, Swiggy, Metro…',
               counterText: '',
               filled: true,
               fillColor: AppColors.white,
-              contentPadding: EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
@@ -596,6 +764,18 @@ class _WhereSheetState extends State<_WhereSheet> {
               focusedBorder: border,
             ),
           ),
+          if (typed != null) ...[
+            const SizedBox(height: 10),
+            Text.rich(
+              key: const ValueKey('quick-preview'),
+              TextSpan(
+                children: [
+                  const TextSpan(text: 'Done fills in  ', style: AppText.small),
+                  TextSpan(text: _preview(typed), style: AppText.bodyStrong),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -605,7 +785,8 @@ class _WhereSheetState extends State<_WhereSheet> {
                     label: 'Clear',
                     color: AppColors.white,
                     expand: true,
-                    onPressed: () => Navigator.pop(context, ''),
+                    onPressed: () =>
+                        Navigator.pop<_Where>(context, (text: '', typed: null)),
                   ),
                 ),
                 const SizedBox(width: 12),

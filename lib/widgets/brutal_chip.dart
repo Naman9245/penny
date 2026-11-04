@@ -12,6 +12,7 @@ class BrutalChip extends StatelessWidget {
     this.selected = false,
     this.icon,
     this.selectedColor = AppColors.yellow,
+    this.semanticLabel,
   });
 
   final String label;
@@ -19,6 +20,10 @@ class BrutalChip extends StatelessWidget {
   final bool selected;
   final IconData? icon;
   final Color selectedColor;
+
+  /// Read out instead of [label], for a label like "÷2" that doesn't say
+  /// itself well.
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -29,25 +34,29 @@ class BrutalChip extends StatelessWidget {
       borderWidth: 2,
       shadowOffset: const Offset(2, 2),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: AppColors.ink),
-            const SizedBox(width: 6),
-          ],
-          // Chips sit in Rows and Wraps alike, so cap the label instead of
-          // relying on a parent to bound it.
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 200),
-            child: Text(
-              label,
-              style: AppText.chip,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      semanticLabel: semanticLabel,
+      child: ExcludeSemantics(
+        excluding: semanticLabel != null,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 16, color: AppColors.ink),
+              const SizedBox(width: 6),
+            ],
+            // Chips sit in Rows and Wraps alike, so cap the label instead of
+            // relying on a parent to bound it.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 200),
+              child: Text(
+                label,
+                style: AppText.chip,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 
 /// What the Add screen opens with: a fresh entry of [type], [editing] an
@@ -37,6 +38,9 @@ class AddTxnArgs {
   int get hashCode => Object.hash(type, editing?.id, sms?.dedupeKey);
 }
 
+/// A bill shared with friends: what it came to, and how many ways.
+typedef BillSplit = ({int totalPaise, int ways});
+
 @immutable
 class AddTxnState {
   const AddTxnState({
@@ -46,12 +50,16 @@ class AddTxnState {
     this.merchant,
     this.categoryId,
     this.tag,
+    this.split,
   });
 
   final TxnType type;
 
   /// The keypad buffer, such as "249.5".
   final String amountText;
+
+  /// How the amount was worked out, until the amount changes again.
+  final BillSplit? split;
   final DateTime occurredAt;
   final String? merchant;
 
@@ -77,6 +85,7 @@ class AddTxnState {
     Object? merchant = _keep,
     Object? categoryId = _keep,
     Object? tag = _keep,
+    BillSplit? split,
   }) {
     return AddTxnState(
       type: type ?? this.type,
@@ -89,12 +98,28 @@ class AddTxnState {
           ? this.categoryId
           : categoryId as String?,
       tag: identical(tag, _keep) ? this.tag : tag as TxnTag?,
+      // Any new amount drops the split, so only a split gives one.
+      split: amountText == null ? this.split : split,
     );
   }
 }
 
 final addTxnControllerProvider = NotifierProvider.autoDispose
     .family<AddTxnController, AddTxnState, AddTxnArgs>(AddTxnController.new);
+
+/// The entries of a kind the user logs again and again, from the last 60
+/// days.
+final usualEntriesProvider = StreamProvider.autoDispose
+    .family<List<UsualEntry>, TxnType>((ref, type) {
+      final today = ref.watch(todayProvider);
+      return ref
+          .watch(txnRepositoryProvider)
+          .watchBetween(
+            DateTime(today.year, today.month, today.day - 60),
+            DateTime(today.year, today.month, today.day + 1),
+          )
+          .map((txns) => usualEntries(txns, type));
+    });
 
 class AddTxnController extends Notifier<AddTxnState> {
   AddTxnController(this.args);
@@ -150,6 +175,33 @@ class AddTxnController extends Notifier<AddTxnState> {
       state = state.copyWith(amountText: dropAmountKey(state.amountText));
 
   void clear() => state = state.copyWith(amountText: '');
+
+  /// Splits what was typed [ways] ways, like a bill shared with friends:
+  /// the sum is worked out first, then divided, to the paisa.
+  void split(int ways) {
+    final total = state.amountPaise;
+    final share = (total / ways).round();
+    if (share <= 0) return;
+    state = state.copyWith(
+      amountText: paiseToAmountText(share),
+      split: (totalPaise: total, ways: ways),
+    );
+  }
+
+  /// Fills in one of the user's usual entries; ✓ still saves it.
+  void useUsual(UsualEntry entry) => state = state.copyWith(
+    amountText: paiseToAmountText(entry.amountPaise),
+    categoryId: entry.categoryId,
+    merchant: entry.place,
+  );
+
+  /// Fills in an entry typed in one go, like "240 swiggy". Its category
+  /// only goes in when none is picked yet.
+  void useTyped(TypedEntry entry) => state = state.copyWith(
+    amountText: paiseToAmountText(entry.amountPaise),
+    merchant: entry.place,
+    categoryId: state.categoryId ?? entry.categoryId,
+  );
 
   /// Switching between Spent and Got drops a category of the other kind, and
   /// any tag, since only spends have one.
