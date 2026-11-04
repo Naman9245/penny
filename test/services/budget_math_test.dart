@@ -309,6 +309,70 @@ void main() {
     });
   });
 
+  group('where the month is heading', () {
+    // ₹9,000 of everyday budget over November's 30 days; on the 10th.
+    String? forecast(List<Txn> txns, {Budget budget = budget, int day = 10}) =>
+        status(budget, txns, now: on(day, 20)).forecast;
+
+    test('within the everyday budget: what will be left', () {
+      expect(
+        forecast([txn(2000, on(4))]),
+        "At ₹200 a day, you'll end with ₹3,000 of your everyday budget to "
+        'spare',
+      );
+      expect(
+        forecast([txn(3000, on(4))]),
+        "At ₹300 a day, you'll end right at your everyday budget",
+      );
+    });
+
+    test('faster than the budget: the day it runs out', () {
+      expect(
+        forecast([txn(4000, on(4))]),
+        'At ₹400 a day, your everyday budget runs out around 23 Nov',
+      );
+    });
+
+    test('already over: by how much it will end over', () {
+      expect(
+        forecast([txn(9500, on(4))]),
+        "At ₹950 a day, you'll end about ₹19,500 over your everyday budget",
+      );
+    });
+
+    test('with no everyday budget, where spending leads', () {
+      expect(
+        forecast([
+          txn(3800, on(4)),
+          // Paid in one go, so it's no pace.
+          txn(8000, on(1), categoryId: 'rent'),
+        ], budget: Budget.none),
+        'At ₹380 a day, about ₹11,400 this month',
+      );
+    });
+
+    test('paybacks come off the pace; investing is no spending', () {
+      expect(
+        forecast([
+          txn(3000, on(4)),
+          txn(1000, on(5), type: TxnType.credit),
+          txn(5000, on(6), categoryId: 'invest'),
+        ]),
+        "At ₹200 a day, you'll end with ₹3,000 of your everyday budget to "
+        'spare',
+      );
+    });
+
+    test('only from the 3rd to the second-last day, with spending', () {
+      final spent = [txn(500, on(1))];
+      expect(forecast(spent, day: 2), isNull);
+      expect(forecast(spent, day: 3), isNotNull);
+      expect(forecast([txn(500, on(1))], day: 29), isNotNull);
+      expect(forecast(spent, day: 30), isNull);
+      expect(forecast(const []), isNull);
+    });
+  });
+
   test('days left read naturally', () {
     expect(daysLeftLabel(18), '18 days left');
     expect(daysLeftLabel(1), '1 day left');

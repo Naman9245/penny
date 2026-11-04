@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
@@ -44,12 +45,16 @@ class BudgetStatus {
   const BudgetStatus({
     required this.budget,
     required this.spentByCategory,
+    required this.month,
     required this.day,
     required this.daysInMonth,
     this.todaySpentPaise = 0,
   });
 
   final Budget budget;
+
+  /// The 1st of the month this is for.
+  final DateTime month;
 
   /// The month's spending per category id.
   final Map<String, int> spentByCategory;
@@ -107,6 +112,52 @@ class BudgetStatus {
     }
     return null;
   }
+
+  /// Where the month is heading at the everyday pace so far, in words:
+  /// against the everyday budget when there is one. Only from the 3rd to
+  /// the second-last day, once there's everyday spending to go by. Worked
+  /// out here, never by the AI.
+  String? get forecast {
+    if (day < 3 || day >= daysInMonth) return null;
+    final everyday = budget.everydayPaise;
+    // With an everyday budget, the categories it covers; without one,
+    // everything not paid in one go.
+    final spent = everyday > 0
+        ? everydaySpentPaise
+        : spentByCategory.entries
+              .where((entry) => !categoryById(entry.key).oneGo)
+              .fold(0, (sum, entry) => sum + entry.value);
+    if (spent <= 0) return null;
+
+    final pace = 'At ${formatPaise(_toRupee(spent / day))} a day';
+    final monthEnd = spent * daysInMonth / day;
+    if (everyday <= 0) {
+      return '$pace, about ${formatPaise(_toHundred(monthEnd))} this month';
+    }
+    if (spent < everyday && monthEnd > everyday) {
+      final runsOut = DateTime(
+        month.year,
+        month.month,
+        (everyday * day / spent).ceil(),
+      );
+      return '$pace, your everyday budget runs out around '
+          '${DateFormat('d MMM').format(runsOut)}';
+    }
+    final spare = _toHundred(everyday - monthEnd);
+    return switch (spare) {
+      > 0 =>
+        "$pace, you'll end with ${formatPaise(spare)} of your everyday "
+            'budget to spare',
+      < 0 =>
+        "$pace, you'll end about ${formatPaise(-spare)} over your "
+            'everyday budget',
+      _ => "$pace, you'll end right at your everyday budget",
+    };
+  }
+
+  static int _toRupee(double paise) => (paise / 100).round() * 100;
+
+  static int _toHundred(double paise) => (paise / 10000).round() * 10000;
 }
 
 /// How [month] stands against [budget], from its entries, as of [now].
@@ -137,6 +188,7 @@ BudgetStatus budgetStatus({
   return BudgetStatus(
     budget: budget,
     spentByCategory: MoneyTotals.of(monthTxns).spentByCategory,
+    month: start,
     day: day,
     daysInMonth: daysInMonth,
     todaySpentPaise: spentToday,

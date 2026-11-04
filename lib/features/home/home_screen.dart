@@ -9,6 +9,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/goals/goal_widgets.dart';
+import 'package:penny/features/home/fixed_bills_card.dart';
 import 'package:penny/features/settings/settings_sheet.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
@@ -119,6 +120,8 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          // Last month's rent and bills, in a month's first week.
+          const FixedBillsCard(),
           const SizedBox(height: 16),
           _MonthBento(month: month, summary: summary),
           const SizedBox(height: 28),
@@ -233,7 +236,10 @@ class _PennyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final celebrated = this.celebrated;
-    final budget = status.budget.everydayPaise > 0 || status.oneGoNote != null;
+    final budget =
+        status.budget.everydayPaise > 0 ||
+        status.oneGoNote != null ||
+        status.forecast != null;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
@@ -318,6 +324,8 @@ class _BudgetBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final everyday = status.budget.everydayPaise;
+    final forecast = status.forecast;
+    final days = daysLeftLabel(status.daysLeft);
     return Container(
       key: const ValueKey('budget-box'),
       width: double.infinity,
@@ -332,7 +340,9 @@ class _BudgetBox extends StatelessWidget {
         children: [
           Text(
             everyday > 0
-                ? 'Everyday budget · ${daysLeftLabel(status.daysLeft)}'
+                ? 'Everyday budget · $days'
+                : status.budget.isEmpty
+                ? 'This month · $days'
                 : 'Budget',
             style: AppText.small,
           ),
@@ -352,6 +362,15 @@ class _BudgetBox extends StatelessWidget {
           ],
           for (final note in [?status.categoryNote, ?status.oneGoNote])
             Text(note, style: AppText.body),
+          if (forecast != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                forecast,
+                key: const ValueKey('forecast-line'),
+                style: AppText.small.copyWith(color: AppColors.ink),
+              ),
+            ),
         ],
       ),
     );

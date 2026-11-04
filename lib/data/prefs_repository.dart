@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
+import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 
 /// Small settings kept on this phone. The note to Penny is backed up too.
@@ -14,6 +17,56 @@ class PrefsRepository {
 
   /// The longest note Penny takes.
   static const maxNoteLength = 200;
+
+  /// The fixed bills skipped this month. Stays on this phone: sync only
+  /// carries the note.
+  static const skippedBillsName = 'skipped_bills';
+
+  /// The fixed bills skipped in [month], by their keys. Skips from another
+  /// month don't count.
+  Stream<Set<String>> watchSkippedBills(DateTime month) {
+    final query = _db.select(_db.prefs)
+      ..where((p) => p.name.equals(skippedBillsName));
+    return query.watchSingleOrNull().map(
+      (pref) => _skipped(pref?.value, month),
+    );
+  }
+
+  /// Hides the fixed bill [key] for the rest of [month].
+  Future<void> skipBill(DateTime month, String key) async {
+    final pref = await (_db.select(
+      _db.prefs,
+    )..where((p) => p.name.equals(skippedBillsName))).getSingleOrNull();
+    final keys = {..._skipped(pref?.value, month), key};
+    await _db
+        .into(_db.prefs)
+        .insertOnConflictUpdate(
+          PrefsCompanion.insert(
+            name: skippedBillsName,
+            value: jsonEncode({
+              'month': monthKey(month),
+              'keys': keys.toList()..sort(),
+            }),
+            updatedAt: _clock(),
+            dirty: const Value(false),
+          ),
+        );
+  }
+
+  static Set<String> _skipped(String? value, DateTime month) {
+    if (value == null) return const {};
+    try {
+      final json = jsonDecode(value);
+      if (json
+          case {'month': final String saved, 'keys': final List<dynamic> keys}
+          when saved == monthKey(month)) {
+        return {for (final key in keys) ?(key is String ? key : null)};
+      }
+    } on FormatException {
+      // Unreadable: nothing skipped.
+    }
+    return const {};
+  }
 
   /// What the user told Penny about their life on My needs, if anything.
   Stream<String?> watchNote() {

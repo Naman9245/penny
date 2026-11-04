@@ -11,6 +11,8 @@ import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/penny_pose.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
+import 'package:penny/services/txn_search.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
@@ -52,6 +54,24 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
   late DateTime _month = widget.initialMonth ?? monthStart(DateTime.now());
   late String? _categoryId = widget.categoryId;
   _Filter _filter = _Filter.all;
+  final _search = TextEditingController();
+  bool _searching = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  /// Opens the search box, or closes it and clears the search.
+  void _toggleSearch() => setState(() {
+    _searching = !_searching;
+    if (!_searching) {
+      _search.clear();
+      _query = '';
+    }
+  });
 
   // Rows swiped away but still in the database stream. Dismissible needs
   // them out of the tree on the very next frame.
@@ -85,9 +105,25 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  BrutalIconButton(
+                    key: const ValueKey('search-toggle'),
+                    icon: _searching
+                        ? Icons.close_rounded
+                        : Icons.search_rounded,
+                    semanticLabel: _searching ? 'Close search' : 'Search',
+                    onPressed: _toggleSearch,
+                  ),
                 ],
               ),
             ),
+            if (_searching)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: _SearchField(
+                  controller: _search,
+                  onChanged: (text) => setState(() => _query = text),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               child: MonthSwitcher(
@@ -192,10 +228,17 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
       for (final txn in all)
         if (!_dismissed.contains(txn.id) &&
             _filter.keeps(txn) &&
-            (_categoryId == null || txn.categoryId == _categoryId))
+            (_categoryId == null || txn.categoryId == _categoryId) &&
+            matchesSearch(txn, _query))
           txn,
     ];
-    if (visible.isEmpty) return _EmptyMonth(month: _month, filter: _filter);
+    final query = _query.trim();
+    if (visible.isEmpty) {
+      return _EmptyMonth(month: _month, filter: _filter, query: query);
+    }
+    // Anything narrowed down gets added up.
+    final narrowed =
+        _filter != _Filter.all || _categoryId != null || query.isNotEmpty;
 
     final byDay = <DateTime, List<Txn>>{};
     for (final txn in visible) {
@@ -205,6 +248,14 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
+        if (narrowed) ...[
+          Text(
+            totalLine(visible),
+            key: const ValueKey('filter-total'),
+            style: AppText.bodyStrong,
+          ),
+          const SizedBox(height: 12),
+        ],
         for (final MapEntry(key: day, value: txns) in byDay.entries) ...[
           _DayHeader(day: day, txns: txns),
           const SizedBox(height: 8),
@@ -234,7 +285,7 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
       context,
       message:
           'Deleted ${formatPaise(txn.amountPaise)} · '
-          '${categoryById(txn.categoryId).label}',
+          '${kindLabel(txn.type, txn.categoryId)}',
       onUndo: () {
         repo.restore(txn.id);
         if (mounted) setState(() => _dismissed.remove(txn.id));
@@ -316,10 +367,17 @@ class _DayHeader extends StatelessWidget {
 }
 
 class _EmptyMonth extends StatelessWidget {
-  const _EmptyMonth({required this.month, required this.filter});
+  const _EmptyMonth({
+    required this.month,
+    required this.filter,
+    this.query = '',
+  });
 
   final DateTime month;
   final _Filter filter;
+
+  /// What was searched for, if anything.
+  final String query;
 
   @override
   Widget build(BuildContext context) {
@@ -332,13 +390,18 @@ class _EmptyMonth extends StatelessWidget {
             const PennyMascot(pose: PennyPose.sleepy, size: 100),
             const SizedBox(height: 16),
             Text(
-              'Nothing in ${monthLabel(month)}',
+              query.isNotEmpty
+                  ? 'Nothing matches "$query"'
+                  : 'Nothing in ${monthLabel(month)}',
               style: AppText.h3,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
-              filter == _Filter.all
+              query.isNotEmpty
+                  ? 'Try a place, a category or an amount, or another '
+                        'month.'
+                  : filter == _Filter.all
                   ? 'Entries you add show up here.'
                   : 'No ${filter.label.toLowerCase()} entries this month.',
               style: AppText.bodyMuted,
@@ -346,6 +409,42 @@ class _EmptyMonth extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The search box: a place, a category or an amount.
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const border = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(16)),
+      borderSide: BorderSide(color: AppColors.ink, width: 2.5),
+    );
+    return TextField(
+      key: const ValueKey('txn-search'),
+      controller: controller,
+      autofocus: true,
+      maxLength: 40,
+      textInputAction: TextInputAction.search,
+      onChanged: onChanged,
+      style: AppText.body,
+      decoration: const InputDecoration(
+        hintText: 'Swiggy, food or 250',
+        prefixIcon: Icon(Icons.search_rounded, color: AppColors.ink),
+        counterText: '',
+        filled: true,
+        fillColor: AppColors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: border,
+        enabledBorder: border,
+        focusedBorder: border,
       ),
     );
   }
