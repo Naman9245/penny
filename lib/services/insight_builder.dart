@@ -10,6 +10,7 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/payee_names.dart';
 
 // What Penny sends for a look at one month: month totals per shop, people
@@ -120,35 +121,40 @@ InsightRequest buildInsightRequest({
   final seenByKey = <String, Set<int>>{};
   final incomeMonths = <String, Set<int>>{};
   final activeMonths = <int>{};
-  var spent = 0, got = 0, lastSpent = 0, lastGot = 0;
+  final thisMonthTxns = <Txn>[];
+  final lastMonthTxns = <Txn>[];
 
+  // Groups are spends and income only. What came back and what was put away
+  // count in the month's totals.
   for (final txn in txns) {
     final i = indexOf(txn.occurredAt);
     if (i > 0 || i <= -insightHistoryMonths) continue;
     activeMonths.add(i);
+    if (i == 0) thisMonthTxns.add(txn);
+    if (i == -1) lastMonthTxns.add(txn);
     final key = groupKeyOf(txn);
-    switch ((txn.type, i)) {
-      case (TxnType.debit, 0):
-        spent += txn.amountPaise;
+    switch ((txn.kind, i)) {
+      case (MoneyKind.spent, 0):
         (groups[key] ??= _Group(txn.categoryId)..keys.add(key)).add(txn);
-      case (TxnType.credit, 0):
-        got += txn.amountPaise;
+      case (MoneyKind.got, 0):
         (incomes[txn.categoryId] ??= _Group(
           txn.categoryId,
         )..keys.add('income|${txn.categoryId}')).add(txn);
-      case (TxnType.debit, _):
+      case (MoneyKind.spent, _):
         if (i == -1) {
-          lastSpent += txn.amountPaise;
           lastMonthByKey[key] = (lastMonthByKey[key] ?? 0) + txn.amountPaise;
         }
         if (i >= -3) (seenByKey[key] ??= {}).add(i);
-      case (TxnType.credit, _):
-        if (i == -1) lastGot += txn.amountPaise;
+      case (MoneyKind.got || MoneyKind.paidBack || MoneyKind.invested, _):
+        break;
     }
-    if (txn.type == TxnType.credit) {
+    if (txn.kind == MoneyKind.got) {
       (incomeMonths[txn.categoryId] ??= {}).add(i);
     }
   }
+  // Counted the way Home counts them, so the chat's numbers match it.
+  final thisMonth = MoneyTotals.of(thisMonthTxns);
+  final lastMonth = MoneyTotals.of(lastMonthTxns);
 
   // The biggest shops keep their own group; the rest join their category's.
   final shops = groups.values.where((g) => g.isShop).toList()..sort(_byTotal);
@@ -218,9 +224,12 @@ InsightRequest buildInsightRequest({
         : now.isBefore(start)
         ? 1
         : now.day,
-    'spent': _rupees(spent),
-    'got': _rupees(got),
-    'lastMonth': {'spent': _rupees(lastSpent), 'got': _rupees(lastGot)},
+    'spent': _rupees(thisMonth.spentPaise),
+    'got': _rupees(thisMonth.gotPaise),
+    'lastMonth': {
+      'spent': _rupees(lastMonth.spentPaise),
+      'got': _rupees(lastMonth.gotPaise),
+    },
     'spends': spends,
     'income': income,
     if (note?.trim() case final text? when text.isNotEmpty) 'note': text,

@@ -18,6 +18,7 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
@@ -605,7 +606,7 @@ class _Income extends StatelessWidget {
   Widget build(BuildContext context) {
     final totals = <String, int>{};
     for (final txn in txns) {
-      if (txn.type == TxnType.credit) {
+      if (txn.kind == MoneyKind.got) {
         totals[txn.categoryId] =
             (totals[txn.categoryId] ?? 0) + txn.amountPaise;
       }

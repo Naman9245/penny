@@ -17,11 +17,17 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<String> add(int paise, DateTime at, {TxnType type = TxnType.debit}) {
+  /// Food, or salary for money in.
+  Future<String> add(
+    int paise,
+    DateTime at, {
+    TxnType type = TxnType.debit,
+    String? categoryId,
+  }) {
     return repo.add(
       amountPaise: paise,
       type: type,
-      categoryId: 'food',
+      categoryId: categoryId ?? (type == TxnType.credit ? 'salary' : 'food'),
       occurredAt: at,
     );
   }
@@ -78,6 +84,25 @@ void main() {
     expect(summary.spentPaise, 35050);
     expect(summary.gotPaise, 500000);
     expect(summary.leftPaise, 464950);
+  });
+
+  test('what comes back lowers spending, and investing is no spend', () async {
+    await add(90000, DateTime(2026, 11, 1, 21)); // Dinner for three.
+    await add(
+      60000,
+      DateTime(2026, 11, 2, 9),
+      type: TxnType.credit,
+      categoryId: 'food',
+    ); // Two friends pay their share.
+    await add(100000, DateTime(2026, 11, 2, 10), categoryId: 'invest');
+    await add(500000, DateTime(2026, 11, 3, 9), type: TxnType.credit);
+
+    final summary = await repo.watchMonthSummary(DateTime(2026, 11)).first;
+
+    expect(summary.spentPaise, 30000);
+    expect(summary.gotPaise, 500000);
+    expect(summary.investedPaise, 100000);
+    expect(summary.leftPaise, 370000);
   });
 
   test('update changes the fields and stamps updatedAt', () async {

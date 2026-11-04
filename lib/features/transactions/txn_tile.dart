@@ -5,6 +5,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/pressable_area.dart';
@@ -28,12 +29,14 @@ class TxnTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final category = categoryById(txn.categoryId);
+    // "Food · paid back" for money that came back.
+    final what = kindLabel(txn.type, txn.categoryId);
     final merchant = txn.merchant;
     final when = showDay
         ? dayLabel(txn.occurredAt)
         : DateFormat('h:mm a').format(txn.occurredAt);
     final subtitle = [
-      if (merchant != null) category.label,
+      if (merchant != null) what,
       when,
       if (txn.source != TxnSource.manual) 'SMS',
     ].join(' · ');
@@ -55,7 +58,7 @@ class TxnTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          merchant ?? category.label,
+                          merchant ?? what,
                           style: AppText.bodyStrong,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

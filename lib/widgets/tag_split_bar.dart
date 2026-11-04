@@ -75,31 +75,49 @@ class TagSplitKey extends StatelessWidget {
       ])
         if (row.$2 > 0) row,
     ];
-    return ExcludeSemantics(
-      child: Column(
-        children: [
-          for (final (label, paise, color) in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AppColors.ink, width: 1.5),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(label, style: AppText.body)),
-                  Text(formatPaise(paise), style: AppText.bodyStrong),
-                ],
-              ),
+    final cameBack = split.cameBackPaise;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(child: _rows(rows)),
+        // The split stays what was paid; this is what came back since.
+        if (cameBack > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '${formatPaise(cameBack)} of it came back',
+              key: const ValueKey('split-came-back'),
+              style: AppText.small,
             ),
-        ],
-      ),
+          ),
+      ],
+    );
+  }
+
+  static Widget _rows(List<(String, int, Color)> rows) {
+    return Column(
+      children: [
+        for (final (label, paise, color) in rows)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              children: [
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.ink, width: 1.5),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: Text(label, style: AppText.body)),
+                Text(formatPaise(paise), style: AppText.bodyStrong),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

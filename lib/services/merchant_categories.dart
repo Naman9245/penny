@@ -4,8 +4,20 @@ import 'package:penny/models/txn_enums.dart';
 // pre-picked and can tap another before saving.
 
 // Checked in this order, so "Amazon Prime" lands in subscriptions before
-// "amazon" can claim it for shopping.
+// "amazon" can claim it for shopping, and a SIP is investing whatever else
+// it mentions.
 const _spendKeywords = <String, List<String>>{
+  'invest': [
+    'zerodha',
+    'groww',
+    'indmoney',
+    'kuvera',
+    'upstox',
+    'coin',
+    'sip',
+    'mutual fund',
+    'mutual funds',
+  ],
   'subscriptions': [
     'netflix',
     'spotify',

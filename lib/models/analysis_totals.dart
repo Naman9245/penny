@@ -1,23 +1,31 @@
-import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 
 /// One category's money in a month, in paise.
 class CategoryTotal {
   const CategoryTotal({
     required this.categoryId,
-    required this.type,
+    required this.kind,
     required this.totalPaise,
     required this.count,
+    this.paidBackPaise = 0,
   });
 
   final String categoryId;
-  final TxnType type;
+
+  /// Spent, got or invested. What came back counts in its spend category.
+  final MoneyKind kind;
+
+  /// For spending, what was paid less what came back, never below zero.
   final int totalPaise;
 
-  /// How many entries make up [totalPaise].
+  /// How many entries were paid or got.
   final int count;
+
+  /// What came back, for a spend category.
+  final int paidBackPaise;
 }
 
-/// Money out and in for one month, in paise.
+/// Spending and income for one month, in paise, as Home counts them.
 class MonthTotals {
   const MonthTotals({
     required this.month,

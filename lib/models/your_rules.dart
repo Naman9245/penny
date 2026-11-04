@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 
 export 'package:penny/models/rule_kind.dart';
 
@@ -21,7 +22,7 @@ class YourRules {
   /// The rule for a spend: its shop's, else its category's. Null for income
   /// and for spends no rule covers.
   TxnTag? of(Txn txn) {
-    if (txn.type != TxnType.debit) return null;
+    if (!txn.isSpend) return null;
     final shop = shopKey(txn.merchant);
     return (shop == null ? null : shops[shop]) ?? categories[txn.categoryId];
   }

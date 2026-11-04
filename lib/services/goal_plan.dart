@@ -13,6 +13,7 @@ import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
+import 'package:penny/services/money_kinds.dart';
 
 // Penny's plan for a goal: what goes to plan-goal, and the plan's cuts with
 // what each saves a month, worked out on the phone. Penny only picks.
@@ -158,7 +159,7 @@ List<PlanCutView> planCutViews(
   final counted = monthStart(now) == month ? now.day : daysInMonth;
   final spends = [
     for (final txn in monthTxns)
-      if (txn.type == TxnType.debit && monthStart(txn.occurredAt) == month) txn,
+      if (txn.isSpend && monthStart(txn.occurredAt) == month) txn,
   ];
   return [
     for (final cut in saved.plan.cuts)

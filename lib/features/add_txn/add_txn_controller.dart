@@ -5,6 +5,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 
@@ -261,7 +262,10 @@ class AddTxnController extends Notifier<AddTxnState> {
       categoryId: state.categoryId!,
       occurredAt: state.occurredAt,
       merchant: state.merchant,
-      tag: state.type == TxnType.debit ? state.tag : null,
+      // Only spending is necessary or wasteful.
+      tag: MoneyKind.of(state.type, state.categoryId!) == MoneyKind.spent
+          ? state.tag
+          : null,
       payeeIsPerson: switch (editing.payeeIsPerson) {
         null => null,
         final bool wasPerson => _payeeIsPerson(

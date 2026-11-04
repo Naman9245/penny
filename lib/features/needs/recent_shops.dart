@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
-import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
+import 'package:penny/services/money_kinds.dart';
 
 /// A shop the user spent at lately, as My needs lists it.
 @immutable
@@ -30,7 +30,7 @@ List<ShopSeen> recentShops(Iterable<Txn> txns) {
   final totals = <String, int>{};
   final latest = <String, Txn>{};
   for (final txn in txns) {
-    if (txn.type != TxnType.debit || isPersonPayee(txn)) continue;
+    if (!txn.isSpend || isPersonPayee(txn)) continue;
     final key = shopKey(txn.merchant);
     if (key == null) continue;
     totals[key] = (totals[key] ?? 0) + txn.amountPaise;

@@ -16,6 +16,7 @@ import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_math.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
@@ -100,8 +101,26 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
   }
 
   void _pick(Category category) {
+    if (category.id == _paidBackTileId) {
+      _pickPaidBack();
+      return;
+    }
     HapticFeedback.selectionClick();
     _controller.selectCategory(category.id);
+  }
+
+  /// Asks which spend category money that came back was for.
+  Future<void> _pickPaidBack() async {
+    final current = ref.read(addTxnControllerProvider(widget.args)).categoryId;
+    final picked = await showModalBottomSheet<Category>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) =>
+          _PaidBackSheet(selectedId: isSpendCategory(current) ? current : null),
+    );
+    if (picked == null || !mounted) return;
+    HapticFeedback.selectionClick();
+    _controller.selectCategory(picked.id);
   }
 
   Future<void> _save() async {
@@ -127,11 +146,12 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(content: Text('Saved')));
       } else {
+        final amount = formatPaise(state.amountPaise);
         showUndoSnackBar(
           context,
-          message:
-              'Added ${formatPaise(state.amountPaise)} · '
-              '${categoryById(categoryId).label}',
+          message: MoneyKind.of(state.type, categoryId) == MoneyKind.invested
+              ? 'Invested $amount'
+              : 'Added $amount · ${kindLabel(state.type, categoryId)}',
           onUndo: () => repo.softDelete(id),
         );
       }
@@ -232,6 +252,11 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     final usual = _editing || _importing
         ? const <UsualEntry>[]
         : ref.watch(usualEntriesProvider(state.type)).value ?? const [];
+    // Money in, in a spend category, is a friend paying their share back.
+    final paidBackFor =
+        state.type == TxnType.credit && isSpendCategory(state.categoryId)
+        ? categoryById(state.categoryId!)
+        : null;
 
     return Scaffold(
       body: SafeArea(
@@ -307,8 +332,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                           onTap: _controller.useUsual,
                         ),
                       ],
+                      // Only spending is necessary or wasteful.
                       if (widget.args.editing case final txn?
-                          when state.type == TxnType.debit) ...[
+                          when state.type == TxnType.debit &&
+                              state.categoryId != investCategory.id) ...[
                         const SizedBox(height: 16),
                         _TagChoice(
                           tag: state.tag,
@@ -325,8 +352,14 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                       ],
                       const SizedBox(height: 24),
                       CategoryGrid(
-                            categories: categoriesFor(state.type),
-                            selectedId: state.categoryId,
+                            categories: [
+                              ...categoriesFor(state.type),
+                              if (state.type == TxnType.credit)
+                                _paidBackTile(paidBackFor),
+                            ],
+                            selectedId: paidBackFor != null
+                                ? _paidBackTileId
+                                : state.categoryId,
                             onTap: _pick,
                           )
                           .animate(
@@ -346,6 +379,74 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
               onClear: _controller.clear,
               onDone: _save,
               ready: state.canSave,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The Got tile for money that came back. Once its spend category is picked,
+/// it says which.
+const _paidBackTileId = '_paid_back';
+
+Category _paidBackTile(Category? paidBackFor) => Category(
+  id: _paidBackTileId,
+  label: paidBackFor == null ? 'Paid back' : '${paidBackFor.label} · paid back',
+  emoji: '🤝',
+  color: AppColors.cream,
+  type: TxnType.credit,
+);
+
+/// Which spend category money that came back was for. A pick shows before
+/// the sheet closes with it.
+class _PaidBackSheet extends StatefulWidget {
+  const _PaidBackSheet({this.selectedId});
+
+  final String? selectedId;
+
+  @override
+  State<_PaidBackSheet> createState() => _PaidBackSheetState();
+}
+
+class _PaidBackSheetState extends State<_PaidBackSheet> {
+  late String? _selected = widget.selectedId;
+  var _closing = false;
+
+  Future<void> _pick(Category category) async {
+    if (_closing) return;
+    _closing = true;
+    HapticFeedback.selectionClick();
+    setState(() => _selected = category.id);
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+    }
+    if (mounted) Navigator.pop(context, category);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Paid back for what?', style: AppText.h2),
+            const SizedBox(height: 4),
+            const Text(
+              "It comes off what you spent there, and isn't counted as "
+              'income.',
+              style: AppText.bodyMuted,
+            ),
+            const SizedBox(height: 18),
+            CategoryGrid(
+              key: const ValueKey('paid-back-grid'),
+              categories: spendCategories,
+              selectedId: _selected,
+              onTap: _pick,
             ),
           ],
         ),
@@ -531,10 +632,11 @@ class _Again extends StatelessWidget {
     );
   }
 
-  static String _label(UsualEntry entry) {
+  /// "🍔 Chai point · ₹20", or "🍔 Food · paid back · ₹300" with no place.
+  String _label(UsualEntry entry) {
     final category = categoryById(entry.categoryId);
-    return '${category.emoji} ${entry.place ?? category.label} · '
-        '${formatPaise(entry.amountPaise)}';
+    final what = entry.place ?? kindLabel(state.type, entry.categoryId);
+    return '${category.emoji} $what · ${formatPaise(entry.amountPaise)}';
   }
 }
 

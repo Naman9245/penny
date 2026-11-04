@@ -97,6 +97,29 @@ void main() {
       expect(over.categoryNote, isNull);
     });
 
+    test('what came back comes off its category; investing never counts', () {
+      final month = status(budget, [
+        txn(900, on(2)),
+        txn(600, on(3), type: TxnType.credit), // Friends paid back for food.
+        txn(5000, on(4), categoryId: 'invest'),
+        txn(100, on(5), type: TxnType.credit, categoryId: 'travel'),
+      ]);
+      expect(month.spentIn('food'), 30000);
+      expect(month.everydaySpentPaise, 30000);
+      // Never below zero, with nothing spent on travel.
+      expect(month.spentIn('travel'), 0);
+      expect(month.spentIn('invest'), 0);
+    });
+
+    test("a payback leaves a day's own spending as it was paid", () {
+      final day = status(budget, [
+        txn(900, on(10)),
+        txn(600, on(10, 21), type: TxnType.credit),
+      ]);
+      expect(day.todaySpentPaise, 90000);
+      expect(day.everydaySpentPaise, 30000);
+    });
+
     test('a month that is over counts every day', () {
       final done = status(budget, [
         txn(8000, on(29)),
@@ -159,6 +182,21 @@ void main() {
       const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
       expect(today([txn(1800, on(4))], budget: split), PennyMood.happy);
       expect(today([txn(2001, on(4))], budget: split), PennyMood.sad);
+    });
+
+    test("a payback lifts the month so far, but not the day it's for", () {
+      // ₹8,100 of ₹9,000 by the 1st is worrying; ₹3,000 back on the 2nd
+      // brings the month down to ₹5,100. Investing on the 3rd is no spend.
+      final txns = [
+        txn(8100, on(1)),
+        txn(3000, on(2), type: TxnType.credit),
+        txn(5000, on(3), categoryId: 'invest'),
+      ];
+      final withPayback = moods(txns);
+      expect(withPayback[1], PennyMood.sad);
+      expect(withPayback[2], PennyMood.happy);
+      expect(withPayback[3], PennyMood.happy);
+      expect(moods([txns.first])[2], PennyMood.worried);
     });
 
     test('rent never changes the mood, even over its budget', () {
@@ -257,9 +295,17 @@ void main() {
           txn(8000, on(3), categoryId: 'rent'),
           txn(60, on(3), categoryId: 'bills'), // One go, no budget.
           txn(1000, on(3), type: TxnType.credit, categoryId: 'pocket_money'),
+          txn(120, on(3), type: TxnType.credit), // Paid back for food.
+          txn(1000, on(3), categoryId: 'invest'),
         ],
       );
-      expect(spend, (counted: 25000, noBudget: 10000, oneGo: 806000));
+      expect(spend, (
+        counted: 25000,
+        noBudget: 10000,
+        oneGo: 806000,
+        cameBack: 12000,
+        invested: 100000,
+      ));
     });
   });
 

@@ -7,7 +7,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/budget.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/penny_mood.dart';
-import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 
 // Penny's mood, worked out on the phone from the budget and the month's
 // entries. It's never stored: it always follows from them. One rule gives
@@ -124,19 +124,19 @@ BudgetStatus budgetStatus({
       ? now.day
       : daysInMonth;
   final today = dayStart(now);
-  final spent = <String, int>{};
+  // Today goes by what was paid today; the month by what's left once
+  // paybacks come off.
   var spentToday = 0;
   for (final txn in monthTxns) {
-    if (txn.type != TxnType.debit) continue;
-    spent[txn.categoryId] = (spent[txn.categoryId] ?? 0) + txn.amountPaise;
-    if (dayStart(txn.occurredAt) == today &&
+    if (txn.isSpend &&
+        dayStart(txn.occurredAt) == today &&
         _everyday(budget, txn.categoryId)) {
       spentToday += txn.amountPaise;
     }
   }
   return BudgetStatus(
     budget: budget,
-    spentByCategory: spent,
+    spentByCategory: MoneyTotals.of(monthTxns).spentByCategory,
     day: day,
     daysInMonth: daysInMonth,
     todaySpentPaise: spentToday,
@@ -152,35 +152,52 @@ int dailySharePaise(int everydayPaise, DateTime month) =>
 /// share, and how the month so far stands, with what decided that.
 typedef _Day = ({int ofShare, int soFar, String? soFarNote});
 
-/// Every day of [month], first to last, from its entries.
+/// Every day of [month], first to last, from its entries. A day's own
+/// spending is what was paid that day; the month so far has what came back
+/// taken off.
 List<_Day> _walk(Budget budget, Iterable<Txn> monthTxns, DateTime month) {
   final start = monthStart(month);
   final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
-  final byDay = [for (var day = 0; day <= daysInMonth; day++) <String, int>{}];
+  List<Map<String, int>> days() => [
+    for (var day = 0; day <= daysInMonth; day++) <String, int>{},
+  ];
+  final paidByDay = days();
+  final backByDay = days();
   for (final txn in monthTxns) {
     final at = txn.occurredAt;
-    if (txn.type != TxnType.debit ||
-        !_everyday(budget, txn.categoryId) ||
-        monthStart(at) != start) {
+    if (!_everyday(budget, txn.categoryId) || monthStart(at) != start) {
       continue;
     }
-    final day = byDay[at.day];
-    day[txn.categoryId] = (day[txn.categoryId] ?? 0) + txn.amountPaise;
+    final into = switch (txn.kind) {
+      MoneyKind.spent => paidByDay[at.day],
+      MoneyKind.paidBack => backByDay[at.day],
+      MoneyKind.got || MoneyKind.invested => null,
+    };
+    if (into == null) continue;
+    into[txn.categoryId] = (into[txn.categoryId] ?? 0) + txn.amountPaise;
   }
 
   final everyday = budget.everydayPaise;
-  final soFar = <String, int>{};
-  final days = <_Day>[];
+  final paidSoFar = <String, int>{};
+  final backSoFar = <String, int>{};
+  final walked = <_Day>[];
   for (var day = 1; day <= daysInMonth; day++) {
     var spent = 0;
-    for (final MapEntry(key: id, value: paise) in byDay[day].entries) {
-      soFar[id] = (soFar[id] ?? 0) + paise;
+    for (final MapEntry(key: id, value: paise) in paidByDay[day].entries) {
+      paidSoFar[id] = (paidSoFar[id] ?? 0) + paise;
       spent += paise;
     }
+    for (final MapEntry(key: id, value: paise) in backByDay[day].entries) {
+      backSoFar[id] = (backSoFar[id] ?? 0) + paise;
+    }
+    final soFar = {
+      for (final MapEntry(key: id, value: paid) in paidSoFar.entries)
+        id: math.max(0, paid - (backSoFar[id] ?? 0)),
+    };
     // The share is everyday ÷ days in the month; compare without dividing.
     final scaled = spent * daysInMonth;
     final standing = _monthSoFar(budget, soFar);
-    days.add((
+    walked.add((
       ofShare: scaled <= everyday
           ? 0
           : scaled * 2 <= everyday * 3
@@ -190,7 +207,7 @@ List<_Day> _walk(Budget budget, Iterable<Txn> monthTxns, DateTime month) {
       soFarNote: standing.note,
     ));
   }
-  return days;
+  return walked;
 }
 
 /// How the month so far stands, as an index into [_levels], with what
@@ -274,27 +291,47 @@ String? monthNoteOn({
   return day.soFar > day.ofShare ? day.soFarNote : null;
 }
 
-/// A day's spending split the way Penny counts it: the budgeted everyday
-/// categories her mood goes by, everyday ones without a budget, and what
-/// is paid in one go.
-({int counted, int noBudget, int oneGo}) splitDaySpending(
-  Budget budget,
-  Iterable<Txn> entries,
-) {
+/// A day's money the way Penny counts it: spending in the budgeted everyday
+/// categories her mood goes by, in everyday ones without a budget, and paid
+/// in one go; then what came back and what was put away, which never change
+/// a day's face.
+typedef DaySpending = ({
+  int counted,
+  int noBudget,
+  int oneGo,
+  int cameBack,
+  int invested,
+});
+
+DaySpending splitDaySpending(Budget budget, Iterable<Txn> entries) {
   var counted = 0;
   var noBudget = 0;
   var oneGo = 0;
+  var cameBack = 0;
+  var invested = 0;
   for (final txn in entries) {
-    if (txn.type != TxnType.debit) continue;
-    if (categoryById(txn.categoryId).oneGo) {
-      oneGo += txn.amountPaise;
-    } else if (_everyday(budget, txn.categoryId)) {
-      counted += txn.amountPaise;
-    } else {
-      noBudget += txn.amountPaise;
+    switch (txn.kind) {
+      case MoneyKind.got:
+        break;
+      case MoneyKind.paidBack:
+        cameBack += txn.amountPaise;
+      case MoneyKind.invested:
+        invested += txn.amountPaise;
+      case MoneyKind.spent when categoryById(txn.categoryId).oneGo:
+        oneGo += txn.amountPaise;
+      case MoneyKind.spent when _everyday(budget, txn.categoryId):
+        counted += txn.amountPaise;
+      case MoneyKind.spent:
+        noBudget += txn.amountPaise;
     }
   }
-  return (counted: counted, noBudget: noBudget, oneGo: oneGo);
+  return (
+    counted: counted,
+    noBudget: noBudget,
+    oneGo: oneGo,
+    cameBack: cameBack,
+    invested: invested,
+  );
 }
 
 /// How a month's days went: how many had each mood, and the spending mood

@@ -522,6 +522,7 @@ class _MonthBento extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _StatCard(
+          key: const ValueKey('stat-spent'),
           label: 'Spent in ${DateFormat('MMMM').format(month)}',
           color: AppColors.pink,
           value: MoneyText(summary.spentPaise, style: AppText.hero),
@@ -533,6 +534,7 @@ class _MonthBento extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatCard(
+                  key: const ValueKey('stat-got'),
                   label: 'Got',
                   color: AppColors.mint,
                   value: MoneyText(summary.gotPaise, style: AppText.amount),
@@ -541,12 +543,17 @@ class _MonthBento extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: _StatCard(
+                  key: const ValueKey('stat-left'),
                   label: 'Left',
                   color: AppColors.yellow,
                   value: summary.hasIncome
                       ? MoneyText(summary.leftPaise, style: AppText.amount)
                       : const Text('—', style: AppText.amount),
-                  hint: summary.hasIncome ? null : 'Log income to see this',
+                  hint: !summary.hasIncome
+                      ? 'Log income to see this'
+                      : summary.investedPaise > 0
+                      ? '${formatPaise(summary.investedPaise)} invested'
+                      : null,
                 ),
               ),
             ],
@@ -559,6 +566,7 @@ class _MonthBento extends StatelessWidget {
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
+    super.key,
     required this.label,
     required this.color,
     required this.value,

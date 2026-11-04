@@ -15,7 +15,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/month_summary.dart';
-import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -59,14 +59,13 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           loading: () => const <MonthTotals>[],
           error: (error, stackTrace) => const <MonthTotals>[],
         );
-    final spent = [
+    List<CategoryTotal> of(MoneyKind kind) => [
       for (final t in totals)
-        if (t.type == TxnType.debit) t,
+        if (t.kind == kind) t,
     ];
-    final got = [
-      for (final t in totals)
-        if (t.type == TxnType.credit) t,
-    ];
+    final spent = of(MoneyKind.spent);
+    final got = of(MoneyKind.got);
+    final invested = of(MoneyKind.invested);
     final budgets =
         ref.watch(budgetProvider).value?.byCategory ?? const <String, int>{};
 
@@ -105,6 +104,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               const SizedBox(height: 12),
               _CategoryCards(
                 totals: got,
+                outOf: summary.gotPaise,
+                month: _month,
+              ),
+            ],
+            if (invested.isNotEmpty) ...[
+              const SizedBox(height: 28),
+              const Text('Put away', style: AppText.h2),
+              const SizedBox(height: 12),
+              // As a share of what came in, when anything did.
+              _CategoryCards(
+                totals: invested,
                 outOf: summary.gotPaise,
                 month: _month,
               ),
@@ -284,6 +294,7 @@ class _CategoryCards extends StatelessWidget {
     final category = categoryById(total.categoryId);
     final share = outOf <= 0 ? 0.0 : total.totalPaise / outOf;
     final budget = budgets[category.id];
+    final cameBack = total.paidBackPaise;
     return BrutalCard(
       key: ValueKey('category-card-${category.id}'),
       color: category.color,
@@ -302,7 +313,8 @@ class _CategoryCards extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text('${(share * 100).round()}%', style: AppText.chip),
+              if (outOf > 0)
+                Text('${(share * 100).round()}%', style: AppText.chip),
             ],
           ),
           const SizedBox(height: 8),
@@ -324,6 +336,12 @@ class _CategoryCards extends StatelessWidget {
               '${formatPaise(total.totalPaise - limit)} over budget',
             final limit => 'of ${formatPaise(limit)}',
           }, style: AppText.small.copyWith(color: AppColors.ink)),
+          if (cameBack > 0)
+            Text(
+              '${formatPaise(cameBack)} came back',
+              key: ValueKey('came-back-${category.id}'),
+              style: AppText.small.copyWith(color: AppColors.ink),
+            ),
           const Spacer(),
           const SizedBox(height: 10),
           // With a budget, the bar shows how much of it is used.

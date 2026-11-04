@@ -5,6 +5,7 @@ import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/insight_builder.dart';
+import 'package:penny/services/money_kinds.dart';
 
 // Every number on the report, worked out on the phone from the entries as
 // they are now. Penny's answer only says which groups are which, so an edit,
@@ -23,8 +24,7 @@ class PennyTags {
   final Map<String, TxnTag> _byKey;
 
   /// Null for income, and for spends the report didn't cover.
-  TxnTag? of(Txn txn) =>
-      txn.type == TxnType.debit ? _byKey[groupKeyOf(txn)] : null;
+  TxnTag? of(Txn txn) => txn.isSpend ? _byKey[groupKeyOf(txn)] : null;
 }
 
 /// What a spend counts as. In order: the user's tag on the entry, their My
@@ -34,22 +34,25 @@ TxnTag? effectiveTag(
   Txn txn,
   PennyTags penny, [
   YourRules rules = YourRules.none,
-]) => txn.type == TxnType.debit
-    ? txn.tag ?? rules.of(txn) ?? penny.of(txn)
-    : null;
+]) => txn.isSpend ? txn.tag ?? rules.of(txn) ?? penny.of(txn) : null;
 
-/// A month's spending split into necessary, wasteful and not sorted yet.
+/// A month's spending split into necessary, wasteful and not sorted yet,
+/// as it was paid, with what came back since.
 @immutable
 class TagSplit {
   const TagSplit({
     required this.necessaryPaise,
     required this.wastefulPaise,
     required this.unsortedPaise,
+    this.cameBackPaise = 0,
   });
 
   final int necessaryPaise;
   final int wastefulPaise;
   final int unsortedPaise;
+
+  /// Paid back by friends: not part of the split.
+  final int cameBackPaise;
 
   int get totalPaise => necessaryPaise + wastefulPaise + unsortedPaise;
 }
@@ -60,9 +63,10 @@ TagSplit splitByTag(
   YourRules rules = YourRules.none,
 }) {
   final penny = PennyTags(saved);
-  var necessary = 0, wasteful = 0, unsorted = 0;
+  var necessary = 0, wasteful = 0, unsorted = 0, cameBack = 0;
   for (final txn in monthTxns) {
-    if (txn.type != TxnType.debit) continue;
+    if (txn.kind == MoneyKind.paidBack) cameBack += txn.amountPaise;
+    if (!txn.isSpend) continue;
     switch (effectiveTag(txn, penny, rules)) {
       case TxnTag.necessary:
         necessary += txn.amountPaise;
@@ -76,6 +80,7 @@ TagSplit splitByTag(
     necessaryPaise: necessary,
     wastefulPaise: wasteful,
     unsortedPaise: unsorted,
+    cameBackPaise: cameBack,
   );
 }
 
@@ -113,7 +118,7 @@ List<HabitView> habitViews(
   YourRules rules = YourRules.none,
 }) {
   final penny = PennyTags(saved);
-  final spends = monthTxns.where((t) => t.type == TxnType.debit).toList();
+  final spends = monthTxns.where((t) => t.isSpend).toList();
   final views = <HabitView>[];
   for (final habit in saved.insight.habits) {
     final keys = {for (final id in habit.groupIds) ...?saved.groupKeys[id]};
@@ -145,7 +150,7 @@ Map<String, TxnTag> groupTags(
   final penny = PennyTags(saved);
   final byKey = <String, Set<TxnTag?>>{};
   for (final txn in monthTxns) {
-    if (txn.type != TxnType.debit) continue;
+    if (!txn.isSpend) continue;
     (byKey[groupKeyOf(txn)] ??= {}).add(effectiveTag(txn, penny, rules));
   }
   final tags = <String, TxnTag>{};

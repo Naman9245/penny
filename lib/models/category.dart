@@ -148,13 +148,43 @@ const incomeCategories = <Category>[
   ),
 ];
 
-List<Category> categoriesFor(TxnType type) =>
-    type == TxnType.debit ? spendCategories : incomeCategories;
+/// Money put away rather than spent: SIPs, mutual funds, shares. It stays
+/// out of Spent, the budget and Penny's mood, so it's not among
+/// [spendCategories]. Must match INVEST_ID in
+/// supabase/functions/_shared/month.ts.
+const investCategory = Category(
+  id: 'invest',
+  label: 'Invest / SIP',
+  emoji: '📈',
+  color: AppColors.mint,
+  type: TxnType.debit,
+);
+
+/// The tiles for [type], in order. Money out puts Invest / SIP just before
+/// Other.
+List<Category> categoriesFor(TxnType type) => switch (type) {
+  TxnType.debit => [
+    ...spendCategories.take(spendCategories.length - 1),
+    investCategory,
+    spendCategories.last,
+  ],
+  TxnType.credit => incomeCategories,
+};
 
 final _byId = {
-  for (final category in [...spendCategories, ...incomeCategories])
+  for (final category in [
+    ...spendCategories,
+    investCategory,
+    ...incomeCategories,
+  ])
     category.id: category,
 };
+
+final _spendIds = {for (final category in spendCategories) category.id};
+
+/// Whether [id] is one of [spendCategories]: one that budgets, moods and
+/// paybacks go by.
+bool isSpendCategory(String? id) => _spendIds.contains(id);
 
 /// Ids this version doesn't know (say, from a newer one) show as Other.
 Category categoryById(String id) => _byId[id] ?? spendCategories.last;

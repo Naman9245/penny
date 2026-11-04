@@ -135,6 +135,22 @@ Future<void> _fill(AppDatabase db, DateTime now) async {
     if (back.isOdd) add(4000, on(15, 18), 'freelance', type: TxnType.credit);
     if (back == 2) add(349, on(20, 12), 'refund', type: TxnType.credit);
 
+    // Put away: a SIP on the 2nd.
+    add(1000, on(2, 10), 'invest', merchant: 'Groww SIP');
+
+    // A friend paying back their share of dinner now and then: this month
+    // right away, and every other month later on.
+    if (back == 0 || back.isOdd) {
+      add(
+        300,
+        on(back == 0 ? 1 : 23, 21),
+        'food',
+        merchant: 'Rahul Verma',
+        type: TxnType.credit,
+        person: true,
+      );
+    }
+
     // Paid in one go.
     add(8500, on(1, 10), 'rent', merchant: 'Sunrise PG');
     add(299, on(8, 20), 'bills', merchant: 'Airtel');

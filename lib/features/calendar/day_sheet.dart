@@ -6,6 +6,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/penny_mood.dart';
+import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 
@@ -16,7 +17,7 @@ Future<void> showDaySheet(
   required DateTime date,
   required PennyMood? mood,
   required List<Txn> entries,
-  required ({int counted, int noBudget, int oneGo}) spend,
+  required DaySpending spend,
   required int? sharePaise,
   String? monthNote,
 }) {
@@ -51,7 +52,7 @@ class _DaySheet extends StatelessWidget {
   final List<Txn> entries;
 
   /// The day's spending as Penny counts it.
-  final ({int counted, int noBudget, int oneGo}) spend;
+  final DaySpending spend;
   final int? sharePaise;
 
   /// How far the month had gone, when that made the day worse than its own
@@ -110,6 +111,18 @@ class _DaySheet extends StatelessWidget {
                     if (spend.oneGo > 0)
                       Text(
                         'Plus ${formatPaise(spend.oneGo)} paid in one go',
+                        style: AppText.small,
+                      ),
+                    if (spend.cameBack > 0)
+                      Text(
+                        '${formatPaise(spend.cameBack)} came back',
+                        key: const ValueKey('day-came-back'),
+                        style: AppText.small,
+                      ),
+                    if (spend.invested > 0)
+                      Text(
+                        '${formatPaise(spend.invested)} invested',
+                        key: const ValueKey('day-invested'),
                         style: AppText.small,
                       ),
                   ],

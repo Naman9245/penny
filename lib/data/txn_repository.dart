@@ -4,6 +4,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:uuid/uuid.dart';
 
 /// Every read and write of transactions. Soft-deleted rows never leave this
@@ -173,52 +174,43 @@ class TxnRepository {
     return query.watch();
   }
 
-  Stream<MonthSummary> watchMonthSummary(DateTime month) {
-    final total = _txns.amountPaise.sum();
-    final query = _db.selectOnly(_txns)
-      ..addColumns([_txns.type, total])
-      ..where(_inMonth(_txns, month))
-      ..groupBy([_txns.type]);
-    return query.watch().map((rows) {
-      var spent = 0;
-      var got = 0;
-      for (final row in rows) {
-        final sum = row.read(total) ?? 0;
-        switch (row.readWithConverter(_txns.type)) {
-          case TxnType.debit:
-            spent = sum;
-          case TxnType.credit:
-            got = sum;
-          case null:
-            break;
-        }
-      }
-      return MonthSummary(spentPaise: spent, gotPaise: got);
-    });
-  }
+  /// The month's spending, income and investing, counted the one way every
+  /// screen counts them.
+  Stream<MonthSummary> watchMonthSummary(DateTime month) =>
+      _watchSums(month).map((sums) {
+        final totals = MoneyTotals.fromSums(sums);
+        return MonthSummary(
+          spentPaise: totals.spentPaise,
+          gotPaise: totals.gotPaise,
+          investedPaise: totals.investedPaise,
+          leftPaise: totals.leftPaise,
+        );
+      });
 
   /// Totals and entry counts per category for the month containing [month],
   /// biggest first.
-  Stream<List<CategoryTotal>> watchCategoryTotals(DateTime month) {
+  Stream<List<CategoryTotal>> watchCategoryTotals(DateTime month) =>
+      _watchSums(month).map(categoryTotalsOf);
+
+  /// The month's live entries summed by type and category.
+  Stream<List<CategorySum>> _watchSums(DateTime month) {
     final total = _txns.amountPaise.sum();
     final count = _txns.id.count();
     final query = _db.selectOnly(_txns)
-      ..addColumns([_txns.categoryId, _txns.type, total, count])
+      ..addColumns([_txns.type, _txns.categoryId, total, count])
       ..where(_inMonth(_txns, month))
-      ..groupBy([_txns.categoryId, _txns.type]);
-    return query.watch().map((rows) {
-      final totals = [
+      ..groupBy([_txns.type, _txns.categoryId]);
+    return query.watch().map(
+      (rows) => [
         for (final row in rows)
-          CategoryTotal(
-            categoryId: row.read(_txns.categoryId)!,
+          (
             type: row.readWithConverter(_txns.type)!,
-            totalPaise: row.read(total) ?? 0,
+            categoryId: row.read(_txns.categoryId)!,
+            paise: row.read(total) ?? 0,
             count: row.read(count) ?? 0,
           ),
-      ];
-      totals.sort((a, b) => b.totalPaise.compareTo(a.totalPaise));
-      return totals;
-    });
+      ],
+    );
   }
 
   /// Spent and got for each of the [months] months ending with the one
@@ -230,35 +222,36 @@ class TxnRepository {
     final end = nextMonth(monthStart(endMonth));
     final start = DateTime(end.year, end.month - months);
     final query = _db.selectOnly(_txns)
-      ..addColumns([_txns.type, _txns.amountPaise, _txns.occurredAt])
+      ..addColumns([
+        _txns.type,
+        _txns.categoryId,
+        _txns.amountPaise,
+        _txns.occurredAt,
+      ])
       ..where(
         _txns.deletedAt.isNull() &
             _txns.occurredAt.isBiggerOrEqualValue(start) &
             _txns.occurredAt.isSmallerThanValue(end),
       );
     return query.watch().map((rows) {
-      final spent = List.filled(months, 0);
-      final got = List.filled(months, 0);
+      final byMonth = [for (var i = 0; i < months; i++) <CategorySum>[]];
       for (final row in rows) {
         final at = row.read(_txns.occurredAt)!;
-        final i = (at.year - start.year) * 12 + at.month - start.month;
-        final paise = row.read(_txns.amountPaise)!;
-        switch (row.readWithConverter(_txns.type)) {
-          case TxnType.debit:
-            spent[i] += paise;
-          case TxnType.credit:
-            got[i] += paise;
-          case null:
-            break;
-        }
+        byMonth[(at.year - start.year) * 12 + at.month - start.month].add((
+          type: row.readWithConverter(_txns.type)!,
+          categoryId: row.read(_txns.categoryId)!,
+          paise: row.read(_txns.amountPaise)!,
+          count: 1,
+        ));
       }
       return [
-        for (var i = 0; i < months; i++)
-          MonthTotals(
-            month: DateTime(start.year, start.month + i),
-            spentPaise: spent[i],
-            gotPaise: got[i],
-          ),
+        for (final (i, sums) in byMonth.indexed)
+          if (MoneyTotals.fromSums(sums) case final totals)
+            MonthTotals(
+              month: DateTime(start.year, start.month + i),
+              spentPaise: totals.spentPaise,
+              gotPaise: totals.gotPaise,
+            ),
       ];
     });
   }
