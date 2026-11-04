@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/budget_repository.dart';
@@ -22,6 +25,37 @@ import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/insight_math.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Today, at midnight. It moves on by itself at midnight, and when the app
+/// comes back after the phone slept through it, so Home and the calendar
+/// never show yesterday as today. Time comes from `clock`, which tests can
+/// fast-forward.
+final todayProvider = NotifierProvider<Today, DateTime>(Today.new);
+
+class Today extends Notifier<DateTime> {
+  Timer? _midnight;
+
+  @override
+  DateTime build() {
+    ref.onDispose(() => _midnight?.cancel());
+    return _read();
+  }
+
+  /// Moves on if the day has changed meanwhile.
+  void check() {
+    final today = _read();
+    if (today != state) state = today;
+  }
+
+  /// Today, with a timer set for just after the coming midnight.
+  DateTime _read() {
+    final now = clock.now();
+    _midnight?.cancel();
+    final next = DateTime(now.year, now.month, now.day + 1);
+    _midnight = Timer(next.difference(now) + const Duration(seconds: 1), check);
+    return dayStart(now);
+  }
+}
 
 /// The phone's small key-value store, opened in main before the app
 /// starts. Tests override it.
@@ -112,35 +146,35 @@ final txnByDedupeKeyProvider = FutureProvider.autoDispose.family<Txn?, String>(
 
 /// Where this month stands against the budget.
 final budgetStatusProvider = Provider.autoDispose<BudgetStatus>((ref) {
-  final now = DateTime.now();
-  final month = monthStart(now);
+  final today = ref.watch(todayProvider);
+  final month = monthStart(today);
   return budgetStatus(
     budget: ref.watch(budgetProvider).value ?? Budget.none,
     monthTxns: ref.watch(monthTxnsProvider(month)).value ?? const [],
     month: month,
-    now: now,
+    now: today,
   );
 });
 
 /// The goal Penny is celebrating, if any: one reached today.
 final celebratedGoalProvider = Provider.autoDispose<GoalProgress?>((ref) {
   final goals = ref.watch(goalProgressProvider).value ?? const [];
-  return justReachedGoal(goals, DateTime.now());
+  return justReachedGoal(goals, ref.watch(todayProvider));
 });
 
 /// Penny's mood now: today's on the mood calendar, by the same rule, so
 /// Home and the calendar always agree. Neutral without an everyday budget.
 final pennyMoodProvider = Provider.autoDispose<PennyMood>((ref) {
-  final now = DateTime.now();
-  final month = monthStart(now);
+  final today = ref.watch(todayProvider);
+  final month = monthStart(today);
   final moods = dayMoods(
     budget: ref.watch(budgetProvider).value ?? Budget.none,
     monthTxns: ref.watch(monthTxnsProvider(month)).value ?? const [],
     month: month,
-    now: now,
+    now: today,
     goalDays: ref.watch(goalDaysProvider),
   );
-  return moods[now.day] ?? PennyMood.neutral;
+  return moods[today.day] ?? PennyMood.neutral;
 });
 
 /// Per-category totals for the month containing the given date.

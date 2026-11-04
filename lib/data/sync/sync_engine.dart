@@ -93,19 +93,20 @@ class SyncEngine {
       await _remote.push(kind.table, [
         for (final row in local) kind.toRemote(row),
       ]);
-      await _db.transaction(() async {
-        for (final row in local) {
-          await _db.customUpdate(
-            'UPDATE ${kind.table} SET dirty = 0 '
-            'WHERE ${kind.key} = ? AND updated_at = ?',
-            variables: [
-              Variable<Object>(row[kind.key]),
-              Variable<Object>(row['updated_at']),
-            ],
-            updates: {table},
-          );
-        }
-      });
+      // One statement for the batch: a row edited again meanwhile has a
+      // new updated_at, so it stays marked.
+      final pairs = List.filled(local.length, '(?, ?)').join(', ');
+      await _db.customUpdate(
+        'UPDATE ${kind.table} SET dirty = 0 '
+        'WHERE (${kind.key}, updated_at) IN (VALUES $pairs)',
+        variables: [
+          for (final row in local) ...[
+            Variable<Object>(row[kind.key]),
+            Variable<Object>(row['updated_at']),
+          ],
+        ],
+        updates: {table},
+      );
       if (rows.length < batch) return;
     }
   }

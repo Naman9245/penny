@@ -31,8 +31,8 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime.now();
-    final month = monthStart(now);
+    final today = ref.watch(todayProvider);
+    final month = monthStart(today);
     final mood = ref.watch(pennyMoodProvider);
     final status = ref.watch(budgetStatusProvider);
     final summary = ref
@@ -63,10 +63,10 @@ class HomeScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_greeting(now), style: AppText.h1),
+                    Text(_greeting(DateTime.now()), style: AppText.h1),
                     const SizedBox(height: 2),
                     Text(
-                      DateFormat('EEEE, d MMMM').format(now),
+                      DateFormat('EEEE, d MMMM').format(today),
                       style: AppText.bodyMuted,
                     ),
                   ],
@@ -102,9 +102,9 @@ class HomeScreen extends ConsumerWidget {
                   for (final goal in goals)
                     if (!goal.reached) goal,
                 ],
-                today: now,
+                today: today,
               ),
-              _GoalsCard(goals: reached, today: now, reached: true),
+              _GoalsCard(goals: reached, today: today, reached: true),
             ],
           ),
           if (status.budget.isEmpty) ...[

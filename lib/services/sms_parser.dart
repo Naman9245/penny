@@ -68,8 +68,8 @@ class SmsTxn extends SmsParse {
   final TxnType type;
   final String? payee;
 
-  /// The payee looks like a person rather than a business. Names of people
-  /// are kept off anything sent to the LLM in Milestone 3.
+  /// The payee looks like a person rather than a business. People's names
+  /// never go to the AI: it sees them as "Person 1, 2".
   final bool payeeIsPerson;
 
   /// When the message says it happened. Null when it doesn't say, or says

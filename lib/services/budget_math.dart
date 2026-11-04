@@ -10,7 +10,7 @@ import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/txn_enums.dart';
 
 // Penny's mood, worked out on the phone from the budget and the month's
-// entries. Never stored, as the brief's DailyMood rule says. One rule gives
+// entries. It's never stored: it always follows from them. One rule gives
 // every day its mood and Home shows today's, so the two always agree.
 
 /// The share of a budget, in percent, at which Penny starts to worry.

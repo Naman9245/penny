@@ -38,6 +38,8 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         // saved.
         final db = ref.read(appDatabaseProvider);
         db.markTablesUpdated([db.txns]);
+        // The phone may have slept through midnight.
+        ref.read(todayProvider.notifier).check();
         ref.read(syncControllerProvider.notifier).syncNow();
       },
     );

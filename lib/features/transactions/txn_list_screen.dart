@@ -115,6 +115,13 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
                       selected: true,
                       selectedColor: categoryById(categoryId).color,
                       onTap: () => setState(() => _categoryId = null),
+                    )
+                  else if (txns.value?.isNotEmpty ?? false)
+                    BrutalChip(
+                      key: const ValueKey('category-pick'),
+                      label: 'Category',
+                      icon: Icons.tune_rounded,
+                      onTap: () => _pickCategory(txns.value!),
                     ),
                 ],
               ),
@@ -135,6 +142,45 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
         ),
       ),
     );
+  }
+
+  /// Lets the user pick one of the categories [month]'s entries are in.
+  Future<void> _pickCategory(List<Txn> month) async {
+    final present = {for (final txn in month) txn.categoryId};
+    final choices = [
+      for (final category in [...spendCategories, ...incomeCategories])
+        if (present.contains(category.id)) category,
+    ];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Show one category', style: AppText.h2),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final category in choices)
+                    BrutalChip(
+                      key: ValueKey('pick-category-${category.id}'),
+                      label: '${category.emoji} ${category.label}',
+                      onTap: () => Navigator.pop(context, category.id),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked != null && mounted) setState(() => _categoryId = picked);
   }
 
   Widget _days(List<Txn> all) {

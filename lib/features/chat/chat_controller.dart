@@ -22,7 +22,7 @@ final chatMonthProvider =
         PennyMood mood,
       })
     >((ref) async {
-      final now = DateTime.now();
+      final now = ref.watch(todayProvider);
       final month = monthStart(now);
       final request = await ref.watch(insightRequestProvider(month).future);
       final txns = await ref.watch(monthTxnsProvider(month).future);

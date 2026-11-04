@@ -32,7 +32,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final today = ref.watch(todayProvider);
     final budget = ref.watch(budgetProvider).value ?? Budget.none;
     final txns = ref.watch(monthTxnsProvider(_month)).value ?? const <Txn>[];
     final everyday = budget.everydayPaise;
@@ -41,7 +41,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       budget: budget,
       monthTxns: txns,
       month: _month,
-      now: now,
+      now: today,
       firstEntry: ref.watch(firstEntryProvider).value,
       goalDays: ref.watch(goalDaysProvider),
     );
@@ -88,12 +88,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               textAlign: TextAlign.center,
             ),
           const SizedBox(height: 14),
-          _MonthGrid(
-            month: _month,
-            moods: moods,
-            today: dayStart(now),
-            onDay: openDay,
-          ),
+          _MonthGrid(month: _month, moods: moods, today: today, onDay: openDay),
           const SizedBox(height: 14),
           const _Legend(),
           if (moodSummary(moods) case final summary?) ...[
