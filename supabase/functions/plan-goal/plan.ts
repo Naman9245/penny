@@ -47,8 +47,11 @@ rupees, grouped by shop and category, each group tagged necessary or wasteful
 when known ("tag"). It may include a note they wrote about themselves, and
 their budget per category: "caps" lists each category's budget with what the
 month has spent ("over" when past it), and "everyday" adds up the budgeted
-categories other than rent, bills, subscriptions and education. People
-they paid appear only as "Person 1", "Person 2". "goal" is what they are
+categories other than rent, bills, subscriptions and education, with
+anything friends paid back ("paidBack") already taken off. "invested", when
+present, is what they already put away each month, like a SIP: it is saving
+towards their future, never a cut. People they paid appear only as
+"Person 1", "Person 2". "goal" is what they are
 saving for: the target, what they have put aside, the weeks left, and what
 they still need to put aside each week and each month ("perWeek",
 "perMonth").

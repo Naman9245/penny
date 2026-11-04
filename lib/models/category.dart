@@ -150,8 +150,7 @@ const incomeCategories = <Category>[
 
 /// Money put away rather than spent: SIPs, mutual funds, shares. It stays
 /// out of Spent, the budget and Penny's mood, so it's not among
-/// [spendCategories]. Must match INVEST_ID in
-/// supabase/functions/_shared/month.ts.
+/// [spendCategories], and Penny's server only ever gets it as a total.
 const investCategory = Category(
   id: 'invest',
   label: 'Invest / SIP',

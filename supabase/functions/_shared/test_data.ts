@@ -39,6 +39,8 @@ export interface RequestJson {
     everyday: number | null;
     caps: { category: string; cap: number }[];
   };
+  paidBack?: { category: string; total: number }[];
+  invested?: number;
 }
 
 export function sampleRequest(): RequestJson {

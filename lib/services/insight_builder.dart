@@ -212,6 +212,15 @@ InsightRequest buildInsightRequest({
     });
   }
 
+  // What came back and what was put away go as totals only, so whoever paid
+  // back is never named. Sent only when there are any, so other months'
+  // fingerprints stay as they were.
+  final paidBack = [
+    for (final category in spendCategories)
+      if (thisMonth.paidBackIn(category.id) case final paise when paise > 0)
+        {'category': category.id, 'total': _someRupees(paise)},
+  ];
+
   final end = nextMonth(start);
   final complete = !now.isBefore(end);
   final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
@@ -246,6 +255,9 @@ InsightRequest buildInsightRequest({
               {'category': category.id, 'cap': _someRupees(amount)},
         ],
       },
+    if (paidBack.isNotEmpty) 'paidBack': paidBack,
+    if (thisMonth.investedPaise > 0)
+      'invested': _someRupees(thisMonth.investedPaise),
   };
 
   return InsightRequest(

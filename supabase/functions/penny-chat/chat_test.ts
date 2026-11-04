@@ -145,6 +145,22 @@ Deno.test("Penny sees what Home shows: totals, what's left, her mood", () => {
   });
 });
 
+Deno.test("Penny knows what was put away and what came back", () => {
+  const json = chatJson();
+  json.month = {
+    ...json.month,
+    spent: 9000,
+    paidBack: [{ category: "food", total: 480 }],
+    invested: 1000,
+  };
+  const context = chatContext(parsed(json));
+  assert.equal(context.home.spent, 9000);
+  assert.equal(context.home.left, 15000 - 9000 - 1000);
+  assert.equal(context.invested, 1000);
+  assert.deepEqual(context.paidBack, [{ category: "Food", total: 480 }]);
+  assert.match(CHAT_PROMPT, /is never\s+wasteful/);
+});
+
 Deno.test("the conversation goes to Gemini as turns, numbers hidden", () => {
   const body = chatBody(
     parsed(chatJson([

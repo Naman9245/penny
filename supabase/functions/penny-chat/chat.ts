@@ -5,6 +5,7 @@ import { thinkingFor } from "../_shared/gemini.ts";
 import {
   cleanGoalTitle,
   cutAtWord,
+  leftOf,
   maskLongNumbers,
   MonthRequest,
   rupees,
@@ -65,13 +66,22 @@ person, as JSON in whole rupees. It is current: where your earlier messages
 in this chat disagree with it, go by the JSON.
 
 - "home" is what the app's Home screen shows them right now: "spent" and
-  "got" this month so far, "left" (got minus spent; null until they log
-  income), the "daysLeft" in the month, and "mood", your face on their Home
-  card. When you mention their totals, use exactly these numbers, so you
-  always agree with the app, and let your mood show.
+  "got" this month so far, "left" (what came in less what went out,
+  investing included; null until they log income), the "daysLeft" in the
+  month, and "mood", your face on their Home card. When you mention their
+  totals, use exactly these numbers, so you always agree with the app, and
+  let your mood show.
 - "spends" is this month's spending grouped by shop and category, each group
-  tagged necessary or wasteful when known ("tag"). People they paid appear
-  only as "Person 1", "Person 2". "income" is what they got, by category.
+  tagged necessary or wasteful when known ("tag"), as it was paid. People
+  they paid appear only as "Person 1", "Person 2". "income" is what they
+  got, by category.
+- "paidBack", when present, is money friends paid back this month by
+  category, like their share of a dinner. It is already taken off "spent"
+  and the budget numbers, and it is not income.
+- "invested", when present, is what they put away this month, like a SIP or
+  a mutual fund. It is saving, not spending: it isn't in "spent", is never
+  wasteful, and is taken off "left". Cheer it on, and don't suggest cutting
+  it to find money unless they ask.
 - "budget", when present, is the monthly budget they set per category:
   "caps" lists each category's budget with what it has spent ("over" when
   past it), and "everyday" adds up the budgeted categories other than rent,
@@ -137,7 +147,7 @@ function homeView({ month, mood }: ChatRequest) {
     spent: month.spent,
     got: month.got,
     // Home shows no "left" until there's income to take spending from.
-    left: month.got > 0 ? month.got - month.spent : null,
+    left: leftOf(month),
     daysLeft: month.monthComplete ? 0 : daysInMonth - month.daysCounted,
     ...(mood ? { mood } : {}),
   };

@@ -89,6 +89,12 @@ const IncomeGroup = z.strictObject({
   steadiness: z.enum(["steady", "most_months", "now_and_then", "too_early"]),
 });
 
+/** What friends paid back for one spend category, like a share of dinner. */
+const PaidBack = z.strictObject({
+  category: z.enum(SPEND_IDS),
+  total: someRupees,
+});
+
 const Budget = z
   .strictObject({
     /** What the person means to spend a month on everyday things. */
@@ -120,8 +126,16 @@ export const MonthRequest = z
     /** What the person wrote about themselves on My needs. */
     note: z.string().max(240).optional(),
     budget: Budget.optional(),
+    /**
+     * What came back this month, by spend category. "spent" already has it
+     * taken off; the spend groups are what was paid. Never income.
+     */
+    paidBack: z.array(PaidBack).max(SPEND_IDS.length).optional(),
+    /** Put away this month, like a SIP: not in "spent", never a spend group. */
+    invested: someRupees.optional(),
   })
-  // Zod runs this even when the fields above failed, so it can't trust them.
+  // Zod runs these even when the fields above failed, so they can't trust
+  // them.
   .refine((r) => {
     const groups: unknown[] = [
       ...(Array.isArray(r.spends) ? r.spends : []),
@@ -129,7 +143,12 @@ export const MonthRequest = z
     ];
     const ids = groups.map((group) => (group as { id?: unknown })?.id);
     return new Set(ids).size === ids.length;
-  }, "group ids must be unique");
+  }, "group ids must be unique")
+  .refine((r) => {
+    const back: unknown[] = Array.isArray(r.paidBack) ? r.paidBack : [];
+    const ids = back.map((item) => (item as { category?: unknown })?.category);
+    return new Set(ids).size === ids.length;
+  }, "one payback total per category");
 
 export type MonthRequest = z.infer<typeof MonthRequest>;
 
@@ -206,6 +225,15 @@ export function modelInput(request: MonthRequest) {
       ? { note: maskLongNumbers(request.note.trim()) }
       : {}),
     ...(request.budget ? { budget: budgetInput(request, request.budget) } : {}),
+    ...(request.paidBack?.length
+      ? {
+        paidBack: request.paidBack.map(({ category, total }) => ({
+          category: LABELS[category],
+          total,
+        })),
+      }
+      : {}),
+    ...(request.invested ? { invested: request.invested } : {}),
   };
 }
 
@@ -224,27 +252,60 @@ export function taggedInput(
   };
 }
 
+/** What a spend category's groups paid, before anything came back. */
+function paidIn(request: MonthRequest, category: string): number {
+  return request.spends
+    .filter((group) => group.category === category)
+    .reduce((sum, group) => sum + group.total, 0);
+}
+
+/**
+ * A spend category's spending as the app counts it: what was paid less what
+ * came back, never below zero.
+ */
+export function spentIn(request: MonthRequest, category: string): number {
+  const back =
+    request.paidBack?.find((item) => item.category === category)?.total ?? 0;
+  return Math.max(0, paidIn(request, category) - back);
+}
+
+/**
+ * "Left" as the app's Home screen shows it: everything that came in, less
+ * everything that went out, investing included. Null until there's income.
+ */
+export function leftOf(request: MonthRequest): number | null {
+  if (request.got <= 0) return null;
+  // Spending never goes below zero, but money back beyond what its category
+  // has paid this month is still money left.
+  const extra = (request.paidBack ?? []).reduce(
+    (sum, { category, total }) =>
+      sum + Math.max(0, total - paidIn(request, category)),
+    0,
+  );
+  return request.got - request.spent - (request.invested ?? 0) + extra;
+}
+
 /**
  * The budget with what the month has spent against it, added up here the
  * way the app's Home screen does: each category against its own budget, and
  * everyday as the everyday categories that have one. Spending in a category
- * without a budget isn't counted against anything.
+ * without a budget isn't counted against anything, and what came back comes
+ * off its category.
  */
 function budgetInput(request: MonthRequest, budget: z.infer<typeof Budget>) {
-  const spentIn = (category: string) =>
-    request.spends
-      .filter((group) => group.category === category)
-      .reduce((sum, group) => sum + group.total, 0);
   const everyday = budget.caps
     .map(({ category }) => category)
     .filter((category) => !ONE_GO_IDS.includes(category));
   return {
     everyday: budget.everyday == null ? null : {
       budget: budget.everyday,
-      spent: everyday.reduce((sum, category) => sum + spentIn(category), 0),
+      spent: everyday.reduce(
+        (sum, category) => sum + spentIn(request, category),
+        0,
+      ),
     },
     caps: budget.caps.map(({ category, cap }) => {
-      const spent = spentIn(category);
+      const spent = spentIn(request, category);
       return { category: LABELS[category], cap, spent, over: spent > cap };
     }),
   };

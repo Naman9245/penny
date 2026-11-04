@@ -6,6 +6,7 @@ import {
   cleanAnswer,
   geminiBody,
   parseAnswer,
+  SYSTEM_PROMPT,
 } from "./insight.ts";
 import { sampleAnswer } from "./test_data.ts";
 
@@ -34,6 +35,11 @@ Deno.test("the Gemini request asks for JSON in Penny's schema", () => {
   // Flash-Lite thinks minimally on its own.
   const lite = geminiBody(request, "gemini-3.5-flash-lite");
   assert.equal(lite.generationConfig.thinkingConfig, undefined);
+});
+
+Deno.test("investing is never a habit, and paybacks are explained", () => {
+  assert.match(SYSTEM_PROMPT, /Never call\s+it wasteful or a habit to cut/);
+  assert.match(SYSTEM_PROMPT, /"paidBack"/);
 });
 
 Deno.test("an answer that isn't the expected JSON is refused", () => {

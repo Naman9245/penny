@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   cleanShopName,
   cleanText,
+  leftOf,
   maskLongNumbers,
   modelInput,
   MonthRequest,
@@ -55,6 +56,27 @@ Deno.test("refuses anything the app wouldn't send", () => {
       r.budget = { everyday: 8000, caps: [] };
       Object.assign(r.budget, { daily: 300 });
     },
+    // Investing is a total of its own, never a spend to tag or cut.
+    "investing among spends": (r) => (r.spends[0].category = "invest"),
+    "a payback to income": (r) => {
+      r.paidBack = [{ category: "salary", total: 300 }];
+    },
+    "two paybacks for one category": (r) => {
+      r.paidBack = [
+        { category: "food", total: 300 },
+        { category: "food", total: 200 },
+      ];
+    },
+    "a payback of nothing": (
+      r,
+    ) => (r.paidBack = [{ category: "food", total: 0 }]),
+    // Whoever paid back never goes along.
+    "a payback with a name": (r) => {
+      r.paidBack = [{ category: "food", total: 300 }];
+      Object.assign(r.paidBack[0], { from: "Asha" });
+    },
+    "nothing invested, sent anyway": (r) => (r.invested = 0),
+    "a fractional investment": (r) => (r.invested = 999.5),
   };
   for (const [name, change] of Object.entries(cases)) {
     const request = sampleRequest();
@@ -123,6 +145,48 @@ Deno.test("the budget goes along with what's spent against it", () => {
       ...sampleRequest(),
       budget: { everyday: null, caps: [] },
     })).budget?.everyday,
+    null,
+  );
+});
+
+Deno.test("paybacks and investing go along; budgets take paybacks off", () => {
+  const input = modelInput(parsed({
+    ...sampleRequest(),
+    spent: 9000,
+    paidBack: [{ category: "food", total: 480 }],
+    invested: 1000,
+    budget: { everyday: 3000, caps: [{ category: "food", cap: 3000 }] },
+  }));
+  assert.deepEqual(input.paidBack, [{ category: "Food", total: 480 }]);
+  assert.equal(input.invested, 1000);
+  // ₹3,480 paid at Swiggy with ₹480 back is ₹3,000, as on the app.
+  assert.deepEqual(input.budget, {
+    everyday: { budget: 3000, spent: 3000 },
+    caps: [{ category: "Food", cap: 3000, spent: 3000, over: false }],
+  });
+
+  const plain = modelInput(parsed());
+  assert.equal("paidBack" in plain, false);
+  assert.equal("invested" in plain, false);
+});
+
+Deno.test("left is what Home shows: in, less out, investing included", () => {
+  assert.equal(leftOf(parsed()), 15000 - 9480);
+  assert.equal(
+    leftOf(parsed({ ...sampleRequest(), invested: 1000 })),
+    15000 - 9480 - 1000,
+  );
+  // Nothing was spent on fun this month, so the ₹300 back for it isn't in
+  // "spent"; it's still money left.
+  assert.equal(
+    leftOf(parsed({
+      ...sampleRequest(),
+      paidBack: [{ category: "fun", total: 300 }],
+    })),
+    15000 - 9480 + 300,
+  );
+  assert.equal(
+    leftOf(parsed({ ...sampleRequest(), got: 0, income: [] })),
     null,
   );
 });

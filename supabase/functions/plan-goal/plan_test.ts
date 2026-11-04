@@ -65,6 +65,11 @@ Deno.test("the Gemini request asks for JSON in the plan's schema", () => {
   assert.match(body.contents[0].parts[0].text, /"Delhi trip"/);
 });
 
+Deno.test("a SIP is saving, never a cut", () => {
+  assert.match(PLAN_PROMPT, /never a cut/);
+  assert.match(PLAN_PROMPT, /"paidBack"/);
+});
+
 Deno.test("an answer that isn't the expected JSON is refused", () => {
   assert.equal(parsePlan("not json"), null);
   assert.equal(parsePlan(JSON.stringify({ cuts: "many", summary: "" })), null);

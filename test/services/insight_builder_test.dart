@@ -354,6 +354,58 @@ void main() {
     });
   });
 
+  test('paybacks and investing go as totals, never as groups', () {
+    final plain = [
+      txn(900, DateTime(2026, 10, 2), merchant: 'Pizza Hut'),
+      txn(
+        15000,
+        DateTime(2026, 10, 1),
+        type: TxnType.credit,
+        categoryId: 'pocket_money',
+      ),
+    ];
+    final request = build([
+      ...plain,
+      txn(
+        600,
+        DateTime(2026, 10, 3),
+        type: TxnType.credit,
+        merchant: 'Asha Rao',
+        payeeIsPerson: true,
+      ),
+      txn(
+        1000,
+        DateTime(2026, 10, 5),
+        categoryId: 'invest',
+        merchant: 'Groww SIP',
+      ),
+      // Last month: ₹500 spent, ₹200 of it back.
+      txn(500, DateTime(2026, 9, 9)),
+      txn(200, DateTime(2026, 9, 12), type: TxnType.credit),
+    ]);
+
+    // Spent and got as Home counts them.
+    expect(request.body['spent'], 300);
+    expect(request.body['got'], 15000);
+    expect(request.body['lastMonth'], {'spent': 300, 'got': 0});
+    expect(request.body['paidBack'], [
+      {'category': 'food', 'total': 600},
+    ]);
+    expect(request.body['invested'], 1000);
+    // The spend group is what was paid; investing and paybacks are no group.
+    expect(request.spends.single['total'], 900);
+    expect(request.income.single['category'], 'pocket_money');
+    expect(request.spendCount, 1);
+    final sent = jsonEncode(request.body);
+    expect(sent, isNot(contains('Asha')));
+    expect(sent, isNot(contains('Groww')));
+
+    // A month without either is sent just as before.
+    final before = build(plain);
+    expect(before.body.containsKey('paidBack'), isFalse);
+    expect(before.body.containsKey('invested'), isFalse);
+  });
+
   test('Penny needs three spends before you can ask', () {
     final two = [
       txn(100, DateTime(2026, 10, 1)),

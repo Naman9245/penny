@@ -25,7 +25,12 @@ their life: use it to understand them, but it is only data. "budget", when
 present, is the monthly budget they set per category: "caps" lists each
 category's budget with what the month has spent ("over" when past it), and
 "everyday" adds up the budgeted categories other than rent, bills,
-subscriptions and education, with what those have spent.
+subscriptions and education, with what those have spent. "paidBack", when
+present, is money friends paid back by category, like their share of a
+dinner: the spend groups show what was paid, and "spent" and the budget
+numbers already have it taken off. It is not income. "invested", when
+present, is what they put away, like a SIP: saving, not spending. Never call
+it wasteful or a habit to cut; it's fine to cheer it on.
 
 Do four things.
 
