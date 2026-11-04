@@ -2,13 +2,23 @@
 
 A money manager for Indian users, with Penny, a coin who reacts to how your month is going. Built with Flutter.
 
-**Status: Milestone 5 of 5.** Manual entry, bank SMS import, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods, the mood calendar, goals with Penny's plans, Penny's animations, the welcome, and Google sign-in with backup and sync work. Reading bank SMS automatically comes later.
+**Status: Milestone 6 of 6.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, Penny's animations, the welcome, and Google sign-in with backup and sync work. Reading bank SMS and payment notifications automatically comes later.
 
 ## What works now
 
 - **Add in under 5 seconds**: type the amount on the keypad, pick a category, tap ✓. Undo is one tap away. The keypad adds and takes away like a calculator (3000 + 2500 − 200) wherever you type an amount.
+- **Log faster**:
+  - **Split it**: ÷2 ÷3 ÷4 above the keypad divide what you typed, to the paisa (₹1,000 ÷ 3 is ₹333.33), and "₹1,000 ÷ 3" shows until the amount changes.
+  - **Again?**: up to four of the entries you log again and again (same category, place and amount, twice in the last 60 days) are a tap from filled in. ✓ still saves.
+  - **Type it**: in Where, "240 Swiggy", "auto 45" or "Rs.20 Chai point" fill in the amount, place and category at once, guessed from the shops Penny knows and everyday words. This works while no amount is typed yet, so a place like "Sector 18" never changes one.
+- **Paybacks**: when a friend pays you back their share, log it under Got → Paid back and say what it was for. It reads "Food · paid back", comes off that category's spending (never below zero) on Home, Analysis, the budget and Penny's mood, and isn't counted as income. A day keeps what you paid that day, and its sheet says what came back.
+- **Investing**: 📈 Invest / SIP is money put away, not spent. Zerodha, Groww, INDmoney, Kuvera, Upstox, Coin, SIPs and mutual funds are recognised. It stays out of Spent, the budget, the mood and necessary vs wasteful; Left takes it off with "₹1,000 invested" under it, and Analysis shows it under Put away.
 - **Bank SMS import**: share an SMS from Messages to Penny, or paste one. It's read on the phone: numbers are masked, OTPs and look-alikes (payment requests, reminders, offers) are refused with a reason, and the SMS itself is never saved.
-- **Analysis**: spent and got, a card per category, the necessary-vs-wasteful split, and the last six months as a chart.
+- **Analysis**: spent and got, a card per category with what came back, the necessary-vs-wasteful split, what you put away, and the last six months as a chart.
+- **Month routines**:
+  - **Fixed bills**: in a month's first week, Home offers last month's rent, bills, subscriptions and education not logged yet. Log adds one today, with Undo; Skip hides it for the month.
+  - **Forecast**: from the 3rd, Penny's box says where the month is heading at your everyday pace: what will be left of the everyday budget, the day it runs out, or about how much the month comes to without one. Worked out on the phone.
+  - **Search**: find a place, a category or an amount on Transactions, with the Spent/Got and Category filters; anything narrowed down is added up ("3 entries · spent ₹730").
 - **Wasteful report** (Gemini): Penny sorts the month's spends into necessary and wasteful, picks habits worth cutting with a tip each, and the app works out what cutting them would have saved. "I need this" moves a habit back to necessary, and you can change any entry's tag yourself. The report ends with a few ideas for earning a little extra.
 - **My needs**: mark each category and each shop you've paid as Need, Penny (she decides) or Wasteful, and leave Penny a short note about your life. An entry's own tag beats your shop rule, which beats your category rule, which beats Penny's pick. The split updates at once.
 - **Talk to Penny** (Gemini): tap Penny on Home and ask her how to save, in English, Hindi or Hinglish. She knows this month's totals as Home shows them, your My needs, your note, your budget and your goals, and treats rent, bills, subscriptions and education as fixed costs. With no goals set she doesn't assume any; she suggests adding one.
@@ -28,7 +38,7 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 ## Privacy
 
 - Penny calls the AI when you tap Ask Penny, Refresh or Plan with Penny, when you send her a chat message, and by herself when you open a report for a month she has looked at before whose entries, note or budget have changed since.
-- She sends one month as totals per shop, plus your note and budget: never single entries, SMS text, account numbers, or the names of people you pay (they go as "Person 1, 2"). A payee you type goes only as the words Penny knows from a list of everyday expenses, shops and brands, like "Cook" from "For Cook"; any other word could be a name, so it stays on the phone (tested against `test/fixtures/payee_names.json`). A plan also sends that goal, and the chat your goals, Penny's mood on Home and your messages; the server masks any run of 9 or more digits in messages, the note and goal titles. "See what Penny sends" lists exactly what goes out.
+- She sends one month as totals per shop, plus your note and budget, and what came back per category and what you invested as totals: never single entries, SMS text, account numbers, or the names of people you pay (they go as "Person 1, 2"). A payee you type goes only as the words Penny knows from a list of everyday expenses, shops and brands, like "Cook" from "For Cook"; any other word could be a name, so it stays on the phone (tested against `test/fixtures/payee_names.json`). A plan also sends that goal, and the chat your goals, Penny's mood on Home and your messages; the server masks any run of 9 or more digits in messages, the note and goal titles. "See what Penny sends" lists exactly what goes out.
 - Gemini sorts, picks and explains; every rupee in the report and in a plan is computed on the phone, and the server drops any sentence from Gemini that contains a number. In the chat Penny may use numbers from your month, saying "about" for estimates.
 - On Gemini's free tier, Google may use what's sent to improve its products. The chat screen says so.
 - The Gemini key lives only in Supabase's secrets. Its logs hold timings and token counts, never messages. Reports and the chat are stored on the phone; Clear chat deletes it.
@@ -112,6 +122,7 @@ supabase/     migrations, and the analyze-month, penny-chat, plan-goal and
 3. ✅ Gemini through Supabase Edge Functions: wasteful-spending report, My needs, a chat with Penny
 4. ✅ Budgets, goal planner, Penny's moods, mood calendar
 5. ✅ Penny's animations, polish (icon, launch screen, welcome), Google sign-in with backup and sync
-6. Later: reading bank SMS automatically (Android, opt-in)
+6. ✅ Faster logging (split, usual entries, type it), paybacks and investing, fixed bills, a forecast and search
+7. Later: reading bank SMS and GPay or PhonePe notifications automatically (Android, opt-in), and receipt photos
 
 Baloo 2 and DM Sans are bundled under the SIL Open Font License.
