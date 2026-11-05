@@ -7,6 +7,7 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/data/demo_data.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/settings/account_card.dart';
+import 'package:penny/features/settings/notifications_card.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -73,6 +74,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
           const Text('Settings', style: AppText.h2),
           const SizedBox(height: 16),
           const AccountCard(),
+          const SizedBox(height: 16),
+          const NotificationsCard(),
           const SizedBox(height: 16),
           BrutalCard(
             color: demo ? AppColors.sky : AppColors.white,

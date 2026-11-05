@@ -1,0 +1,93 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// One notification Penny read, as the Android listener kept it: from the
+/// SMS app ("sms"), or from "gpay", "phonepe" or "paytm".
+typedef Capture = ({String app, String title, String text, DateTime at});
+
+/// Payment notifications waiting on the "penny/notifications" channel.
+///
+/// Android's PaymentNotificationListener keeps them in Penny's private
+/// storage until they're read here; it reads only the SMS app, GPay, PhonePe
+/// and Paytm, and only once the user allows it on Android's own page.
+class NotificationInbox {
+  NotificationInbox([
+    this._channel = const MethodChannel('penny/notifications'),
+  ]) {
+    _channel.setMethodCallHandler(_receive);
+  }
+
+  final MethodChannel _channel;
+  final _arrived = StreamController<void>.broadcast();
+
+  /// Fires when more are waiting while Penny is open.
+  Stream<void> get arrived => _arrived.stream;
+
+  /// Whether the user has allowed Penny to read notifications.
+  Future<bool> isAllowed() async => await _call<bool>('isEnabled') ?? false;
+
+  /// Opens Android's page where the user allows it.
+  Future<void> openSettings() => _call<void>('openSettings');
+
+  /// Everything waiting, oldest first, and how many there were in all, to
+  /// [drop] once they're kept. Anything unreadable is left out, and dropped
+  /// with the rest.
+  Future<({List<Capture> captures, int count})> peek() async {
+    final json = await _call<String>('peek');
+    final items = json == null ? const [] : jsonDecode(json) as List<dynamic>;
+    return (
+      captures: [
+        for (final item in items)
+          if (item case {
+            'app': final String app,
+            'title': final String title,
+            'text': final String text,
+            'at': final int at,
+          })
+            (
+              app: app,
+              title: title,
+              text: text,
+              at: DateTime.fromMillisecondsSinceEpoch(at),
+            ),
+      ],
+      count: items.length,
+    );
+  }
+
+  /// Forgets the oldest [count], once they're kept.
+  Future<void> drop(int count) => _call<void>('drop', count);
+
+  Future<T?> _call<T>(String method, [Object? arguments]) async {
+    try {
+      return await _channel.invokeMethod<T>(method, arguments);
+    } on MissingPluginException {
+      // No Android side, as in tests or on iOS.
+      return null;
+    }
+  }
+
+  Future<void> _receive(MethodCall call) async {
+    if (call.method == 'captured') _arrived.add(null);
+  }
+
+  void dispose() {
+    _channel.setMethodCallHandler(null);
+    _arrived.close();
+  }
+}
+
+final notificationInboxProvider = Provider<NotificationInbox>((ref) {
+  final inbox = NotificationInbox();
+  ref.onDispose(inbox.dispose);
+  return inbox;
+});
+
+/// Whether Penny may read notifications. Ask again when the user comes back
+/// from Android's page.
+final notificationAccessProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(notificationInboxProvider).isAllowed(),
+);

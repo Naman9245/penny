@@ -96,6 +96,38 @@ class DemoMode extends Notifier<bool> {
   }
 }
 
+/// What Penny does with a payment she reads from a notification.
+enum CaptureMode {
+  /// It waits on Home for the user to add or skip it.
+  check,
+
+  /// It's saved as soon as it's read, unless it may already be logged or
+  /// has no category to go in.
+  save,
+}
+
+/// The user's choice of [CaptureMode], kept on this phone. Waiting to be
+/// checked until they choose otherwise.
+final captureModeProvider = NotifierProvider<CaptureModeSetting, CaptureMode>(
+  CaptureModeSetting.new,
+);
+
+class CaptureModeSetting extends Notifier<CaptureMode> {
+  static const _key = 'capture_mode';
+
+  @override
+  CaptureMode build() =>
+      switch (ref.watch(sharedPrefsProvider).getString(_key)) {
+        'save' => CaptureMode.save,
+        _ => CaptureMode.check,
+      };
+
+  Future<void> set(CaptureMode mode) async {
+    await ref.read(sharedPrefsProvider).setString(_key, mode.name);
+    state = mode;
+  }
+}
+
 /// Opens a database by name. Tests open temporary ones instead.
 final databaseOpenerProvider = Provider<AppDatabase Function(String name)>(
   (ref) => AppDatabase.named,
