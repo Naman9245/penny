@@ -142,6 +142,82 @@ void main() {
     expect((await txns().findById(id))!.amountPaise, 40000);
   });
 
+  /// Changes entry [id]'s amount here, as the Add screen would.
+  Future<void> setAmount(String id, int paise) async {
+    final txn = (await txns().findById(id))!;
+    await txns().update(
+      id,
+      amountPaise: paise,
+      type: txn.type,
+      categoryId: txn.categoryId,
+      occurredAt: txn.occurredAt,
+      merchant: txn.merchant,
+      tag: txn.tag,
+      payeeIsPerson: txn.payeeIsPerson,
+    );
+  }
+
+  test('two phones editing in the same second end up the same', () async {
+    final id = await addFood();
+    await engine.sync('account-1');
+
+    // Both phones change it within one second; the other one syncs first.
+    now = start.add(const Duration(minutes: 1));
+    remote.put('txns', {
+      ...remote.rows('txns')[id]!,
+      'amount_paise': 30000,
+      'updated_at': iso(now),
+    });
+    await setAmount(id, 40000);
+    await engine.sync('account-1');
+
+    // The copy kept the first to arrive, and this phone took it too.
+    expect(remote.rows('txns')[id]!['amount_paise'], 30000);
+    expect((await txns().findById(id))!.amountPaise, 30000);
+    expect(await waiting(), 0);
+  });
+
+  test('an edit the copy has a newer one of gives way to it', () async {
+    final id = await addFood();
+    await engine.sync('account-1');
+
+    // Another phone edits it at noon; this one at 11, before hearing of it.
+    remote.put('txns', {
+      ...remote.rows('txns')[id]!,
+      'amount_paise': 30000,
+      'updated_at': iso(start.add(const Duration(hours: 2))),
+    });
+    now = start.add(const Duration(hours: 1));
+    await setAmount(id, 40000);
+    await engine.sync('account-1');
+
+    expect((await txns().findById(id))!.amountPaise, 30000);
+    expect(await waiting(), 0);
+  });
+
+  test('a phone whose clock is behind still wins with a later edit', () async {
+    final id = await addFood();
+    await engine.sync('account-1');
+
+    // Another phone's edit, stamped noon, comes down here first.
+    remote.put('txns', {
+      ...remote.rows('txns')[id]!,
+      'amount_paise': 30000,
+      'updated_at': iso(start.add(const Duration(hours: 2))),
+    });
+    await engine.sync('account-1');
+    expect((await txns().findById(id))!.amountPaise, 30000);
+
+    // This phone's clock says 11, but its edit comes after that one.
+    now = start.add(const Duration(hours: 1));
+    await setAmount(id, 40000);
+    await engine.sync('account-1');
+
+    expect(remote.rows('txns')[id]!['amount_paise'], 40000);
+    expect((await txns().findById(id))!.amountPaise, 40000);
+    expect(await waiting(), 0);
+  });
+
   test('deletes travel both ways', () async {
     final mine = await addFood();
     final theirs = await addFood(rupees: 90);

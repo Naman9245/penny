@@ -21,6 +21,8 @@ part 'app_database.g.dart';
     GoalPlans,
     SyncCursors,
   ],
+  // Edits here always move a row's stamp forward.
+  include: {'stamps.drift'},
 )
 class AppDatabase extends _$AppDatabase {
   /// Tests pass an in-memory executor.
@@ -41,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,6 +87,20 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.goals, schema.goals.dirty);
         await m.addColumn(schema.goalDeposits, schema.goalDeposits.dirty);
         await m.createTable(schema.syncCursors);
+      },
+      // v7: an edit here always moves its row's stamp forward, so a later
+      // edit wins even within the same second or with the clock behind.
+      from6To7: (m, schema) async {
+        for (final trigger in [
+          schema.txnsStampForward,
+          schema.budgetsStampForward,
+          schema.goalsStampForward,
+          schema.goalDepositsStampForward,
+          schema.tagRulesStampForward,
+          schema.prefsStampForward,
+        ]) {
+          await m.createTrigger(trigger);
+        }
       },
     ),
   );

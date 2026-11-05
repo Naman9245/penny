@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:penny/data/supabase_start.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,8 +7,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// The signed-in account's copy of its synced tables, as rows keyed by the
 /// server's column names, with dates as ISO 8601 text.
 abstract interface class SyncRemote {
-  /// Sends [rows] of [table]. The copy keeps the newer edit of each row.
-  Future<void> push(String table, List<Map<String, Object?>> rows);
+  /// Sends [rows] of [table]. The copy keeps the newer edit of each row:
+  /// returned are the rows it refused, as it has them, its own edit being
+  /// as new.
+  Future<List<Map<String, Object?>>> push(
+    String table,
+    List<Map<String, Object?>> rows,
+  );
 
   /// Up to [limit] rows of [table] changed after change number [after],
   /// oldest change first, each with its `seq`.
@@ -46,19 +52,43 @@ class SupabaseSyncRemote implements SyncRemote {
 
   static const _timeout = Duration(seconds: 30);
 
+  /// Rows asked for by key at a time, keeping the address short.
+  static const _keysPerFetch = 100;
+
   @override
-  Future<void> push(String table, List<Map<String, Object?>> rows) =>
-      _guard(() async {
-        final client = await _connect();
-        await client
-            .from(table)
-            .upsert(
-              rows,
-              // The note is one per account; everything else has its id.
-              onConflict: table == 'prefs' ? 'user_id,name' : 'id',
-              defaultToNull: false,
-            );
-      });
+  Future<List<Map<String, Object?>>> push(
+    String table,
+    List<Map<String, Object?>> rows,
+  ) => _guard(() async {
+    final client = await _connect();
+    // The note is one per account; everything else has its id.
+    final key = table == 'prefs' ? 'name' : 'id';
+    final kept = await client
+        .from(table)
+        .upsert(
+          rows,
+          onConflict: table == 'prefs' ? 'user_id,name' : 'id',
+          defaultToNull: false,
+        )
+        .select(key);
+    // The copy's trigger drops an edit no newer than its own, and only the
+    // rows it wrote come back.
+    final keptKeys = {for (final row in kept) row[key]};
+    final refused = [
+      for (final row in rows)
+        if (!keptKeys.contains(row[key])) row[key],
+    ];
+    final theirs = <Map<String, Object?>>[];
+    for (var i = 0; i < refused.length; i += _keysPerFetch) {
+      final some = refused.sublist(
+        i,
+        math.min(i + _keysPerFetch, refused.length),
+      );
+      final rows = await client.from(table).select().inFilter(key, some);
+      theirs.addAll([for (final row in rows) Map<String, Object?>.of(row)]);
+    }
+    return theirs;
+  });
 
   @override
   Future<List<Map<String, Object?>>> pull(

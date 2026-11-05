@@ -1,0 +1,44 @@
+import 'tables.dart';
+
+-- An edit made on this phone always moves its row's stamp forward, to at
+-- least a second past the stamp it replaces. So a later edit here wins even
+-- when two land in the same second, or this phone's clock is behind the
+-- edit it replaces. Rows that sync writes aren't marked to send, so they
+-- keep the copy's stamp as it is.
+
+CREATE TRIGGER txns_stamp_forward AFTER UPDATE OF updated_at ON txns
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE txns SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER budgets_stamp_forward AFTER UPDATE OF updated_at ON budgets
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE budgets SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER goals_stamp_forward AFTER UPDATE OF updated_at ON goals
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE goals SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER goal_deposits_stamp_forward
+  AFTER UPDATE OF updated_at ON goal_deposits
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE goal_deposits SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER tag_rules_stamp_forward AFTER UPDATE OF updated_at ON tag_rules
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE tag_rules SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER prefs_stamp_forward AFTER UPDATE OF updated_at ON prefs
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE prefs SET updated_at = OLD.updated_at + 1 WHERE name = NEW.name;
+END;

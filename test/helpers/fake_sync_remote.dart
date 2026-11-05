@@ -20,12 +20,16 @@ class FakeSyncRemote implements SyncRemote {
   void put(String table, Map<String, Object?> row) => _keep(table, row);
 
   @override
-  Future<void> push(String table, List<Map<String, Object?>> rows) async {
+  Future<List<Map<String, Object?>>> push(
+    String table,
+    List<Map<String, Object?>> rows,
+  ) async {
     if (offline) throw const SyncException(SyncFailure.offline);
     (sent[table] ??= []).addAll(rows);
-    for (final row in rows) {
-      _keep(table, row);
-    }
+    return [
+      for (final row in rows)
+        if (!_keep(table, row)) {...this.rows(table)[_keyOf(table, row)]!},
+    ];
   }
 
   @override
@@ -42,15 +46,20 @@ class FakeSyncRemote implements SyncRemote {
     return newer.take(limit).toList();
   }
 
-  void _keep(String table, Map<String, Object?> row) {
-    final key = (table == 'prefs' ? row['name'] : row['id'])! as String;
+  static String _keyOf(String table, Map<String, Object?> row) =>
+      (table == 'prefs' ? row['name'] : row['id'])! as String;
+
+  /// Keeps [row] unless the copy's edit is as new. Returns whether it did.
+  bool _keep(String table, Map<String, Object?> row) {
+    final key = _keyOf(table, row);
     final copy = _tables.putIfAbsent(table, () => {});
     final old = copy[key];
     if (old != null &&
         !DateTime.parse(row['updated_at']! as String)
             .isAfter(DateTime.parse(old['updated_at']! as String))) {
-      return;
+      return false;
     }
     copy[key] = {...row, 'seq': ++_seq};
+    return true;
   }
 }

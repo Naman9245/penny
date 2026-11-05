@@ -1251,12 +1251,266 @@ i1.GeneratedColumn<int> _column_33(String aliasedName) =>
       type: i1.DriftSqlType.int,
       $customConstraints: 'NOT NULL',
     );
+
+final class Schema7 extends i0.VersionedSchema {
+  Schema7({required super.database}) : super(version: 7);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    txns,
+    txnsStampForward,
+    budgets,
+    budgetsStampForward,
+    goals,
+    goalsStampForward,
+    goalDeposits,
+    goalDepositsStampForward,
+    tagRules,
+    tagRulesStampForward,
+    prefs,
+    prefsStampForward,
+    insights,
+    chatMessages,
+    goalPlans,
+    syncCursors,
+    txnsOccurredAt,
+    txnsDedupeKey,
+    tagRulesKindRuleKey,
+    chatMessagesCreatedAt,
+    budgetsBudgetKey,
+    goalDepositsGoalId,
+  ];
+  late final Shape10 txns = Shape10(
+    source: i0.VersionedTable(
+      entityName: 'txns',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_31,
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_7,
+        _column_8,
+        _column_9,
+        _column_10,
+        _column_11,
+        _column_12,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger txnsStampForward = i1.Trigger(
+    'CREATE TRIGGER txns_stamp_forward AFTER UPDATE OF updated_at ON txns WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE txns SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'txns_stamp_forward',
+  );
+  late final Shape13 budgets = Shape13(
+    source: i0.VersionedTable(
+      entityName: 'budgets',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_31,
+        _column_0,
+        _column_25,
+        _column_1,
+        _column_8,
+        _column_9,
+        _column_10,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger budgetsStampForward = i1.Trigger(
+    'CREATE TRIGGER budgets_stamp_forward AFTER UPDATE OF updated_at ON budgets WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE budgets SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'budgets_stamp_forward',
+  );
+  late final Shape14 goals = Shape14(
+    source: i0.VersionedTable(
+      entityName: 'goals',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_31,
+        _column_0,
+        _column_26,
+        _column_27,
+        _column_28,
+        _column_8,
+        _column_9,
+        _column_10,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger goalsStampForward = i1.Trigger(
+    'CREATE TRIGGER goals_stamp_forward AFTER UPDATE OF updated_at ON goals WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE goals SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'goals_stamp_forward',
+  );
+  late final Shape15 goalDeposits = Shape15(
+    source: i0.VersionedTable(
+      entityName: 'goal_deposits',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_31,
+        _column_0,
+        _column_29,
+        _column_30,
+        _column_5,
+        _column_8,
+        _column_9,
+        _column_10,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger goalDepositsStampForward = i1.Trigger(
+    'CREATE TRIGGER goal_deposits_stamp_forward AFTER UPDATE OF updated_at ON goal_deposits WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE goal_deposits SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'goal_deposits_stamp_forward',
+  );
+  late final Shape11 tagRules = Shape11(
+    source: i0.VersionedTable(
+      entityName: 'tag_rules',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_31,
+        _column_0,
+        _column_18,
+        _column_19,
+        _column_20,
+        _column_8,
+        _column_9,
+        _column_10,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger tagRulesStampForward = i1.Trigger(
+    'CREATE TRIGGER tag_rules_stamp_forward AFTER UPDATE OF updated_at ON tag_rules WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE tag_rules SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'tag_rules_stamp_forward',
+  );
+  late final Shape12 prefs = Shape12(
+    source: i0.VersionedTable(
+      entityName: 'prefs',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(name)'],
+      columns: [_column_31, _column_21, _column_22, _column_9],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger prefsStampForward = i1.Trigger(
+    'CREATE TRIGGER prefs_stamp_forward AFTER UPDATE OF updated_at ON prefs WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE prefs SET updated_at = OLD.updated_at + 1 WHERE name = NEW.name;END',
+    'prefs_stamp_forward',
+  );
+  late final Shape2 insights = Shape2(
+    source: i0.VersionedTable(
+      entityName: 'insights',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(month)'],
+      columns: [
+        _column_13,
+        _column_14,
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_8,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape5 chatMessages = Shape5(
+    source: i0.VersionedTable(
+      entityName: 'chat_messages',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [_column_0, _column_23, _column_24, _column_8],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape9 goalPlans = Shape9(
+    source: i0.VersionedTable(
+      entityName: 'goal_plans',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(goal_id)'],
+      columns: [
+        _column_29,
+        _column_13,
+        _column_14,
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_8,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape16 syncCursors = Shape16(
+    source: i0.VersionedTable(
+      entityName: 'sync_cursors',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(kind)'],
+      columns: [_column_18, _column_32, _column_33],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index txnsOccurredAt = i1.Index(
+    'txns_occurred_at',
+    'CREATE INDEX txns_occurred_at ON txns (occurred_at)',
+  );
+  final i1.Index txnsDedupeKey = i1.Index(
+    'txns_dedupe_key',
+    'CREATE UNIQUE INDEX txns_dedupe_key ON txns (dedupe_key) WHERE deleted_at IS NULL',
+  );
+  final i1.Index tagRulesKindRuleKey = i1.Index(
+    'tag_rules_kind_rule_key',
+    'CREATE UNIQUE INDEX tag_rules_kind_rule_key ON tag_rules (kind, rule_key) WHERE deleted_at IS NULL',
+  );
+  final i1.Index chatMessagesCreatedAt = i1.Index(
+    'chat_messages_created_at',
+    'CREATE INDEX chat_messages_created_at ON chat_messages (created_at)',
+  );
+  final i1.Index budgetsBudgetKey = i1.Index(
+    'budgets_budget_key',
+    'CREATE UNIQUE INDEX budgets_budget_key ON budgets (budget_key) WHERE deleted_at IS NULL',
+  );
+  final i1.Index goalDepositsGoalId = i1.Index(
+    'goal_deposits_goal_id',
+    'CREATE INDEX goal_deposits_goal_id ON goal_deposits (goal_id)',
+  );
+}
+
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
   required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
   required Future<void> Function(i1.Migrator m, Schema5 schema) from4To5,
   required Future<void> Function(i1.Migrator m, Schema6 schema) from5To6,
+  required Future<void> Function(i1.Migrator m, Schema7 schema) from6To7,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -1285,6 +1539,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from5To6(migrator, schema);
         return 6;
+      case 6:
+        final schema = Schema7(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from6To7(migrator, schema);
+        return 7;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -1297,6 +1556,7 @@ i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
   required Future<void> Function(i1.Migrator m, Schema5 schema) from4To5,
   required Future<void> Function(i1.Migrator m, Schema6 schema) from5To6,
+  required Future<void> Function(i1.Migrator m, Schema7 schema) from6To7,
 }) => i0.VersionedSchema.stepByStepHelper(
   step: migrationSteps(
     from1To2: from1To2,
@@ -1304,5 +1564,6 @@ i1.OnUpgrade stepByStep({
     from3To4: from3To4,
     from4To5: from4To5,
     from5To6: from5To6,
+    from6To7: from6To7,
   ),
 );

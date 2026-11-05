@@ -8,7 +8,8 @@ import 'package:penny/data/sync/sync_remote.dart';
 /// Backs this phone's money up to the signed-in account's copy, and brings
 /// other phones' changes down: it sends what changed here, then fetches
 /// what changed there since last time. The newer edit of a row wins on both
-/// sides, and deletes travel as marks, so every phone ends up the same.
+/// sides, an edit the copy refuses gives way to the copy's own here, and
+/// deletes travel as marks, so every phone ends up the same.
 ///
 /// The chat, Penny's reports and plans, and SMS fingerprints never go: they
 /// aren't among the columns below.
@@ -27,10 +28,10 @@ class SyncEngine {
   /// wasn't sent stays marked, so the next sync carries on.
   Future<void> sync(String account) async {
     await _bindTo(account);
-    for (final kind in _kinds) {
-      await _push(kind);
-    }
     var settled = false;
+    for (final kind in _kinds) {
+      if (await _push(kind)) settled = true;
+    }
     for (final kind in _kinds) {
       if (await _pull(kind, account)) settled = true;
     }
@@ -77,9 +78,12 @@ class SyncEngine {
   }
 
   /// Sends what changed here, a batch at a time, then marks it sent unless
-  /// it changed again meanwhile.
-  Future<void> _push(_Kind kind) async {
+  /// it changed again meanwhile. Where the copy refused an edit, its own
+  /// being as new, this phone takes the copy's, so both end up the same.
+  /// Returns whether taking one retired a clashing row here.
+  Future<bool> _push(_Kind kind) async {
     final table = _tableOf(kind);
+    var settled = false;
     for (var round = 0; round < 200; round++) {
       final rows = await _db
           .customSelect(
@@ -88,9 +92,9 @@ class SyncEngine {
             readsFrom: {table},
           )
           .get();
-      if (rows.isEmpty) return;
+      if (rows.isEmpty) return settled;
       final local = [for (final row in rows) row.data];
-      await _remote.push(kind.table, [
+      final refused = await _remote.push(kind.table, [
         for (final row in local) kind.toRemote(row),
       ]);
       // One statement for the batch: a row edited again meanwhile has a
@@ -107,8 +111,14 @@ class SyncEngine {
         ],
         updates: {table},
       );
-      if (rows.length < batch) return;
+      final sent = {for (final row in local) row[kind.key]: row['updated_at']};
+      for (final theirs in refused) {
+        final key = kind.toLocal(theirs)[kind.key];
+        if (await _apply(kind, theirs, replacing: sent[key])) settled = true;
+      }
+      if (rows.length < batch) return settled;
     }
+    return settled;
   }
 
   /// Fetches what changed in the copy since last time, oldest first, and
@@ -143,12 +153,19 @@ class SyncEngine {
     return settled;
   }
 
-  /// Writes one row from the copy, unless this phone's is as new.
+  /// Writes one row from the copy, unless this phone's is as new. With
+  /// [replacing], the stamp of an edit the copy refused, it writes the
+  /// copy's row over that edit instead, unless the row changed here again
+  /// since it was sent.
   ///
   /// A live row that clashes with another live one here, like a second
   /// budget for the same category, leaves the newer of the two live and
   /// retires the other here, marked to send. Returns whether it did.
-  Future<bool> _apply(_Kind kind, Map<String, Object?> remote) async {
+  Future<bool> _apply(
+    _Kind kind,
+    Map<String, Object?> remote, {
+    Object? replacing,
+  }) async {
     final table = _tableOf(kind);
     final values = kind.toLocal(remote);
     var dirty = 0;
@@ -192,6 +209,9 @@ class SyncEngine {
       }
     }
     final columns = [...kind.columns, 'dirty'];
+    // From a pull, only a newer edit goes in; over a refused edit, the
+    // copy's goes in as long as nothing changed here since.
+    final newer = 'excluded.updated_at > ${kind.table}.updated_at';
     final assignments = [
       for (final column in columns)
         if (column != kind.key) '$column = excluded.$column',
@@ -200,10 +220,11 @@ class SyncEngine {
       'INSERT INTO ${kind.table} (${columns.join(', ')}) '
       'VALUES (${List.filled(columns.length, '?').join(', ')}) '
       'ON CONFLICT(${kind.key}) DO UPDATE SET ${assignments.join(', ')} '
-      'WHERE excluded.updated_at > ${kind.table}.updated_at',
+      'WHERE ${replacing == null ? newer : '${kind.table}.updated_at = ?'}',
       variables: [
         for (final column in kind.columns) Variable<Object>(values[column]),
         Variable(dirty),
+        if (replacing != null) Variable<Object>(replacing),
       ],
       updates: {table},
     );

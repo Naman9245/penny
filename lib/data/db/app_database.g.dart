@@ -841,1568 +841,6 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
   }
 }
 
-class $InsightsTable extends Insights
-    with TableInfo<$InsightsTable, InsightRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $InsightsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _monthMeta = const VerificationMeta('month');
-  @override
-  late final GeneratedColumn<String> month = GeneratedColumn<String>(
-    'month',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _inputHashMeta = const VerificationMeta(
-    'inputHash',
-  );
-  @override
-  late final GeneratedColumn<String> inputHash = GeneratedColumn<String>(
-    'input_hash',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _groupKeysMeta = const VerificationMeta(
-    'groupKeys',
-  );
-  @override
-  late final GeneratedColumn<String> groupKeys = GeneratedColumn<String>(
-    'group_keys',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
-  @override
-  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
-    'answer',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _modelMeta = const VerificationMeta('model');
-  @override
-  late final GeneratedColumn<String> model = GeneratedColumn<String>(
-    'model',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    month,
-    inputHash,
-    groupKeys,
-    answer,
-    model,
-    createdAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'insights';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<InsightRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('month')) {
-      context.handle(
-        _monthMeta,
-        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_monthMeta);
-    }
-    if (data.containsKey('input_hash')) {
-      context.handle(
-        _inputHashMeta,
-        inputHash.isAcceptableOrUnknown(data['input_hash']!, _inputHashMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_inputHashMeta);
-    }
-    if (data.containsKey('group_keys')) {
-      context.handle(
-        _groupKeysMeta,
-        groupKeys.isAcceptableOrUnknown(data['group_keys']!, _groupKeysMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_groupKeysMeta);
-    }
-    if (data.containsKey('answer')) {
-      context.handle(
-        _answerMeta,
-        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_answerMeta);
-    }
-    if (data.containsKey('model')) {
-      context.handle(
-        _modelMeta,
-        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_modelMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {month};
-  @override
-  InsightRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return InsightRow(
-      month: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}month'],
-      )!,
-      inputHash: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}input_hash'],
-      )!,
-      groupKeys: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}group_keys'],
-      )!,
-      answer: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}answer'],
-      )!,
-      model: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}model'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-    );
-  }
-
-  @override
-  $InsightsTable createAlias(String alias) {
-    return $InsightsTable(attachedDatabase, alias);
-  }
-}
-
-class InsightRow extends DataClass implements Insertable<InsightRow> {
-  /// The month, as "2026-10".
-  final String month;
-
-  /// Fingerprint of the money data that was sent. A different one now means
-  /// entries have changed since Penny looked.
-  final String inputHash;
-
-  /// JSON object from the group ids Penny saw ("s1", "i1"…) to this phone's
-  /// group keys, which turn the answer back into entries.
-  final String groupKeys;
-
-  /// The cleaned answer, as JSON.
-  final String answer;
-  final String model;
-  final DateTime createdAt;
-  const InsightRow({
-    required this.month,
-    required this.inputHash,
-    required this.groupKeys,
-    required this.answer,
-    required this.model,
-    required this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['month'] = Variable<String>(month);
-    map['input_hash'] = Variable<String>(inputHash);
-    map['group_keys'] = Variable<String>(groupKeys);
-    map['answer'] = Variable<String>(answer);
-    map['model'] = Variable<String>(model);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  InsightsCompanion toCompanion(bool nullToAbsent) {
-    return InsightsCompanion(
-      month: Value(month),
-      inputHash: Value(inputHash),
-      groupKeys: Value(groupKeys),
-      answer: Value(answer),
-      model: Value(model),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory InsightRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return InsightRow(
-      month: serializer.fromJson<String>(json['month']),
-      inputHash: serializer.fromJson<String>(json['inputHash']),
-      groupKeys: serializer.fromJson<String>(json['groupKeys']),
-      answer: serializer.fromJson<String>(json['answer']),
-      model: serializer.fromJson<String>(json['model']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'month': serializer.toJson<String>(month),
-      'inputHash': serializer.toJson<String>(inputHash),
-      'groupKeys': serializer.toJson<String>(groupKeys),
-      'answer': serializer.toJson<String>(answer),
-      'model': serializer.toJson<String>(model),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  InsightRow copyWith({
-    String? month,
-    String? inputHash,
-    String? groupKeys,
-    String? answer,
-    String? model,
-    DateTime? createdAt,
-  }) => InsightRow(
-    month: month ?? this.month,
-    inputHash: inputHash ?? this.inputHash,
-    groupKeys: groupKeys ?? this.groupKeys,
-    answer: answer ?? this.answer,
-    model: model ?? this.model,
-    createdAt: createdAt ?? this.createdAt,
-  );
-  InsightRow copyWithCompanion(InsightsCompanion data) {
-    return InsightRow(
-      month: data.month.present ? data.month.value : this.month,
-      inputHash: data.inputHash.present ? data.inputHash.value : this.inputHash,
-      groupKeys: data.groupKeys.present ? data.groupKeys.value : this.groupKeys,
-      answer: data.answer.present ? data.answer.value : this.answer,
-      model: data.model.present ? data.model.value : this.model,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InsightRow(')
-          ..write('month: $month, ')
-          ..write('inputHash: $inputHash, ')
-          ..write('groupKeys: $groupKeys, ')
-          ..write('answer: $answer, ')
-          ..write('model: $model, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(month, inputHash, groupKeys, answer, model, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is InsightRow &&
-          other.month == this.month &&
-          other.inputHash == this.inputHash &&
-          other.groupKeys == this.groupKeys &&
-          other.answer == this.answer &&
-          other.model == this.model &&
-          other.createdAt == this.createdAt);
-}
-
-class InsightsCompanion extends UpdateCompanion<InsightRow> {
-  final Value<String> month;
-  final Value<String> inputHash;
-  final Value<String> groupKeys;
-  final Value<String> answer;
-  final Value<String> model;
-  final Value<DateTime> createdAt;
-  final Value<int> rowid;
-  const InsightsCompanion({
-    this.month = const Value.absent(),
-    this.inputHash = const Value.absent(),
-    this.groupKeys = const Value.absent(),
-    this.answer = const Value.absent(),
-    this.model = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  InsightsCompanion.insert({
-    required String month,
-    required String inputHash,
-    required String groupKeys,
-    required String answer,
-    required String model,
-    required DateTime createdAt,
-    this.rowid = const Value.absent(),
-  }) : month = Value(month),
-       inputHash = Value(inputHash),
-       groupKeys = Value(groupKeys),
-       answer = Value(answer),
-       model = Value(model),
-       createdAt = Value(createdAt);
-  static Insertable<InsightRow> custom({
-    Expression<String>? month,
-    Expression<String>? inputHash,
-    Expression<String>? groupKeys,
-    Expression<String>? answer,
-    Expression<String>? model,
-    Expression<DateTime>? createdAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (month != null) 'month': month,
-      if (inputHash != null) 'input_hash': inputHash,
-      if (groupKeys != null) 'group_keys': groupKeys,
-      if (answer != null) 'answer': answer,
-      if (model != null) 'model': model,
-      if (createdAt != null) 'created_at': createdAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  InsightsCompanion copyWith({
-    Value<String>? month,
-    Value<String>? inputHash,
-    Value<String>? groupKeys,
-    Value<String>? answer,
-    Value<String>? model,
-    Value<DateTime>? createdAt,
-    Value<int>? rowid,
-  }) {
-    return InsightsCompanion(
-      month: month ?? this.month,
-      inputHash: inputHash ?? this.inputHash,
-      groupKeys: groupKeys ?? this.groupKeys,
-      answer: answer ?? this.answer,
-      model: model ?? this.model,
-      createdAt: createdAt ?? this.createdAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (month.present) {
-      map['month'] = Variable<String>(month.value);
-    }
-    if (inputHash.present) {
-      map['input_hash'] = Variable<String>(inputHash.value);
-    }
-    if (groupKeys.present) {
-      map['group_keys'] = Variable<String>(groupKeys.value);
-    }
-    if (answer.present) {
-      map['answer'] = Variable<String>(answer.value);
-    }
-    if (model.present) {
-      map['model'] = Variable<String>(model.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('InsightsCompanion(')
-          ..write('month: $month, ')
-          ..write('inputHash: $inputHash, ')
-          ..write('groupKeys: $groupKeys, ')
-          ..write('answer: $answer, ')
-          ..write('model: $model, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $TagRulesTable extends TagRules with TableInfo<$TagRulesTable, TagRule> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $TagRulesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
-  @override
-  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
-    'dirty',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("dirty" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<RuleKind, String> kind =
-      GeneratedColumn<String>(
-        'kind',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<RuleKind>($TagRulesTable.$converterkind);
-  static const VerificationMeta _ruleKeyMeta = const VerificationMeta(
-    'ruleKey',
-  );
-  @override
-  late final GeneratedColumn<String> ruleKey = GeneratedColumn<String>(
-    'rule_key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<TxnTag, String> tag =
-      GeneratedColumn<String>(
-        'tag',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<TxnTag>($TagRulesTable.$convertertag);
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
-    'deletedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
-    'deleted_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    dirty,
-    id,
-    kind,
-    ruleKey,
-    tag,
-    createdAt,
-    updatedAt,
-    deletedAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'tag_rules';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<TagRule> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('dirty')) {
-      context.handle(
-        _dirtyMeta,
-        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
-      );
-    }
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('rule_key')) {
-      context.handle(
-        _ruleKeyMeta,
-        ruleKey.isAcceptableOrUnknown(data['rule_key']!, _ruleKeyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_ruleKeyMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    if (data.containsKey('deleted_at')) {
-      context.handle(
-        _deletedAtMeta,
-        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  TagRule map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return TagRule(
-      dirty: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}dirty'],
-      )!,
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      kind: $TagRulesTable.$converterkind.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}kind'],
-        )!,
-      ),
-      ruleKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}rule_key'],
-      )!,
-      tag: $TagRulesTable.$convertertag.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}tag'],
-        )!,
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      deletedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}deleted_at'],
-      ),
-    );
-  }
-
-  @override
-  $TagRulesTable createAlias(String alias) {
-    return $TagRulesTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<RuleKind, String, String> $converterkind =
-      const EnumNameConverter<RuleKind>(RuleKind.values);
-  static JsonTypeConverter2<TxnTag, String, String> $convertertag =
-      const EnumNameConverter<TxnTag>(TxnTag.values);
-}
-
-class TagRule extends DataClass implements Insertable<TagRule> {
-  /// Changed on this phone since it was last sent to the account's copy.
-  /// New rows are; rows that came from the copy aren't. Every save sets it.
-  final bool dirty;
-  final String id;
-  final RuleKind kind;
-
-  /// A category id, or a shop name as `shopKey` writes it.
-  final String ruleKey;
-  final TxnTag tag;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DateTime? deletedAt;
-  const TagRule({
-    required this.dirty,
-    required this.id,
-    required this.kind,
-    required this.ruleKey,
-    required this.tag,
-    required this.createdAt,
-    required this.updatedAt,
-    this.deletedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['dirty'] = Variable<bool>(dirty);
-    map['id'] = Variable<String>(id);
-    {
-      map['kind'] = Variable<String>($TagRulesTable.$converterkind.toSql(kind));
-    }
-    map['rule_key'] = Variable<String>(ruleKey);
-    {
-      map['tag'] = Variable<String>($TagRulesTable.$convertertag.toSql(tag));
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    if (!nullToAbsent || deletedAt != null) {
-      map['deleted_at'] = Variable<DateTime>(deletedAt);
-    }
-    return map;
-  }
-
-  TagRulesCompanion toCompanion(bool nullToAbsent) {
-    return TagRulesCompanion(
-      dirty: Value(dirty),
-      id: Value(id),
-      kind: Value(kind),
-      ruleKey: Value(ruleKey),
-      tag: Value(tag),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      deletedAt: deletedAt == null && nullToAbsent
-          ? const Value.absent()
-          : Value(deletedAt),
-    );
-  }
-
-  factory TagRule.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return TagRule(
-      dirty: serializer.fromJson<bool>(json['dirty']),
-      id: serializer.fromJson<String>(json['id']),
-      kind: $TagRulesTable.$converterkind.fromJson(
-        serializer.fromJson<String>(json['kind']),
-      ),
-      ruleKey: serializer.fromJson<String>(json['ruleKey']),
-      tag: $TagRulesTable.$convertertag.fromJson(
-        serializer.fromJson<String>(json['tag']),
-      ),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'dirty': serializer.toJson<bool>(dirty),
-      'id': serializer.toJson<String>(id),
-      'kind': serializer.toJson<String>(
-        $TagRulesTable.$converterkind.toJson(kind),
-      ),
-      'ruleKey': serializer.toJson<String>(ruleKey),
-      'tag': serializer.toJson<String>(
-        $TagRulesTable.$convertertag.toJson(tag),
-      ),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
-    };
-  }
-
-  TagRule copyWith({
-    bool? dirty,
-    String? id,
-    RuleKind? kind,
-    String? ruleKey,
-    TxnTag? tag,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    Value<DateTime?> deletedAt = const Value.absent(),
-  }) => TagRule(
-    dirty: dirty ?? this.dirty,
-    id: id ?? this.id,
-    kind: kind ?? this.kind,
-    ruleKey: ruleKey ?? this.ruleKey,
-    tag: tag ?? this.tag,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
-  );
-  TagRule copyWithCompanion(TagRulesCompanion data) {
-    return TagRule(
-      dirty: data.dirty.present ? data.dirty.value : this.dirty,
-      id: data.id.present ? data.id.value : this.id,
-      kind: data.kind.present ? data.kind.value : this.kind,
-      ruleKey: data.ruleKey.present ? data.ruleKey.value : this.ruleKey,
-      tag: data.tag.present ? data.tag.value : this.tag,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TagRule(')
-          ..write('dirty: $dirty, ')
-          ..write('id: $id, ')
-          ..write('kind: $kind, ')
-          ..write('ruleKey: $ruleKey, ')
-          ..write('tag: $tag, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    dirty,
-    id,
-    kind,
-    ruleKey,
-    tag,
-    createdAt,
-    updatedAt,
-    deletedAt,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is TagRule &&
-          other.dirty == this.dirty &&
-          other.id == this.id &&
-          other.kind == this.kind &&
-          other.ruleKey == this.ruleKey &&
-          other.tag == this.tag &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt);
-}
-
-class TagRulesCompanion extends UpdateCompanion<TagRule> {
-  final Value<bool> dirty;
-  final Value<String> id;
-  final Value<RuleKind> kind;
-  final Value<String> ruleKey;
-  final Value<TxnTag> tag;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<DateTime?> deletedAt;
-  final Value<int> rowid;
-  const TagRulesCompanion({
-    this.dirty = const Value.absent(),
-    this.id = const Value.absent(),
-    this.kind = const Value.absent(),
-    this.ruleKey = const Value.absent(),
-    this.tag = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.deletedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  TagRulesCompanion.insert({
-    this.dirty = const Value.absent(),
-    required String id,
-    required RuleKind kind,
-    required String ruleKey,
-    required TxnTag tag,
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    this.deletedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       kind = Value(kind),
-       ruleKey = Value(ruleKey),
-       tag = Value(tag),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
-  static Insertable<TagRule> custom({
-    Expression<bool>? dirty,
-    Expression<String>? id,
-    Expression<String>? kind,
-    Expression<String>? ruleKey,
-    Expression<String>? tag,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<DateTime>? deletedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (dirty != null) 'dirty': dirty,
-      if (id != null) 'id': id,
-      if (kind != null) 'kind': kind,
-      if (ruleKey != null) 'rule_key': ruleKey,
-      if (tag != null) 'tag': tag,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (deletedAt != null) 'deleted_at': deletedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  TagRulesCompanion copyWith({
-    Value<bool>? dirty,
-    Value<String>? id,
-    Value<RuleKind>? kind,
-    Value<String>? ruleKey,
-    Value<TxnTag>? tag,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<DateTime?>? deletedAt,
-    Value<int>? rowid,
-  }) {
-    return TagRulesCompanion(
-      dirty: dirty ?? this.dirty,
-      id: id ?? this.id,
-      kind: kind ?? this.kind,
-      ruleKey: ruleKey ?? this.ruleKey,
-      tag: tag ?? this.tag,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (dirty.present) {
-      map['dirty'] = Variable<bool>(dirty.value);
-    }
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (kind.present) {
-      map['kind'] = Variable<String>(
-        $TagRulesTable.$converterkind.toSql(kind.value),
-      );
-    }
-    if (ruleKey.present) {
-      map['rule_key'] = Variable<String>(ruleKey.value);
-    }
-    if (tag.present) {
-      map['tag'] = Variable<String>(
-        $TagRulesTable.$convertertag.toSql(tag.value),
-      );
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (deletedAt.present) {
-      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TagRulesCompanion(')
-          ..write('dirty: $dirty, ')
-          ..write('id: $id, ')
-          ..write('kind: $kind, ')
-          ..write('ruleKey: $ruleKey, ')
-          ..write('tag: $tag, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $PrefsTable extends Prefs with TableInfo<$PrefsTable, Pref> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $PrefsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
-  @override
-  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
-    'dirty',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("dirty" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _valueMeta = const VerificationMeta('value');
-  @override
-  late final GeneratedColumn<String> value = GeneratedColumn<String>(
-    'value',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [dirty, name, value, updatedAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'prefs';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Pref> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('dirty')) {
-      context.handle(
-        _dirtyMeta,
-        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
-      );
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('value')) {
-      context.handle(
-        _valueMeta,
-        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_valueMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {name};
-  @override
-  Pref map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Pref(
-      dirty: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}dirty'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      value: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}value'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-    );
-  }
-
-  @override
-  $PrefsTable createAlias(String alias) {
-    return $PrefsTable(attachedDatabase, alias);
-  }
-}
-
-class Pref extends DataClass implements Insertable<Pref> {
-  /// Changed on this phone since it was last sent to the account's copy.
-  /// New rows are; rows that came from the copy aren't. Every save sets it.
-  final bool dirty;
-  final String name;
-  final String value;
-  final DateTime updatedAt;
-  const Pref({
-    required this.dirty,
-    required this.name,
-    required this.value,
-    required this.updatedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['dirty'] = Variable<bool>(dirty);
-    map['name'] = Variable<String>(name);
-    map['value'] = Variable<String>(value);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    return map;
-  }
-
-  PrefsCompanion toCompanion(bool nullToAbsent) {
-    return PrefsCompanion(
-      dirty: Value(dirty),
-      name: Value(name),
-      value: Value(value),
-      updatedAt: Value(updatedAt),
-    );
-  }
-
-  factory Pref.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Pref(
-      dirty: serializer.fromJson<bool>(json['dirty']),
-      name: serializer.fromJson<String>(json['name']),
-      value: serializer.fromJson<String>(json['value']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'dirty': serializer.toJson<bool>(dirty),
-      'name': serializer.toJson<String>(name),
-      'value': serializer.toJson<String>(value),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-    };
-  }
-
-  Pref copyWith({
-    bool? dirty,
-    String? name,
-    String? value,
-    DateTime? updatedAt,
-  }) => Pref(
-    dirty: dirty ?? this.dirty,
-    name: name ?? this.name,
-    value: value ?? this.value,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
-  Pref copyWithCompanion(PrefsCompanion data) {
-    return Pref(
-      dirty: data.dirty.present ? data.dirty.value : this.dirty,
-      name: data.name.present ? data.name.value : this.name,
-      value: data.value.present ? data.value.value : this.value,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Pref(')
-          ..write('dirty: $dirty, ')
-          ..write('name: $name, ')
-          ..write('value: $value, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(dirty, name, value, updatedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Pref &&
-          other.dirty == this.dirty &&
-          other.name == this.name &&
-          other.value == this.value &&
-          other.updatedAt == this.updatedAt);
-}
-
-class PrefsCompanion extends UpdateCompanion<Pref> {
-  final Value<bool> dirty;
-  final Value<String> name;
-  final Value<String> value;
-  final Value<DateTime> updatedAt;
-  final Value<int> rowid;
-  const PrefsCompanion({
-    this.dirty = const Value.absent(),
-    this.name = const Value.absent(),
-    this.value = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  PrefsCompanion.insert({
-    this.dirty = const Value.absent(),
-    required String name,
-    required String value,
-    required DateTime updatedAt,
-    this.rowid = const Value.absent(),
-  }) : name = Value(name),
-       value = Value(value),
-       updatedAt = Value(updatedAt);
-  static Insertable<Pref> custom({
-    Expression<bool>? dirty,
-    Expression<String>? name,
-    Expression<String>? value,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (dirty != null) 'dirty': dirty,
-      if (name != null) 'name': name,
-      if (value != null) 'value': value,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  PrefsCompanion copyWith({
-    Value<bool>? dirty,
-    Value<String>? name,
-    Value<String>? value,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
-    return PrefsCompanion(
-      dirty: dirty ?? this.dirty,
-      name: name ?? this.name,
-      value: value ?? this.value,
-      updatedAt: updatedAt ?? this.updatedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (dirty.present) {
-      map['dirty'] = Variable<bool>(dirty.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (value.present) {
-      map['value'] = Variable<String>(value.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('PrefsCompanion(')
-          ..write('dirty: $dirty, ')
-          ..write('name: $name, ')
-          ..write('value: $value, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ChatMessagesTable extends ChatMessages
-    with TableInfo<$ChatMessagesTable, ChatMessage> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ChatMessagesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<ChatRole, String> role =
-      GeneratedColumn<String>(
-        'role',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<ChatRole>($ChatMessagesTable.$converterrole);
-  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
-  @override
-  late final GeneratedColumn<String> body = GeneratedColumn<String>(
-    'body',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, role, body, createdAt];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'chat_messages';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<ChatMessage> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('body')) {
-      context.handle(
-        _bodyMeta,
-        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_bodyMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  ChatMessage map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ChatMessage(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      role: $ChatMessagesTable.$converterrole.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}role'],
-        )!,
-      ),
-      body: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}body'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-    );
-  }
-
-  @override
-  $ChatMessagesTable createAlias(String alias) {
-    return $ChatMessagesTable(attachedDatabase, alias);
-  }
-
-  static JsonTypeConverter2<ChatRole, String, String> $converterrole =
-      const EnumNameConverter<ChatRole>(ChatRole.values);
-}
-
-class ChatMessage extends DataClass implements Insertable<ChatMessage> {
-  final String id;
-  final ChatRole role;
-  final String body;
-  final DateTime createdAt;
-  const ChatMessage({
-    required this.id,
-    required this.role,
-    required this.body,
-    required this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    {
-      map['role'] = Variable<String>(
-        $ChatMessagesTable.$converterrole.toSql(role),
-      );
-    }
-    map['body'] = Variable<String>(body);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  ChatMessagesCompanion toCompanion(bool nullToAbsent) {
-    return ChatMessagesCompanion(
-      id: Value(id),
-      role: Value(role),
-      body: Value(body),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory ChatMessage.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ChatMessage(
-      id: serializer.fromJson<String>(json['id']),
-      role: $ChatMessagesTable.$converterrole.fromJson(
-        serializer.fromJson<String>(json['role']),
-      ),
-      body: serializer.fromJson<String>(json['body']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'role': serializer.toJson<String>(
-        $ChatMessagesTable.$converterrole.toJson(role),
-      ),
-      'body': serializer.toJson<String>(body),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  ChatMessage copyWith({
-    String? id,
-    ChatRole? role,
-    String? body,
-    DateTime? createdAt,
-  }) => ChatMessage(
-    id: id ?? this.id,
-    role: role ?? this.role,
-    body: body ?? this.body,
-    createdAt: createdAt ?? this.createdAt,
-  );
-  ChatMessage copyWithCompanion(ChatMessagesCompanion data) {
-    return ChatMessage(
-      id: data.id.present ? data.id.value : this.id,
-      role: data.role.present ? data.role.value : this.role,
-      body: data.body.present ? data.body.value : this.body,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ChatMessage(')
-          ..write('id: $id, ')
-          ..write('role: $role, ')
-          ..write('body: $body, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, role, body, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ChatMessage &&
-          other.id == this.id &&
-          other.role == this.role &&
-          other.body == this.body &&
-          other.createdAt == this.createdAt);
-}
-
-class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
-  final Value<String> id;
-  final Value<ChatRole> role;
-  final Value<String> body;
-  final Value<DateTime> createdAt;
-  final Value<int> rowid;
-  const ChatMessagesCompanion({
-    this.id = const Value.absent(),
-    this.role = const Value.absent(),
-    this.body = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ChatMessagesCompanion.insert({
-    required String id,
-    required ChatRole role,
-    required String body,
-    required DateTime createdAt,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       role = Value(role),
-       body = Value(body),
-       createdAt = Value(createdAt);
-  static Insertable<ChatMessage> custom({
-    Expression<String>? id,
-    Expression<String>? role,
-    Expression<String>? body,
-    Expression<DateTime>? createdAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (role != null) 'role': role,
-      if (body != null) 'body': body,
-      if (createdAt != null) 'created_at': createdAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ChatMessagesCompanion copyWith({
-    Value<String>? id,
-    Value<ChatRole>? role,
-    Value<String>? body,
-    Value<DateTime>? createdAt,
-    Value<int>? rowid,
-  }) {
-    return ChatMessagesCompanion(
-      id: id ?? this.id,
-      role: role ?? this.role,
-      body: body ?? this.body,
-      createdAt: createdAt ?? this.createdAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (role.present) {
-      map['role'] = Variable<String>(
-        $ChatMessagesTable.$converterrole.toSql(role.value),
-      );
-    }
-    if (body.present) {
-      map['body'] = Variable<String>(body.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ChatMessagesCompanion(')
-          ..write('id: $id, ')
-          ..write('role: $role, ')
-          ..write('body: $body, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, BudgetRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3915,6 +2353,1568 @@ class GoalDepositsCompanion extends UpdateCompanion<GoalDeposit> {
   }
 }
 
+class $TagRulesTable extends TagRules with TableInfo<$TagRulesTable, TagRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TagRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RuleKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<RuleKind>($TagRulesTable.$converterkind);
+  static const VerificationMeta _ruleKeyMeta = const VerificationMeta(
+    'ruleKey',
+  );
+  @override
+  late final GeneratedColumn<String> ruleKey = GeneratedColumn<String>(
+    'rule_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TxnTag, String> tag =
+      GeneratedColumn<String>(
+        'tag',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<TxnTag>($TagRulesTable.$convertertag);
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    dirty,
+    id,
+    kind,
+    ruleKey,
+    tag,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tag_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TagRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('rule_key')) {
+      context.handle(
+        _ruleKeyMeta,
+        ruleKey.isAcceptableOrUnknown(data['rule_key']!, _ruleKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ruleKeyMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TagRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TagRule(
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      kind: $TagRulesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      ruleKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rule_key'],
+      )!,
+      tag: $TagRulesTable.$convertertag.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}tag'],
+        )!,
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+    );
+  }
+
+  @override
+  $TagRulesTable createAlias(String alias) {
+    return $TagRulesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<RuleKind, String, String> $converterkind =
+      const EnumNameConverter<RuleKind>(RuleKind.values);
+  static JsonTypeConverter2<TxnTag, String, String> $convertertag =
+      const EnumNameConverter<TxnTag>(TxnTag.values);
+}
+
+class TagRule extends DataClass implements Insertable<TagRule> {
+  /// Changed on this phone since it was last sent to the account's copy.
+  /// New rows are; rows that came from the copy aren't. Every save sets it.
+  final bool dirty;
+  final String id;
+  final RuleKind kind;
+
+  /// A category id, or a shop name as `shopKey` writes it.
+  final String ruleKey;
+  final TxnTag tag;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const TagRule({
+    required this.dirty,
+    required this.id,
+    required this.kind,
+    required this.ruleKey,
+    required this.tag,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dirty'] = Variable<bool>(dirty);
+    map['id'] = Variable<String>(id);
+    {
+      map['kind'] = Variable<String>($TagRulesTable.$converterkind.toSql(kind));
+    }
+    map['rule_key'] = Variable<String>(ruleKey);
+    {
+      map['tag'] = Variable<String>($TagRulesTable.$convertertag.toSql(tag));
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  TagRulesCompanion toCompanion(bool nullToAbsent) {
+    return TagRulesCompanion(
+      dirty: Value(dirty),
+      id: Value(id),
+      kind: Value(kind),
+      ruleKey: Value(ruleKey),
+      tag: Value(tag),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory TagRule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TagRule(
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      id: serializer.fromJson<String>(json['id']),
+      kind: $TagRulesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      ruleKey: serializer.fromJson<String>(json['ruleKey']),
+      tag: $TagRulesTable.$convertertag.fromJson(
+        serializer.fromJson<String>(json['tag']),
+      ),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dirty': serializer.toJson<bool>(dirty),
+      'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(
+        $TagRulesTable.$converterkind.toJson(kind),
+      ),
+      'ruleKey': serializer.toJson<String>(ruleKey),
+      'tag': serializer.toJson<String>(
+        $TagRulesTable.$convertertag.toJson(tag),
+      ),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  TagRule copyWith({
+    bool? dirty,
+    String? id,
+    RuleKind? kind,
+    String? ruleKey,
+    TxnTag? tag,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+  }) => TagRule(
+    dirty: dirty ?? this.dirty,
+    id: id ?? this.id,
+    kind: kind ?? this.kind,
+    ruleKey: ruleKey ?? this.ruleKey,
+    tag: tag ?? this.tag,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+  );
+  TagRule copyWithCompanion(TagRulesCompanion data) {
+    return TagRule(
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      ruleKey: data.ruleKey.present ? data.ruleKey.value : this.ruleKey,
+      tag: data.tag.present ? data.tag.value : this.tag,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagRule(')
+          ..write('dirty: $dirty, ')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('ruleKey: $ruleKey, ')
+          ..write('tag: $tag, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    dirty,
+    id,
+    kind,
+    ruleKey,
+    tag,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TagRule &&
+          other.dirty == this.dirty &&
+          other.id == this.id &&
+          other.kind == this.kind &&
+          other.ruleKey == this.ruleKey &&
+          other.tag == this.tag &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class TagRulesCompanion extends UpdateCompanion<TagRule> {
+  final Value<bool> dirty;
+  final Value<String> id;
+  final Value<RuleKind> kind;
+  final Value<String> ruleKey;
+  final Value<TxnTag> tag;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const TagRulesCompanion({
+    this.dirty = const Value.absent(),
+    this.id = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.ruleKey = const Value.absent(),
+    this.tag = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TagRulesCompanion.insert({
+    this.dirty = const Value.absent(),
+    required String id,
+    required RuleKind kind,
+    required String ruleKey,
+    required TxnTag tag,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       kind = Value(kind),
+       ruleKey = Value(ruleKey),
+       tag = Value(tag),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<TagRule> custom({
+    Expression<bool>? dirty,
+    Expression<String>? id,
+    Expression<String>? kind,
+    Expression<String>? ruleKey,
+    Expression<String>? tag,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dirty != null) 'dirty': dirty,
+      if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
+      if (ruleKey != null) 'rule_key': ruleKey,
+      if (tag != null) 'tag': tag,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TagRulesCompanion copyWith({
+    Value<bool>? dirty,
+    Value<String>? id,
+    Value<RuleKind>? kind,
+    Value<String>? ruleKey,
+    Value<TxnTag>? tag,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? rowid,
+  }) {
+    return TagRulesCompanion(
+      dirty: dirty ?? this.dirty,
+      id: id ?? this.id,
+      kind: kind ?? this.kind,
+      ruleKey: ruleKey ?? this.ruleKey,
+      tag: tag ?? this.tag,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $TagRulesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (ruleKey.present) {
+      map['rule_key'] = Variable<String>(ruleKey.value);
+    }
+    if (tag.present) {
+      map['tag'] = Variable<String>(
+        $TagRulesTable.$convertertag.toSql(tag.value),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagRulesCompanion(')
+          ..write('dirty: $dirty, ')
+          ..write('id: $id, ')
+          ..write('kind: $kind, ')
+          ..write('ruleKey: $ruleKey, ')
+          ..write('tag: $tag, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PrefsTable extends Prefs with TableInfo<$PrefsTable, Pref> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PrefsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [dirty, name, value, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'prefs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Pref> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {name};
+  @override
+  Pref map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Pref(
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PrefsTable createAlias(String alias) {
+    return $PrefsTable(attachedDatabase, alias);
+  }
+}
+
+class Pref extends DataClass implements Insertable<Pref> {
+  /// Changed on this phone since it was last sent to the account's copy.
+  /// New rows are; rows that came from the copy aren't. Every save sets it.
+  final bool dirty;
+  final String name;
+  final String value;
+  final DateTime updatedAt;
+  const Pref({
+    required this.dirty,
+    required this.name,
+    required this.value,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dirty'] = Variable<bool>(dirty);
+    map['name'] = Variable<String>(name);
+    map['value'] = Variable<String>(value);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PrefsCompanion toCompanion(bool nullToAbsent) {
+    return PrefsCompanion(
+      dirty: Value(dirty),
+      name: Value(name),
+      value: Value(value),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Pref.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Pref(
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      name: serializer.fromJson<String>(json['name']),
+      value: serializer.fromJson<String>(json['value']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dirty': serializer.toJson<bool>(dirty),
+      'name': serializer.toJson<String>(name),
+      'value': serializer.toJson<String>(value),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Pref copyWith({
+    bool? dirty,
+    String? name,
+    String? value,
+    DateTime? updatedAt,
+  }) => Pref(
+    dirty: dirty ?? this.dirty,
+    name: name ?? this.name,
+    value: value ?? this.value,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Pref copyWithCompanion(PrefsCompanion data) {
+    return Pref(
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      name: data.name.present ? data.name.value : this.name,
+      value: data.value.present ? data.value.value : this.value,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Pref(')
+          ..write('dirty: $dirty, ')
+          ..write('name: $name, ')
+          ..write('value: $value, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(dirty, name, value, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Pref &&
+          other.dirty == this.dirty &&
+          other.name == this.name &&
+          other.value == this.value &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PrefsCompanion extends UpdateCompanion<Pref> {
+  final Value<bool> dirty;
+  final Value<String> name;
+  final Value<String> value;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PrefsCompanion({
+    this.dirty = const Value.absent(),
+    this.name = const Value.absent(),
+    this.value = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PrefsCompanion.insert({
+    this.dirty = const Value.absent(),
+    required String name,
+    required String value,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : name = Value(name),
+       value = Value(value),
+       updatedAt = Value(updatedAt);
+  static Insertable<Pref> custom({
+    Expression<bool>? dirty,
+    Expression<String>? name,
+    Expression<String>? value,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dirty != null) 'dirty': dirty,
+      if (name != null) 'name': name,
+      if (value != null) 'value': value,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PrefsCompanion copyWith({
+    Value<bool>? dirty,
+    Value<String>? name,
+    Value<String>? value,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PrefsCompanion(
+      dirty: dirty ?? this.dirty,
+      name: name ?? this.name,
+      value: value ?? this.value,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PrefsCompanion(')
+          ..write('dirty: $dirty, ')
+          ..write('name: $name, ')
+          ..write('value: $value, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InsightsTable extends Insights
+    with TableInfo<$InsightsTable, InsightRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InsightsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<String> month = GeneratedColumn<String>(
+    'month',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _inputHashMeta = const VerificationMeta(
+    'inputHash',
+  );
+  @override
+  late final GeneratedColumn<String> inputHash = GeneratedColumn<String>(
+    'input_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _groupKeysMeta = const VerificationMeta(
+    'groupKeys',
+  );
+  @override
+  late final GeneratedColumn<String> groupKeys = GeneratedColumn<String>(
+    'group_keys',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _answerMeta = const VerificationMeta('answer');
+  @override
+  late final GeneratedColumn<String> answer = GeneratedColumn<String>(
+    'answer',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+    'model',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    month,
+    inputHash,
+    groupKeys,
+    answer,
+    model,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'insights';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InsightRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('month')) {
+      context.handle(
+        _monthMeta,
+        month.isAcceptableOrUnknown(data['month']!, _monthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('input_hash')) {
+      context.handle(
+        _inputHashMeta,
+        inputHash.isAcceptableOrUnknown(data['input_hash']!, _inputHashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_inputHashMeta);
+    }
+    if (data.containsKey('group_keys')) {
+      context.handle(
+        _groupKeysMeta,
+        groupKeys.isAcceptableOrUnknown(data['group_keys']!, _groupKeysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_groupKeysMeta);
+    }
+    if (data.containsKey('answer')) {
+      context.handle(
+        _answerMeta,
+        answer.isAcceptableOrUnknown(data['answer']!, _answerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_answerMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+        _modelMeta,
+        model.isAcceptableOrUnknown(data['model']!, _modelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {month};
+  @override
+  InsightRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InsightRow(
+      month: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}month'],
+      )!,
+      inputHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}input_hash'],
+      )!,
+      groupKeys: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_keys'],
+      )!,
+      answer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answer'],
+      )!,
+      model: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $InsightsTable createAlias(String alias) {
+    return $InsightsTable(attachedDatabase, alias);
+  }
+}
+
+class InsightRow extends DataClass implements Insertable<InsightRow> {
+  /// The month, as "2026-10".
+  final String month;
+
+  /// Fingerprint of the money data that was sent. A different one now means
+  /// entries have changed since Penny looked.
+  final String inputHash;
+
+  /// JSON object from the group ids Penny saw ("s1", "i1"…) to this phone's
+  /// group keys, which turn the answer back into entries.
+  final String groupKeys;
+
+  /// The cleaned answer, as JSON.
+  final String answer;
+  final String model;
+  final DateTime createdAt;
+  const InsightRow({
+    required this.month,
+    required this.inputHash,
+    required this.groupKeys,
+    required this.answer,
+    required this.model,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['month'] = Variable<String>(month);
+    map['input_hash'] = Variable<String>(inputHash);
+    map['group_keys'] = Variable<String>(groupKeys);
+    map['answer'] = Variable<String>(answer);
+    map['model'] = Variable<String>(model);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  InsightsCompanion toCompanion(bool nullToAbsent) {
+    return InsightsCompanion(
+      month: Value(month),
+      inputHash: Value(inputHash),
+      groupKeys: Value(groupKeys),
+      answer: Value(answer),
+      model: Value(model),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory InsightRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InsightRow(
+      month: serializer.fromJson<String>(json['month']),
+      inputHash: serializer.fromJson<String>(json['inputHash']),
+      groupKeys: serializer.fromJson<String>(json['groupKeys']),
+      answer: serializer.fromJson<String>(json['answer']),
+      model: serializer.fromJson<String>(json['model']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'month': serializer.toJson<String>(month),
+      'inputHash': serializer.toJson<String>(inputHash),
+      'groupKeys': serializer.toJson<String>(groupKeys),
+      'answer': serializer.toJson<String>(answer),
+      'model': serializer.toJson<String>(model),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  InsightRow copyWith({
+    String? month,
+    String? inputHash,
+    String? groupKeys,
+    String? answer,
+    String? model,
+    DateTime? createdAt,
+  }) => InsightRow(
+    month: month ?? this.month,
+    inputHash: inputHash ?? this.inputHash,
+    groupKeys: groupKeys ?? this.groupKeys,
+    answer: answer ?? this.answer,
+    model: model ?? this.model,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  InsightRow copyWithCompanion(InsightsCompanion data) {
+    return InsightRow(
+      month: data.month.present ? data.month.value : this.month,
+      inputHash: data.inputHash.present ? data.inputHash.value : this.inputHash,
+      groupKeys: data.groupKeys.present ? data.groupKeys.value : this.groupKeys,
+      answer: data.answer.present ? data.answer.value : this.answer,
+      model: data.model.present ? data.model.value : this.model,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InsightRow(')
+          ..write('month: $month, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('groupKeys: $groupKeys, ')
+          ..write('answer: $answer, ')
+          ..write('model: $model, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(month, inputHash, groupKeys, answer, model, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InsightRow &&
+          other.month == this.month &&
+          other.inputHash == this.inputHash &&
+          other.groupKeys == this.groupKeys &&
+          other.answer == this.answer &&
+          other.model == this.model &&
+          other.createdAt == this.createdAt);
+}
+
+class InsightsCompanion extends UpdateCompanion<InsightRow> {
+  final Value<String> month;
+  final Value<String> inputHash;
+  final Value<String> groupKeys;
+  final Value<String> answer;
+  final Value<String> model;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const InsightsCompanion({
+    this.month = const Value.absent(),
+    this.inputHash = const Value.absent(),
+    this.groupKeys = const Value.absent(),
+    this.answer = const Value.absent(),
+    this.model = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  InsightsCompanion.insert({
+    required String month,
+    required String inputHash,
+    required String groupKeys,
+    required String answer,
+    required String model,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : month = Value(month),
+       inputHash = Value(inputHash),
+       groupKeys = Value(groupKeys),
+       answer = Value(answer),
+       model = Value(model),
+       createdAt = Value(createdAt);
+  static Insertable<InsightRow> custom({
+    Expression<String>? month,
+    Expression<String>? inputHash,
+    Expression<String>? groupKeys,
+    Expression<String>? answer,
+    Expression<String>? model,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (month != null) 'month': month,
+      if (inputHash != null) 'input_hash': inputHash,
+      if (groupKeys != null) 'group_keys': groupKeys,
+      if (answer != null) 'answer': answer,
+      if (model != null) 'model': model,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  InsightsCompanion copyWith({
+    Value<String>? month,
+    Value<String>? inputHash,
+    Value<String>? groupKeys,
+    Value<String>? answer,
+    Value<String>? model,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return InsightsCompanion(
+      month: month ?? this.month,
+      inputHash: inputHash ?? this.inputHash,
+      groupKeys: groupKeys ?? this.groupKeys,
+      answer: answer ?? this.answer,
+      model: model ?? this.model,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (month.present) {
+      map['month'] = Variable<String>(month.value);
+    }
+    if (inputHash.present) {
+      map['input_hash'] = Variable<String>(inputHash.value);
+    }
+    if (groupKeys.present) {
+      map['group_keys'] = Variable<String>(groupKeys.value);
+    }
+    if (answer.present) {
+      map['answer'] = Variable<String>(answer.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InsightsCompanion(')
+          ..write('month: $month, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('groupKeys: $groupKeys, ')
+          ..write('answer: $answer, ')
+          ..write('model: $model, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChatMessagesTable extends ChatMessages
+    with TableInfo<$ChatMessagesTable, ChatMessage> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChatMessagesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ChatRole, String> role =
+      GeneratedColumn<String>(
+        'role',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ChatRole>($ChatMessagesTable.$converterrole);
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, role, body, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chat_messages';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChatMessage> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChatMessage map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChatMessage(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      role: $ChatMessagesTable.$converterrole.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}role'],
+        )!,
+      ),
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ChatMessagesTable createAlias(String alias) {
+    return $ChatMessagesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<ChatRole, String, String> $converterrole =
+      const EnumNameConverter<ChatRole>(ChatRole.values);
+}
+
+class ChatMessage extends DataClass implements Insertable<ChatMessage> {
+  final String id;
+  final ChatRole role;
+  final String body;
+  final DateTime createdAt;
+  const ChatMessage({
+    required this.id,
+    required this.role,
+    required this.body,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    {
+      map['role'] = Variable<String>(
+        $ChatMessagesTable.$converterrole.toSql(role),
+      );
+    }
+    map['body'] = Variable<String>(body);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ChatMessagesCompanion toCompanion(bool nullToAbsent) {
+    return ChatMessagesCompanion(
+      id: Value(id),
+      role: Value(role),
+      body: Value(body),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ChatMessage.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChatMessage(
+      id: serializer.fromJson<String>(json['id']),
+      role: $ChatMessagesTable.$converterrole.fromJson(
+        serializer.fromJson<String>(json['role']),
+      ),
+      body: serializer.fromJson<String>(json['body']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'role': serializer.toJson<String>(
+        $ChatMessagesTable.$converterrole.toJson(role),
+      ),
+      'body': serializer.toJson<String>(body),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ChatMessage copyWith({
+    String? id,
+    ChatRole? role,
+    String? body,
+    DateTime? createdAt,
+  }) => ChatMessage(
+    id: id ?? this.id,
+    role: role ?? this.role,
+    body: body ?? this.body,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ChatMessage copyWithCompanion(ChatMessagesCompanion data) {
+    return ChatMessage(
+      id: data.id.present ? data.id.value : this.id,
+      role: data.role.present ? data.role.value : this.role,
+      body: data.body.present ? data.body.value : this.body,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatMessage(')
+          ..write('id: $id, ')
+          ..write('role: $role, ')
+          ..write('body: $body, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, role, body, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChatMessage &&
+          other.id == this.id &&
+          other.role == this.role &&
+          other.body == this.body &&
+          other.createdAt == this.createdAt);
+}
+
+class ChatMessagesCompanion extends UpdateCompanion<ChatMessage> {
+  final Value<String> id;
+  final Value<ChatRole> role;
+  final Value<String> body;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ChatMessagesCompanion({
+    this.id = const Value.absent(),
+    this.role = const Value.absent(),
+    this.body = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChatMessagesCompanion.insert({
+    required String id,
+    required ChatRole role,
+    required String body,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       role = Value(role),
+       body = Value(body),
+       createdAt = Value(createdAt);
+  static Insertable<ChatMessage> custom({
+    Expression<String>? id,
+    Expression<String>? role,
+    Expression<String>? body,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (role != null) 'role': role,
+      if (body != null) 'body': body,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChatMessagesCompanion copyWith({
+    Value<String>? id,
+    Value<ChatRole>? role,
+    Value<String>? body,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ChatMessagesCompanion(
+      id: id ?? this.id,
+      role: role ?? this.role,
+      body: body ?? this.body,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (role.present) {
+      map['role'] = Variable<String>(
+        $ChatMessagesTable.$converterrole.toSql(role.value),
+      );
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChatMessagesCompanion(')
+          ..write('id: $id, ')
+          ..write('role: $role, ')
+          ..write('body: $body, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $GoalPlansTable extends GoalPlans
     with TableInfo<$GoalPlansTable, GoalPlanRow> {
   @override
@@ -4653,13 +4653,37 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TxnsTable txns = $TxnsTable(this);
-  late final $InsightsTable insights = $InsightsTable(this);
-  late final $TagRulesTable tagRules = $TagRulesTable(this);
-  late final $PrefsTable prefs = $PrefsTable(this);
-  late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
+  late final Trigger txnsStampForward = Trigger(
+    'CREATE TRIGGER txns_stamp_forward AFTER UPDATE OF updated_at ON txns WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE txns SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'txns_stamp_forward',
+  );
   late final $BudgetsTable budgets = $BudgetsTable(this);
+  late final Trigger budgetsStampForward = Trigger(
+    'CREATE TRIGGER budgets_stamp_forward AFTER UPDATE OF updated_at ON budgets WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE budgets SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'budgets_stamp_forward',
+  );
   late final $GoalsTable goals = $GoalsTable(this);
+  late final Trigger goalsStampForward = Trigger(
+    'CREATE TRIGGER goals_stamp_forward AFTER UPDATE OF updated_at ON goals WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE goals SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'goals_stamp_forward',
+  );
   late final $GoalDepositsTable goalDeposits = $GoalDepositsTable(this);
+  late final Trigger goalDepositsStampForward = Trigger(
+    'CREATE TRIGGER goal_deposits_stamp_forward AFTER UPDATE OF updated_at ON goal_deposits WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE goal_deposits SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'goal_deposits_stamp_forward',
+  );
+  late final $TagRulesTable tagRules = $TagRulesTable(this);
+  late final Trigger tagRulesStampForward = Trigger(
+    'CREATE TRIGGER tag_rules_stamp_forward AFTER UPDATE OF updated_at ON tag_rules WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE tag_rules SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'tag_rules_stamp_forward',
+  );
+  late final $PrefsTable prefs = $PrefsTable(this);
+  late final Trigger prefsStampForward = Trigger(
+    'CREATE TRIGGER prefs_stamp_forward AFTER UPDATE OF updated_at ON prefs WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE prefs SET updated_at = OLD.updated_at + 1 WHERE name = NEW.name;END',
+    'prefs_stamp_forward',
+  );
+  late final $InsightsTable insights = $InsightsTable(this);
+  late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
   late final $GoalPlansTable goalPlans = $GoalPlansTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   late final Index txnsOccurredAt = Index(
@@ -4692,13 +4716,19 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     txns,
-    insights,
-    tagRules,
-    prefs,
-    chatMessages,
+    txnsStampForward,
     budgets,
+    budgetsStampForward,
     goals,
+    goalsStampForward,
     goalDeposits,
+    goalDepositsStampForward,
+    tagRules,
+    tagRulesStampForward,
+    prefs,
+    prefsStampForward,
+    insights,
+    chatMessages,
     goalPlans,
     syncCursors,
     txnsOccurredAt,
@@ -4708,6 +4738,51 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     budgetsBudgetKey,
     goalDepositsGoalId,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'txns',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('txns', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'budgets',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('budgets', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goals',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('goals', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'goal_deposits',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('goal_deposits', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tag_rules',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('tag_rules', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'prefs',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('prefs', kind: UpdateKind.update)],
+    ),
+  ]);
 }
 
 typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
@@ -5085,861 +5160,6 @@ typedef $$TxnsTableProcessedTableManager =
       $$TxnsTableUpdateCompanionBuilder,
       (Txn, BaseReferences<_$AppDatabase, $TxnsTable, Txn>),
       Txn,
-      PrefetchHooks Function()
-    >;
-typedef $$InsightsTableCreateCompanionBuilder = InsightsCompanion Function({
-  required String month,
-  required String inputHash,
-  required String groupKeys,
-  required String answer,
-  required String model,
-  required DateTime createdAt,
-  Value<int> rowid,
-});
-typedef $$InsightsTableUpdateCompanionBuilder = InsightsCompanion Function({
-  Value<String> month,
-  Value<String> inputHash,
-  Value<String> groupKeys,
-  Value<String> answer,
-  Value<String> model,
-  Value<DateTime> createdAt,
-  Value<int> rowid,
-});
-
-class $$InsightsTableFilterComposer
-    extends Composer<_$AppDatabase, $InsightsTable> {
-  $$InsightsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get month => $composableBuilder(
-    column: $table.month,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get inputHash => $composableBuilder(
-    column: $table.inputHash,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get groupKeys => $composableBuilder(
-    column: $table.groupKeys,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get answer => $composableBuilder(
-    column: $table.answer,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$InsightsTableOrderingComposer
-    extends Composer<_$AppDatabase, $InsightsTable> {
-  $$InsightsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get month => $composableBuilder(
-    column: $table.month,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get inputHash => $composableBuilder(
-    column: $table.inputHash,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get groupKeys => $composableBuilder(
-    column: $table.groupKeys,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get answer => $composableBuilder(
-    column: $table.answer,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get model => $composableBuilder(
-    column: $table.model,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$InsightsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $InsightsTable> {
-  $$InsightsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get month =>
-      $composableBuilder(column: $table.month, builder: (column) => column);
-
-  GeneratedColumn<String> get inputHash =>
-      $composableBuilder(column: $table.inputHash, builder: (column) => column);
-
-  GeneratedColumn<String> get groupKeys =>
-      $composableBuilder(column: $table.groupKeys, builder: (column) => column);
-
-  GeneratedColumn<String> get answer =>
-      $composableBuilder(column: $table.answer, builder: (column) => column);
-
-  GeneratedColumn<String> get model =>
-      $composableBuilder(column: $table.model, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$InsightsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $InsightsTable,
-          InsightRow,
-          $$InsightsTableFilterComposer,
-          $$InsightsTableOrderingComposer,
-          $$InsightsTableAnnotationComposer,
-          $$InsightsTableCreateCompanionBuilder,
-          $$InsightsTableUpdateCompanionBuilder,
-          (
-            InsightRow,
-            BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>,
-          ),
-          InsightRow,
-          PrefetchHooks Function()
-        > {
-  $$InsightsTableTableManager(_$AppDatabase db, $InsightsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$InsightsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$InsightsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$InsightsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> month = const Value.absent(),
-                Value<String> inputHash = const Value.absent(),
-                Value<String> groupKeys = const Value.absent(),
-                Value<String> answer = const Value.absent(),
-                Value<String> model = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => InsightsCompanion(
-                month: month,
-                inputHash: inputHash,
-                groupKeys: groupKeys,
-                answer: answer,
-                model: model,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String month,
-                required String inputHash,
-                required String groupKeys,
-                required String answer,
-                required String model,
-                required DateTime createdAt,
-                Value<int> rowid = const Value.absent(),
-              }) => InsightsCompanion.insert(
-                month: month,
-                inputHash: inputHash,
-                groupKeys: groupKeys,
-                answer: answer,
-                model: model,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$InsightsTable, InsightRow>(table),
-                  BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>(
-                    db,
-                    table,
-                    e,
-                  ),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$InsightsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $InsightsTable,
-      InsightRow,
-      $$InsightsTableFilterComposer,
-      $$InsightsTableOrderingComposer,
-      $$InsightsTableAnnotationComposer,
-      $$InsightsTableCreateCompanionBuilder,
-      $$InsightsTableUpdateCompanionBuilder,
-      (InsightRow, BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>),
-      InsightRow,
-      PrefetchHooks Function()
-    >;
-typedef $$TagRulesTableCreateCompanionBuilder = TagRulesCompanion Function({
-  Value<bool> dirty,
-  required String id,
-  required RuleKind kind,
-  required String ruleKey,
-  required TxnTag tag,
-  required DateTime createdAt,
-  required DateTime updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<int> rowid,
-});
-typedef $$TagRulesTableUpdateCompanionBuilder = TagRulesCompanion Function({
-  Value<bool> dirty,
-  Value<String> id,
-  Value<RuleKind> kind,
-  Value<String> ruleKey,
-  Value<TxnTag> tag,
-  Value<DateTime> createdAt,
-  Value<DateTime> updatedAt,
-  Value<DateTime?> deletedAt,
-  Value<int> rowid,
-});
-
-class $$TagRulesTableFilterComposer
-    extends Composer<_$AppDatabase, $TagRulesTable> {
-  $$TagRulesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<bool> get dirty => $composableBuilder(
-    column: $table.dirty,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<RuleKind, RuleKind, String> get kind =>
-      $composableBuilder(
-        column: $table.kind,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
-
-  ColumnFilters<String> get ruleKey => $composableBuilder(
-    column: $table.ruleKey,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<TxnTag, TxnTag, String> get tag =>
-      $composableBuilder(
-        column: $table.tag,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
-    column: $table.deletedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$TagRulesTableOrderingComposer
-    extends Composer<_$AppDatabase, $TagRulesTable> {
-  $$TagRulesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<bool> get dirty => $composableBuilder(
-    column: $table.dirty,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get kind => $composableBuilder(
-    column: $table.kind,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get ruleKey => $composableBuilder(
-    column: $table.ruleKey,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get tag => $composableBuilder(
-    column: $table.tag,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
-    column: $table.deletedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$TagRulesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $TagRulesTable> {
-  $$TagRulesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<bool> get dirty =>
-      $composableBuilder(column: $table.dirty, builder: (column) => column);
-
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<RuleKind, String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
-  GeneratedColumn<String> get ruleKey =>
-      $composableBuilder(column: $table.ruleKey, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<TxnTag, String> get tag =>
-      $composableBuilder(column: $table.tag, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get deletedAt =>
-      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
-}
-
-class $$TagRulesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $TagRulesTable,
-          TagRule,
-          $$TagRulesTableFilterComposer,
-          $$TagRulesTableOrderingComposer,
-          $$TagRulesTableAnnotationComposer,
-          $$TagRulesTableCreateCompanionBuilder,
-          $$TagRulesTableUpdateCompanionBuilder,
-          (TagRule, BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>),
-          TagRule,
-          PrefetchHooks Function()
-        > {
-  $$TagRulesTableTableManager(_$AppDatabase db, $TagRulesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$TagRulesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$TagRulesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$TagRulesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<bool> dirty = const Value.absent(),
-                Value<String> id = const Value.absent(),
-                Value<RuleKind> kind = const Value.absent(),
-                Value<String> ruleKey = const Value.absent(),
-                Value<TxnTag> tag = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<DateTime?> deletedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => TagRulesCompanion(
-                dirty: dirty,
-                id: id,
-                kind: kind,
-                ruleKey: ruleKey,
-                tag: tag,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deletedAt: deletedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                Value<bool> dirty = const Value.absent(),
-                required String id,
-                required RuleKind kind,
-                required String ruleKey,
-                required TxnTag tag,
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<DateTime?> deletedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => TagRulesCompanion.insert(
-                dirty: dirty,
-                id: id,
-                kind: kind,
-                ruleKey: ruleKey,
-                tag: tag,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                deletedAt: deletedAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$TagRulesTable, TagRule>(table),
-                  BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>(
-                    db,
-                    table,
-                    e,
-                  ),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$TagRulesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $TagRulesTable,
-      TagRule,
-      $$TagRulesTableFilterComposer,
-      $$TagRulesTableOrderingComposer,
-      $$TagRulesTableAnnotationComposer,
-      $$TagRulesTableCreateCompanionBuilder,
-      $$TagRulesTableUpdateCompanionBuilder,
-      (TagRule, BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>),
-      TagRule,
-      PrefetchHooks Function()
-    >;
-typedef $$PrefsTableCreateCompanionBuilder = PrefsCompanion Function({
-  Value<bool> dirty,
-  required String name,
-  required String value,
-  required DateTime updatedAt,
-  Value<int> rowid,
-});
-typedef $$PrefsTableUpdateCompanionBuilder = PrefsCompanion Function({
-  Value<bool> dirty,
-  Value<String> name,
-  Value<String> value,
-  Value<DateTime> updatedAt,
-  Value<int> rowid,
-});
-
-class $$PrefsTableFilterComposer extends Composer<_$AppDatabase, $PrefsTable> {
-  $$PrefsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<bool> get dirty => $composableBuilder(
-    column: $table.dirty,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$PrefsTableOrderingComposer
-    extends Composer<_$AppDatabase, $PrefsTable> {
-  $$PrefsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<bool> get dirty => $composableBuilder(
-    column: $table.dirty,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get value => $composableBuilder(
-    column: $table.value,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$PrefsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PrefsTable> {
-  $$PrefsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<bool> get dirty =>
-      $composableBuilder(column: $table.dirty, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get value =>
-      $composableBuilder(column: $table.value, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-}
-
-class $$PrefsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $PrefsTable,
-          Pref,
-          $$PrefsTableFilterComposer,
-          $$PrefsTableOrderingComposer,
-          $$PrefsTableAnnotationComposer,
-          $$PrefsTableCreateCompanionBuilder,
-          $$PrefsTableUpdateCompanionBuilder,
-          (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
-          Pref,
-          PrefetchHooks Function()
-        > {
-  $$PrefsTableTableManager(_$AppDatabase db, $PrefsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$PrefsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$PrefsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$PrefsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<bool> dirty = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> value = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => PrefsCompanion(
-                dirty: dirty,
-                name: name,
-                value: value,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                Value<bool> dirty = const Value.absent(),
-                required String name,
-                required String value,
-                required DateTime updatedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => PrefsCompanion.insert(
-                dirty: dirty,
-                name: name,
-                value: value,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$PrefsTable, Pref>(table),
-                  BaseReferences<_$AppDatabase, $PrefsTable, Pref>(
-                    db,
-                    table,
-                    e,
-                  ),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$PrefsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $PrefsTable,
-      Pref,
-      $$PrefsTableFilterComposer,
-      $$PrefsTableOrderingComposer,
-      $$PrefsTableAnnotationComposer,
-      $$PrefsTableCreateCompanionBuilder,
-      $$PrefsTableUpdateCompanionBuilder,
-      (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
-      Pref,
-      PrefetchHooks Function()
-    >;
-typedef $$ChatMessagesTableCreateCompanionBuilder =
-    ChatMessagesCompanion Function({
-      required String id,
-      required ChatRole role,
-      required String body,
-      required DateTime createdAt,
-      Value<int> rowid,
-    });
-typedef $$ChatMessagesTableUpdateCompanionBuilder =
-    ChatMessagesCompanion Function({
-      Value<String> id,
-      Value<ChatRole> role,
-      Value<String> body,
-      Value<DateTime> createdAt,
-      Value<int> rowid,
-    });
-
-class $$ChatMessagesTableFilterComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<ChatRole, ChatRole, String> get role =>
-      $composableBuilder(
-        column: $table.role,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
-
-  ColumnFilters<String> get body => $composableBuilder(
-    column: $table.body,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$ChatMessagesTableOrderingComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get body => $composableBuilder(
-    column: $table.body,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$ChatMessagesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ChatMessagesTable> {
-  $$ChatMessagesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<ChatRole, String> get role =>
-      $composableBuilder(column: $table.role, builder: (column) => column);
-
-  GeneratedColumn<String> get body =>
-      $composableBuilder(column: $table.body, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$ChatMessagesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ChatMessagesTable,
-          ChatMessage,
-          $$ChatMessagesTableFilterComposer,
-          $$ChatMessagesTableOrderingComposer,
-          $$ChatMessagesTableAnnotationComposer,
-          $$ChatMessagesTableCreateCompanionBuilder,
-          $$ChatMessagesTableUpdateCompanionBuilder,
-          (
-            ChatMessage,
-            BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>,
-          ),
-          ChatMessage,
-          PrefetchHooks Function()
-        > {
-  $$ChatMessagesTableTableManager(_$AppDatabase db, $ChatMessagesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ChatMessagesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ChatMessagesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ChatMessagesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<ChatRole> role = const Value.absent(),
-                Value<String> body = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ChatMessagesCompanion(
-                id: id,
-                role: role,
-                body: body,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required ChatRole role,
-                required String body,
-                required DateTime createdAt,
-                Value<int> rowid = const Value.absent(),
-              }) => ChatMessagesCompanion.insert(
-                id: id,
-                role: role,
-                body: body,
-                createdAt: createdAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable<$ChatMessagesTable, ChatMessage>(table),
-                  BaseReferences<
-                    _$AppDatabase,
-                    $ChatMessagesTable,
-                    ChatMessage
-                  >(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$ChatMessagesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ChatMessagesTable,
-      ChatMessage,
-      $$ChatMessagesTableFilterComposer,
-      $$ChatMessagesTableOrderingComposer,
-      $$ChatMessagesTableAnnotationComposer,
-      $$ChatMessagesTableCreateCompanionBuilder,
-      $$ChatMessagesTableUpdateCompanionBuilder,
-      (
-        ChatMessage,
-        BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>,
-      ),
-      ChatMessage,
       PrefetchHooks Function()
     >;
 typedef $$BudgetsTableCreateCompanionBuilder = BudgetsCompanion Function({
@@ -6712,6 +5932,861 @@ typedef $$GoalDepositsTableProcessedTableManager =
       GoalDeposit,
       PrefetchHooks Function()
     >;
+typedef $$TagRulesTableCreateCompanionBuilder = TagRulesCompanion Function({
+  Value<bool> dirty,
+  required String id,
+  required RuleKind kind,
+  required String ruleKey,
+  required TxnTag tag,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$TagRulesTableUpdateCompanionBuilder = TagRulesCompanion Function({
+  Value<bool> dirty,
+  Value<String> id,
+  Value<RuleKind> kind,
+  Value<String> ruleKey,
+  Value<TxnTag> tag,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+
+class $$TagRulesTableFilterComposer
+    extends Composer<_$AppDatabase, $TagRulesTable> {
+  $$TagRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<RuleKind, RuleKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get ruleKey => $composableBuilder(
+    column: $table.ruleKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TxnTag, TxnTag, String> get tag =>
+      $composableBuilder(
+        column: $table.tag,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TagRulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TagRulesTable> {
+  $$TagRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ruleKey => $composableBuilder(
+    column: $table.ruleKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tag => $composableBuilder(
+    column: $table.tag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TagRulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TagRulesTable> {
+  $$TagRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<RuleKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get ruleKey =>
+      $composableBuilder(column: $table.ruleKey, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<TxnTag, String> get tag =>
+      $composableBuilder(column: $table.tag, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+}
+
+class $$TagRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TagRulesTable,
+          TagRule,
+          $$TagRulesTableFilterComposer,
+          $$TagRulesTableOrderingComposer,
+          $$TagRulesTableAnnotationComposer,
+          $$TagRulesTableCreateCompanionBuilder,
+          $$TagRulesTableUpdateCompanionBuilder,
+          (TagRule, BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>),
+          TagRule,
+          PrefetchHooks Function()
+        > {
+  $$TagRulesTableTableManager(_$AppDatabase db, $TagRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TagRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TagRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TagRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<RuleKind> kind = const Value.absent(),
+                Value<String> ruleKey = const Value.absent(),
+                Value<TxnTag> tag = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TagRulesCompanion(
+                dirty: dirty,
+                id: id,
+                kind: kind,
+                ruleKey: ruleKey,
+                tag: tag,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                required String id,
+                required RuleKind kind,
+                required String ruleKey,
+                required TxnTag tag,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TagRulesCompanion.insert(
+                dirty: dirty,
+                id: id,
+                kind: kind,
+                ruleKey: ruleKey,
+                tag: tag,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TagRulesTable, TagRule>(table),
+                  BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TagRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TagRulesTable,
+      TagRule,
+      $$TagRulesTableFilterComposer,
+      $$TagRulesTableOrderingComposer,
+      $$TagRulesTableAnnotationComposer,
+      $$TagRulesTableCreateCompanionBuilder,
+      $$TagRulesTableUpdateCompanionBuilder,
+      (TagRule, BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>),
+      TagRule,
+      PrefetchHooks Function()
+    >;
+typedef $$PrefsTableCreateCompanionBuilder = PrefsCompanion Function({
+  Value<bool> dirty,
+  required String name,
+  required String value,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$PrefsTableUpdateCompanionBuilder = PrefsCompanion Function({
+  Value<bool> dirty,
+  Value<String> name,
+  Value<String> value,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$PrefsTableFilterComposer extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PrefsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PrefsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PrefsTable> {
+  $$PrefsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PrefsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PrefsTable,
+          Pref,
+          $$PrefsTableFilterComposer,
+          $$PrefsTableOrderingComposer,
+          $$PrefsTableAnnotationComposer,
+          $$PrefsTableCreateCompanionBuilder,
+          $$PrefsTableUpdateCompanionBuilder,
+          (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
+          Pref,
+          PrefetchHooks Function()
+        > {
+  $$PrefsTableTableManager(_$AppDatabase db, $PrefsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PrefsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PrefsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PrefsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PrefsCompanion(
+                dirty: dirty,
+                name: name,
+                value: value,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                required String name,
+                required String value,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PrefsCompanion.insert(
+                dirty: dirty,
+                name: name,
+                value: value,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PrefsTable, Pref>(table),
+                  BaseReferences<_$AppDatabase, $PrefsTable, Pref>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PrefsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PrefsTable,
+      Pref,
+      $$PrefsTableFilterComposer,
+      $$PrefsTableOrderingComposer,
+      $$PrefsTableAnnotationComposer,
+      $$PrefsTableCreateCompanionBuilder,
+      $$PrefsTableUpdateCompanionBuilder,
+      (Pref, BaseReferences<_$AppDatabase, $PrefsTable, Pref>),
+      Pref,
+      PrefetchHooks Function()
+    >;
+typedef $$InsightsTableCreateCompanionBuilder = InsightsCompanion Function({
+  required String month,
+  required String inputHash,
+  required String groupKeys,
+  required String answer,
+  required String model,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$InsightsTableUpdateCompanionBuilder = InsightsCompanion Function({
+  Value<String> month,
+  Value<String> inputHash,
+  Value<String> groupKeys,
+  Value<String> answer,
+  Value<String> model,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$InsightsTableFilterComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inputHash => $composableBuilder(
+    column: $table.inputHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupKeys => $composableBuilder(
+    column: $table.groupKeys,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InsightsTableOrderingComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get month => $composableBuilder(
+    column: $table.month,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inputHash => $composableBuilder(
+    column: $table.inputHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupKeys => $composableBuilder(
+    column: $table.groupKeys,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answer => $composableBuilder(
+    column: $table.answer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get model => $composableBuilder(
+    column: $table.model,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InsightsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InsightsTable> {
+  $$InsightsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<String> get inputHash =>
+      $composableBuilder(column: $table.inputHash, builder: (column) => column);
+
+  GeneratedColumn<String> get groupKeys =>
+      $composableBuilder(column: $table.groupKeys, builder: (column) => column);
+
+  GeneratedColumn<String> get answer =>
+      $composableBuilder(column: $table.answer, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$InsightsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InsightsTable,
+          InsightRow,
+          $$InsightsTableFilterComposer,
+          $$InsightsTableOrderingComposer,
+          $$InsightsTableAnnotationComposer,
+          $$InsightsTableCreateCompanionBuilder,
+          $$InsightsTableUpdateCompanionBuilder,
+          (
+            InsightRow,
+            BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>,
+          ),
+          InsightRow,
+          PrefetchHooks Function()
+        > {
+  $$InsightsTableTableManager(_$AppDatabase db, $InsightsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InsightsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InsightsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InsightsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> month = const Value.absent(),
+                Value<String> inputHash = const Value.absent(),
+                Value<String> groupKeys = const Value.absent(),
+                Value<String> answer = const Value.absent(),
+                Value<String> model = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InsightsCompanion(
+                month: month,
+                inputHash: inputHash,
+                groupKeys: groupKeys,
+                answer: answer,
+                model: model,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String month,
+                required String inputHash,
+                required String groupKeys,
+                required String answer,
+                required String model,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => InsightsCompanion.insert(
+                month: month,
+                inputHash: inputHash,
+                groupKeys: groupKeys,
+                answer: answer,
+                model: model,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$InsightsTable, InsightRow>(table),
+                  BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InsightsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InsightsTable,
+      InsightRow,
+      $$InsightsTableFilterComposer,
+      $$InsightsTableOrderingComposer,
+      $$InsightsTableAnnotationComposer,
+      $$InsightsTableCreateCompanionBuilder,
+      $$InsightsTableUpdateCompanionBuilder,
+      (InsightRow, BaseReferences<_$AppDatabase, $InsightsTable, InsightRow>),
+      InsightRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ChatMessagesTableCreateCompanionBuilder =
+    ChatMessagesCompanion Function({
+      required String id,
+      required ChatRole role,
+      required String body,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$ChatMessagesTableUpdateCompanionBuilder =
+    ChatMessagesCompanion Function({
+      Value<String> id,
+      Value<ChatRole> role,
+      Value<String> body,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ChatMessagesTableFilterComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ChatRole, ChatRole, String> get role =>
+      $composableBuilder(
+        column: $table.role,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ChatMessagesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get role => $composableBuilder(
+    column: $table.role,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ChatMessagesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChatMessagesTable> {
+  $$ChatMessagesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ChatRole, String> get role =>
+      $composableBuilder(column: $table.role, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ChatMessagesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ChatMessagesTable,
+          ChatMessage,
+          $$ChatMessagesTableFilterComposer,
+          $$ChatMessagesTableOrderingComposer,
+          $$ChatMessagesTableAnnotationComposer,
+          $$ChatMessagesTableCreateCompanionBuilder,
+          $$ChatMessagesTableUpdateCompanionBuilder,
+          (
+            ChatMessage,
+            BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>,
+          ),
+          ChatMessage,
+          PrefetchHooks Function()
+        > {
+  $$ChatMessagesTableTableManager(_$AppDatabase db, $ChatMessagesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChatMessagesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChatMessagesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChatMessagesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<ChatRole> role = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChatMessagesCompanion(
+                id: id,
+                role: role,
+                body: body,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required ChatRole role,
+                required String body,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ChatMessagesCompanion.insert(
+                id: id,
+                role: role,
+                body: body,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ChatMessagesTable, ChatMessage>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ChatMessagesTable,
+                    ChatMessage
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ChatMessagesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ChatMessagesTable,
+      ChatMessage,
+      $$ChatMessagesTableFilterComposer,
+      $$ChatMessagesTableOrderingComposer,
+      $$ChatMessagesTableAnnotationComposer,
+      $$ChatMessagesTableCreateCompanionBuilder,
+      $$ChatMessagesTableUpdateCompanionBuilder,
+      (
+        ChatMessage,
+        BaseReferences<_$AppDatabase, $ChatMessagesTable, ChatMessage>,
+      ),
+      ChatMessage,
+      PrefetchHooks Function()
+    >;
 typedef $$GoalPlansTableCreateCompanionBuilder = GoalPlansCompanion Function({
   required String goalId,
   required String month,
@@ -7133,20 +7208,20 @@ class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$TxnsTableTableManager get txns => $$TxnsTableTableManager(_db, _db.txns);
-  $$InsightsTableTableManager get insights =>
-      $$InsightsTableTableManager(_db, _db.insights);
-  $$TagRulesTableTableManager get tagRules =>
-      $$TagRulesTableTableManager(_db, _db.tagRules);
-  $$PrefsTableTableManager get prefs =>
-      $$PrefsTableTableManager(_db, _db.prefs);
-  $$ChatMessagesTableTableManager get chatMessages =>
-      $$ChatMessagesTableTableManager(_db, _db.chatMessages);
   $$BudgetsTableTableManager get budgets =>
       $$BudgetsTableTableManager(_db, _db.budgets);
   $$GoalsTableTableManager get goals =>
       $$GoalsTableTableManager(_db, _db.goals);
   $$GoalDepositsTableTableManager get goalDeposits =>
       $$GoalDepositsTableTableManager(_db, _db.goalDeposits);
+  $$TagRulesTableTableManager get tagRules =>
+      $$TagRulesTableTableManager(_db, _db.tagRules);
+  $$PrefsTableTableManager get prefs =>
+      $$PrefsTableTableManager(_db, _db.prefs);
+  $$InsightsTableTableManager get insights =>
+      $$InsightsTableTableManager(_db, _db.insights);
+  $$ChatMessagesTableTableManager get chatMessages =>
+      $$ChatMessagesTableTableManager(_db, _db.chatMessages);
   $$GoalPlansTableTableManager get goalPlans =>
       $$GoalPlansTableTableManager(_db, _db.goalPlans);
   $$SyncCursorsTableTableManager get syncCursors =>
