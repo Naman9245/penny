@@ -1,9 +1,12 @@
 package com.naman9245.penny
 
+import android.Manifest
 import android.app.NotificationManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -54,6 +57,17 @@ class MainActivity : FlutterActivity() {
                         CaptureQueue.drop(this@MainActivity, count)
                         result.success(null)
                     }
+                    "notify" -> {
+                        PennyNotifier.notify(
+                            this@MainActivity,
+                            call.argument<String>("title").orEmpty(),
+                            call.argument<String>("text").orEmpty(),
+                            call.argument<List<String>>("lines").orEmpty(),
+                        )
+                        result.success(null)
+                    }
+                    "canNotify" -> result.success(PennyNotifier.allowed(this@MainActivity))
+                    "askToNotify" -> askToNotify(call.arguments as? Boolean ?: true, result)
                     else -> result.notImplemented()
                 }
             }
@@ -65,9 +79,14 @@ class MainActivity : FlutterActivity() {
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
-    // A share while Penny is already open and on top.
+    // Penny's notification tapped, or a share, while Penny is already open.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        if (intent.getBooleanExtra(OPEN_HOME, false)) {
+            intent.removeExtra(OPEN_HOME)
+            notifications?.invokeMethod("openHome", null)
+            return
+        }
         val text = takeSharedText(intent) ?: return
         val open = channel
         if (open != null) open.invokeMethod("shared", text) else pending = text
@@ -94,6 +113,59 @@ class MainActivity : FlutterActivity() {
         return allowed.split(':').any { ComponentName.unflattenFromString(it) == listener }
     }
 
+    // Waits for the answer to Android's "Allow Penny to send you
+    // notifications?"
+    private var notifyAnswer: MethodChannel.Result? = null
+
+    /**
+     * Asks whether Penny may post notifications, with Android's own question
+     * where it still asks it: Android 13 and later, the first time, and once
+     * more after a no. Where it doesn't, and [orSettings], it opens Penny's
+     * notification settings instead. Answers whether she may now.
+     */
+    private fun askToNotify(orSettings: Boolean, result: MethodChannel.Result) {
+        if (PennyNotifier.allowed(this)) return result.success(true)
+        val permission = Manifest.permission.POST_NOTIFICATIONS
+        val asked = getSharedPreferences("penny_android", MODE_PRIVATE)
+        val canAsk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED &&
+            (!asked.getBoolean("asked_to_notify", false) ||
+                shouldShowRequestPermissionRationale(permission))
+        if (canAsk && notifyAnswer == null) {
+            asked.edit().putBoolean("asked_to_notify", true).apply()
+            notifyAnswer = result
+            requestPermissions(arrayOf(permission), ASK_TO_NOTIFY)
+            return
+        }
+        if (orSettings) openNotificationSettings()
+        result.success(false)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != ASK_TO_NOTIFY) return
+        notifyAnswer?.success(PennyNotifier.allowed(this))
+        notifyAnswer = null
+    }
+
+    /** Penny's notification settings, or her app info where there are none. */
+    private fun openNotificationSettings() {
+        val settings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        try {
+            startActivity(settings)
+        } catch (e: ActivityNotFoundException) {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.fromParts("package", packageName, null)),
+            )
+        }
+    }
+
     /** Penny's own entry on that page where there is one, or the list. */
     private fun openListenerSettings() {
         val list = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
@@ -113,6 +185,11 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        private const val ASK_TO_NOTIFY = 7
+
+        /** On the intent of Penny's notification: open Home. */
+        const val OPEN_HOME = "com.naman9245.penny.OPEN_HOME"
+
         /** Dart's side of "penny/notifications", while Penny is running. */
         @Volatile
         private var notifications: MethodChannel? = null

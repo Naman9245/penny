@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/txn_enums.dart';
@@ -108,6 +109,28 @@ void main() {
         isTrue,
       );
     });
+
+    test("what isn't a payment says why, in a few words", () {
+      final cases = <Capture, String>{
+        sms('AX-HDFCBK', 'OTP is 482913 for txn of INR 649.00 at ZOMATO.'):
+            'an OTP',
+        sms('Rahul', 'I paid Rs 500 for the tickets, send me your share'):
+            'not from a bank',
+        app('phonepe', 'Money requested', 'Rahul Kumar has requested ₹300'):
+            'a request for money',
+        app('phonepe', 'Electricity bill is due', 'Pay ₹1,240 by 10 Nov'):
+            'a payment not made yet',
+        app('paytm', 'Get ₹50 cashback', 'on your first recharge. T&C apply'):
+            'an offer',
+        sms('AX-HDFCBK', 'Your A/c XX4821 balance is Rs 1,000.00 on 05-Nov.'):
+            'only a balance',
+      };
+      for (final MapEntry(key: capture, value: why) in cases.entries) {
+        final explained = explainCapture(capture);
+        expect(explained.payment, isNull, reason: capture.text);
+        expect(explained.letGo, why, reason: capture.text);
+      }
+    });
   });
 
   test('a payment is dated by its own time, or else its notification', () {
@@ -134,7 +157,7 @@ void main() {
     });
     tearDown(() => db.close());
 
-    Future<List<SavedCapture>> take(CaptureMode mode) => takeCaptures(
+    Future<List<CaptureRead>> take(CaptureMode mode) => takeCaptures(
       source: source,
       db: db,
       txns: txns,
@@ -151,13 +174,21 @@ void main() {
         sms('Rahul', 'Send Rs 500 for the tickets'),
         app('gpay', 'Rahul Kumar', 'Paid you ₹500'),
       ]);
-      expect(await take(CaptureMode.check), isEmpty);
+      final reads = await take(CaptureMode.check);
+      expect(
+        [for (final r in reads) '${r.outcome.name}: ${r.what}'],
+        [
+          'waiting: −₹250 · Swiggy',
+          'letGo: not from a bank',
+          'waiting: +₹500 · Rahul Kumar',
+        ],
+      );
       expect(source.dropped, 3);
       expect([for (final c in await waiting()) c.amountPaise], [25000, 50000]);
 
       // A notification shown again brings nothing new.
       source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
-      await take(CaptureMode.check);
+      expect(await take(CaptureMode.check), isEmpty);
       expect(await waiting(), hasLength(2));
     });
 
@@ -167,9 +198,12 @@ void main() {
         // No category to go in.
         app('gpay', 'Rahul Kumar', 'Paid you ₹500'),
       ]);
-      final saved = await take(CaptureMode.save);
-      expect(saved, hasLength(1));
-      final entry = (await txns.findById(saved.single.id))!;
+      final reads = await take(CaptureMode.save);
+      expect(
+        [for (final r in reads) r.outcome],
+        [CaptureOutcome.saved, CaptureOutcome.waiting],
+      );
+      final entry = (await txns.findById(reads.first.entryId!))!;
       expect(entry.source, TxnSource.sms);
       expect(entry.categoryId, 'food');
       expect(entry.merchant, 'Swiggy');
@@ -203,7 +237,10 @@ void main() {
         merchant: 'Lunch',
       );
       source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
-      expect(await take(CaptureMode.save), isEmpty);
+      expect(
+        [for (final r in await take(CaptureMode.save)) r.outcome],
+        [CaptureOutcome.waiting],
+      );
       expect((await waiting()).single.lookalike, '₹250 · Lunch at 9:00 AM');
     });
 
@@ -251,6 +288,163 @@ void main() {
       );
       expect(review.occurredAt, at);
       expect(read.preview.spans.map((s) => s.kind), contains(SpanKind.amount));
+    });
+  });
+
+  group("Penny's notification", () {
+    CaptureRead read(
+      CaptureOutcome outcome,
+      Capture capture, {
+      String? entryId,
+    }) {
+      final sms = readCapture(capture)!;
+      return (
+        key: sms.dedupeKey,
+        app: capture.app,
+        at: capture.at,
+        outcome: outcome,
+        what: whatOf(sms),
+        sms: sms,
+        entryId: entryId,
+      );
+    }
+
+    final swiggy = sms('AX-HDFCBK', bankSwiggy);
+    final rahul = app('gpay', 'Rahul Kumar', 'Paid you ₹500');
+    final CaptureRead otp = (
+      key: 'otp',
+      app: 'sms',
+      at: at,
+      outcome: CaptureOutcome.letGo,
+      what: 'an OTP',
+      sms: null,
+      entryId: null,
+    );
+
+    test('one waiting, with the category Penny guessed', () {
+      final notice = noticeFor([read(CaptureOutcome.waiting, swiggy)])!;
+      expect(notice.title, 'Penny read −₹250 · Swiggy');
+      expect(notice.text, "🍔 Food? It's waiting on Home: add it or skip it.");
+      expect(notice.lines, isEmpty);
+    });
+
+    test('one waiting, with no category to guess', () {
+      final notice = noticeFor([read(CaptureOutcome.waiting, rahul)])!;
+      expect(notice.title, 'Penny read +₹500 · Rahul Kumar');
+      expect(
+        notice.text,
+        "It's waiting on Home: pick a category, then add it.",
+      );
+    });
+
+    test('one saved straight away', () {
+      final notice = noticeFor([
+        read(CaptureOutcome.saved, swiggy, entryId: 'e1'),
+        otp,
+      ])!;
+      expect(notice.title, 'Penny saved −₹250 · Swiggy');
+      expect(notice.text, '🍔 Food. Open Penny to change it or undo it.');
+    });
+
+    test('several at once, a line each', () {
+      final notice = noticeFor([
+        read(CaptureOutcome.saved, swiggy, entryId: 'e1'),
+        otp,
+        read(CaptureOutcome.waiting, rahul),
+      ])!;
+      expect(notice.title, 'Penny read 2 payments');
+      expect(notice.text, '1 waiting on Home, 1 saved');
+      expect(notice.lines, ['−₹250 · Swiggy · 🍔 Food', '+₹500 · Rahul Kumar']);
+    });
+
+    test('nothing for what she only let go', () {
+      expect(noticeFor([otp]), isNull);
+      expect(noticeFor(const []), isNull);
+    });
+  });
+
+  group('What Penny read', () {
+    late AppDatabase db;
+    late PrefsRepository prefs;
+    late FakeSource source;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      prefs = PrefsRepository(db, clock: () => at);
+      source = FakeSource();
+    });
+    tearDown(() => db.close());
+
+    Future<void> takeAndNote() async {
+      final reads = await takeCaptures(
+        source: source,
+        db: db,
+        txns: TxnRepository(db, clock: () => at),
+        captures: CaptureRepository(db, clock: () => at),
+        mode: CaptureMode.check,
+        now: at,
+      );
+      await noteReads(prefs, reads);
+    }
+
+    const otpText = 'OTP is 482913 for txn of INR 649.00 at ZOMATO.';
+
+    test('newest first, each once, never the message', () async {
+      final later = at.add(const Duration(minutes: 1));
+      source.waiting.addAll([
+        sms('AX-HDFCBK', bankSwiggy),
+        sms('Rahul', 'Send Rs 500 for the tickets', when: later),
+        sms('AX-HDFCBK', otpText, when: later),
+      ]);
+      await takeAndNote();
+      // Shown again: not listed twice.
+      source.waiting.addAll([
+        sms('AX-HDFCBK', bankSwiggy),
+        sms('AX-HDFCBK', otpText, when: later),
+      ]);
+      await takeAndNote();
+
+      final log = await prefs.watchCaptureLog().first;
+      expect(
+        [for (final e in log) '${e.app} ${e.outcome}: ${e.what}'],
+        [
+          'sms letGo: an OTP',
+          'sms letGo: not from a bank',
+          'sms waiting: −₹250 · Swiggy',
+        ],
+      );
+      expect(log.last.at, at);
+
+      final kept = (await db.select(db.prefs).get())
+          .singleWhere((p) => p.name == PrefsRepository.captureLogName)
+          .value;
+      for (final text in ['482913', 'ZOMATO', '4821', 'tickets', 'UPI Ref']) {
+        expect(kept, isNot(contains(text)));
+      }
+    });
+
+    test('keeps the last 20', () async {
+      for (var i = 1; i <= 25; i++) {
+        source.waiting.add(
+          sms(
+            'AX-HDFCBK',
+            'OTP is ${100000 + i} for txn of INR 649.00.',
+            when: at.add(Duration(minutes: i)),
+          ),
+        );
+      }
+      await takeAndNote();
+      final log = await prefs.watchCaptureLog().first;
+      expect(log, hasLength(PrefsRepository.captureLogLength));
+      expect(log.first.at, at.add(const Duration(minutes: 25)));
+      expect(log.last.at, at.add(const Duration(minutes: 6)));
+    });
+
+    test("it's kept on the phone, not backed up", () async {
+      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+      await takeAndNote();
+      final pref = (await db.select(db.prefs).get()).single;
+      expect(pref.dirty, isFalse);
     });
   });
 }

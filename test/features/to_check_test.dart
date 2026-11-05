@@ -14,11 +14,13 @@ void main() {
       'Rs.250.00 debited from A/c XX4821 to SWIGGY. UPI Ref 630512345678.';
 
   /// Android's side of "penny/notifications", faked, holding [waiting]
-  /// notifications until they're dropped. Returns every method called.
+  /// notifications until they're dropped, and putting what Penny's
+  /// notification would say in [notified]. Returns every method called.
   List<String> fakeAndroid(
     WidgetTester tester,
-    List<Map<String, Object>> waiting,
-  ) {
+    List<Map<String, Object>> waiting, {
+    List<Object?>? notified,
+  }) {
     final calls = <String>[];
     const channel = MethodChannel('penny/notifications');
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -29,8 +31,10 @@ void main() {
           return jsonEncode(waiting);
         case 'drop':
           waiting.removeRange(0, call.arguments as int);
-        case 'isEnabled':
+        case 'isEnabled' || 'canNotify':
           return true;
+        case 'notify':
+          notified?.add(call.arguments);
       }
       return null;
     });
@@ -159,7 +163,10 @@ void main() {
     final db = await pumpApp(tester);
     await settle(tester);
     expect(find.text('1 payment to check'), findsOneWidget);
+    // On screen, so a message at the bottom says so.
+    expect(find.text('Penny read −₹250 · Swiggy'), findsOneWidget);
     expect(calls, contains('drop'));
+    expect(calls, isNot(contains('notify')));
     await closeApp(tester, db);
   });
 
@@ -186,6 +193,63 @@ void main() {
     await settle(tester);
     expect(key('to-check'), findsNothing);
     expect(calls, isNot(contains('peek')));
+    await closeApp(tester, db);
+  });
+
+  /// Android saying Penny went behind another app, or came back.
+  Future<void> lifecycle(WidgetTester tester, AppLifecycleState state) =>
+      tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        SystemChannels.lifecycle.name,
+        const StringCodec().encodeMessage(state.toString()),
+        (_) {},
+      );
+
+  /// Android calling [method] on "penny/notifications": "captured" when
+  /// more are waiting, "openHome" when Penny's notification is tapped.
+  Future<void> fromAndroid(WidgetTester tester, String method) =>
+      tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'penny/notifications',
+        const StandardMethodCodec().encodeMethodCall(MethodCall(method)),
+        (_) {},
+      );
+
+  testWidgets('away from Penny, her own notification says what she read', (
+    tester,
+  ) async {
+    final waiting = <Map<String, Object>>[];
+    final notified = <Object?>[];
+    fakeAndroid(tester, waiting, notified: notified);
+    final db = await pumpApp(tester);
+    await settle(tester);
+
+    // Still running, behind another app.
+    await lifecycle(tester, AppLifecycleState.paused);
+    waiting.addAll([
+      notice(bankSwiggy),
+      notice('OTP is 482913 for txn of INR 649.00 at ZOMATO.'),
+    ]);
+    await fromAndroid(tester, 'captured');
+    await settle(tester);
+    expect(notified, [
+      {
+        'title': 'Penny read −₹250 · Swiggy',
+        'text': "🍔 Food? It's waiting on Home: add it or skip it.",
+        'lines': <String>[],
+      },
+    ]);
+
+    // Only an OTP: nothing to tell.
+    waiting.add(notice('OTP is 771204 for txn of INR 99.00.'));
+    await fromAndroid(tester, 'captured');
+    await settle(tester);
+    expect(notified, hasLength(1));
+
+    // Tapped, from another screen: Penny opens on Home, where it waits.
+    routerOf(tester).go('/analysis');
+    await lifecycle(tester, AppLifecycleState.resumed);
+    await fromAndroid(tester, 'openHome');
+    await settle(tester);
+    expect(find.text('1 payment to check'), findsOneWidget);
     await closeApp(tester, db);
   });
 }

@@ -8,6 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// SMS app ("sms"), or from "gpay", "phonepe" or "paytm".
 typedef Capture = ({String app, String title, String text, DateTime at});
 
+/// What Penny's own notification says: a title, a line, and one line each
+/// when it's about several payments.
+typedef PennyNotice = ({String title, String text, List<String> lines});
+
 /// Where captures wait: Android's listener, or a fake in tests.
 abstract interface class CaptureSource {
   /// Everything waiting, oldest first, and how many there were in all.
@@ -31,15 +35,35 @@ class NotificationInbox implements CaptureSource {
 
   final MethodChannel _channel;
   final _arrived = StreamController<void>.broadcast();
+  final _openHome = StreamController<void>.broadcast();
 
   /// Fires when more are waiting while Penny is open.
   Stream<void> get arrived => _arrived.stream;
+
+  /// Fires when Penny's own notification is tapped while she's open.
+  Stream<void> get openHome => _openHome.stream;
 
   /// Whether the user has allowed Penny to read notifications.
   Future<bool> isAllowed() async => await _call<bool>('isEnabled') ?? false;
 
   /// Opens Android's page where the user allows it.
   Future<void> openSettings() => _call<void>('openSettings');
+
+  /// Whether Penny may post her own notifications.
+  Future<bool> canNotify() async => await _call<bool>('canNotify') ?? false;
+
+  /// Asks whether Penny may post notifications: with Android's own question
+  /// where it still asks it, or else, with [orSettings], on Penny's
+  /// notification settings. Whether she may now.
+  Future<bool> askToNotify({bool orSettings = true}) async =>
+      await _call<bool>('askToNotify', orSettings) ?? false;
+
+  /// Posts [notice] as Penny's notification, in place of the last one.
+  Future<void> notify(PennyNotice notice) => _call<void>('notify', {
+    'title': notice.title,
+    'text': notice.text,
+    'lines': notice.lines,
+  });
 
   /// Anything unreadable is left out of the captures, and dropped with the
   /// rest.
@@ -80,12 +104,18 @@ class NotificationInbox implements CaptureSource {
   }
 
   Future<void> _receive(MethodCall call) async {
-    if (call.method == 'captured') _arrived.add(null);
+    switch (call.method) {
+      case 'captured':
+        _arrived.add(null);
+      case 'openHome':
+        _openHome.add(null);
+    }
   }
 
   void dispose() {
     _channel.setMethodCallHandler(null);
     _arrived.close();
+    _openHome.close();
   }
 }
 
@@ -99,4 +129,10 @@ final notificationInboxProvider = Provider<NotificationInbox>((ref) {
 /// from Android's page.
 final notificationAccessProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(notificationInboxProvider).isAllowed(),
+);
+
+/// Whether Penny may post her own notifications. Ask again when the user
+/// comes back from Android's settings.
+final pennyNotifiesProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(notificationInboxProvider).canNotify(),
 );

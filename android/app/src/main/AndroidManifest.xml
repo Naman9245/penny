@@ -2,6 +2,9 @@
     <!-- Only for Penny's report: the month's totals go to the Edge Function
          when Ask Penny is tapped. Everything else works offline. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Penny's own notification when she reads a payment. Android 13 and
+         later ask the user first. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="Penny"
         android:name="${applicationName}"
