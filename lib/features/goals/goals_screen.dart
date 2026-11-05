@@ -59,6 +59,13 @@ class GoalsScreen extends ConsumerWidget {
               _GoalCard(progress: goal, today: now),
               const SizedBox(height: 14),
             ],
+          if (list.isNotEmpty)
+            const Text(
+              'Money you put toward a goal is still yours, so it stays in '
+              'Left on Home.',
+              key: ValueKey('goals-left-note'),
+              style: AppText.small,
+            ),
         ],
       ),
     );

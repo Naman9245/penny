@@ -136,6 +136,17 @@ class TxnRepository {
     return query.getSingleOrNull();
   }
 
+  /// Every live entry, oldest first: what an export holds.
+  Future<List<Txn>> everything() {
+    final query = _db.select(_txns)
+      ..where((t) => t.deletedAt.isNull())
+      ..orderBy([
+        (t) => OrderingTerm.asc(t.occurredAt),
+        (t) => OrderingTerm.asc(t.createdAt),
+      ]);
+    return query.get();
+  }
+
   /// Entries in the month containing [month], newest first.
   Stream<List<Txn>> watchMonth(DateTime month) {
     final query = _db.select(_txns)

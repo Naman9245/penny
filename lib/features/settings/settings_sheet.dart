@@ -8,6 +8,7 @@ import 'package:penny/data/demo_data.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/settings/account_card.dart';
 import 'package:penny/features/settings/notifications_card.dart';
+import 'package:penny/services/csv_export.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
@@ -52,6 +53,16 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
   Future<void> _reset() async {
     if (!ref.read(demoModeProvider)) return;
     await resetDemoData(ref.read(appDatabaseProvider), DateTime.now());
+  }
+
+  /// Every entry here as a CSV, to the share menu.
+  Future<void> _export() async {
+    final txns = await ref.read(txnRepositoryProvider).everything();
+    final name = exportFileName(
+      ref.read(todayProvider),
+      demo: ref.read(demoModeProvider),
+    );
+    await ref.read(shareFileProvider)(name, csvBytes(entriesCsv(txns)));
   }
 
   Future<void> _copy(int index, String text) async {
@@ -174,6 +185,22 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
             ],
           ],
           const SizedBox(height: 20),
+          BrutalButton(
+            key: const ValueKey('export-entries'),
+            label: demo ? 'Export demo entries' : 'Export entries',
+            icon: Icons.ios_share_rounded,
+            color: AppColors.white,
+            expand: true,
+            onPressed: _busy ? null : () => _run(_export),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Every entry as a spreadsheet file, through the share menu. It '
+            'holds your places and amounts, so send it only where you mean '
+            'to.',
+            style: AppText.small,
+          ),
+          const SizedBox(height: 12),
           BrutalButton(
             key: const ValueKey('show-welcome'),
             label: 'Show the welcome again',
