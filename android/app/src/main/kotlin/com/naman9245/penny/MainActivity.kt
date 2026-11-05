@@ -8,8 +8,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -25,6 +23,11 @@ import io.flutter.plugin.common.MethodChannel
  */
 class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
+    private var own: MethodChannel? = null
+
+    // This copy of Penny, as a reader of what's waiting. Sharing can open a
+    // second copy, with its own.
+    private val reader = "app-${System.identityHashCode(this)}"
 
     // A share that started the app waits here until Dart asks for it.
     private var pending: String? = null
@@ -43,7 +46,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-        notifications = MethodChannel(messenger, "penny/notifications").apply {
+        own = MethodChannel(messenger, "penny/notifications").apply {
             setMethodCallHandler { call, result ->
                 when (call.method) {
                     "isEnabled" -> result.success(listenerAllowed())
@@ -51,10 +54,10 @@ class MainActivity : FlutterActivity() {
                         openListenerSettings()
                         result.success(null)
                     }
-                    "peek" -> result.success(CaptureQueue.peek(this@MainActivity))
+                    "peek" -> result.success(CaptureQueue.take(this@MainActivity, reader))
                     "drop" -> {
                         val count = (call.arguments as? Number)?.toInt() ?: 0
-                        CaptureQueue.drop(this@MainActivity, count)
+                        CaptureQueue.drop(this@MainActivity, reader, count)
                         result.success(null)
                     }
                     "notify" -> {
@@ -72,10 +75,13 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        notifications = own
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
-        notifications = null
+        if (notifications === own) notifications = null
+        own = null
+        CaptureQueue.release(reader)
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
@@ -84,7 +90,7 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         if (intent.getBooleanExtra(OPEN_HOME, false)) {
             intent.removeExtra(OPEN_HOME)
-            notifications?.invokeMethod("openHome", null)
+            own?.invokeMethod("openHome", null)
             return
         }
         val text = takeSharedText(intent) ?: return
@@ -191,14 +197,27 @@ class MainActivity : FlutterActivity() {
         const val OPEN_HOME = "com.naman9245.penny.OPEN_HOME"
 
         /** Dart's side of "penny/notifications", while Penny is running. */
-        @Volatile
         private var notifications: MethodChannel? = null
 
-        /** Tells Penny, if it's running, that payments are waiting. */
-        fun capturesArrived() {
-            Handler(Looper.getMainLooper()).post {
-                notifications?.invokeMethod("captured", null)
-            }
+        /**
+         * Tells Penny, if she's running, that payments are waiting. Whether
+         * she was. On the main thread.
+         */
+        fun capturesArrived(): Boolean {
+            val open = notifications ?: return false
+            open.invokeMethod("captured", null)
+            return true
+        }
+
+        /**
+         * Tells Penny, if she's running, that her hidden copy just read
+         * payments, so she shows them and takes anything newer. Whether she
+         * was. On the main thread.
+         */
+        fun refresh(): Boolean {
+            val open = notifications ?: return false
+            open.invokeMethod("refresh", null)
+            return true
         }
     }
 }

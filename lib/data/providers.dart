@@ -69,12 +69,13 @@ final sharedPrefsProvider = Provider<SharedPreferences>(
 final demoModeProvider = NotifierProvider<DemoMode, bool>(DemoMode.new);
 
 class DemoMode extends Notifier<bool> {
-  static const _key = 'demo_mode';
+  /// Where it's kept, for Penny's hidden copy too.
+  static const key = 'demo_mode';
 
   Future<void>? _switching;
 
   @override
-  bool build() => ref.watch(sharedPrefsProvider).getBool(_key) ?? false;
+  bool build() => ref.watch(sharedPrefsProvider).getBool(key) ?? false;
 
   /// Turns the demo on or off. The first time on, its database is filled
   /// before it shows, so it never flashes empty. Ignored while a switch is
@@ -92,7 +93,7 @@ class DemoMode extends Notifier<bool> {
         await db.close();
       }
     }
-    await ref.read(sharedPrefsProvider).setBool(_key, on);
+    await ref.read(sharedPrefsProvider).setBool(key, on);
     state = on;
   }
 }
@@ -116,12 +117,15 @@ final captureModeProvider = NotifierProvider<CaptureModeSetting, CaptureMode>(
 class CaptureModeSetting extends Notifier<CaptureMode> {
   static const _key = 'capture_mode';
 
-  @override
-  CaptureMode build() =>
-      switch (ref.watch(sharedPrefsProvider).getString(_key)) {
+  /// The choice kept in [prefs], for Penny's hidden copy too.
+  static CaptureMode of(SharedPreferences prefs) =>
+      switch (prefs.getString(_key)) {
         'save' => CaptureMode.save,
         _ => CaptureMode.check,
       };
+
+  @override
+  CaptureMode build() => of(ref.watch(sharedPrefsProvider));
 
   Future<void> set(CaptureMode mode) async {
     await ref.read(sharedPrefsProvider).setString(_key, mode.name);

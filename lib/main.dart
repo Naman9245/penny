@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/app.dart';
+import 'package:penny/background.dart' as background;
 import 'package:penny/data/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,6 +27,11 @@ Future<void> main() async {
     ),
   );
 }
+
+/// Android starts this instead of [main] when payments arrive while Penny
+/// is closed: her hidden copy, with no screen. See BackgroundReader.kt.
+@pragma('vm:entry-point')
+Future<void> readInBackground() => background.readInBackground();
 
 /// The bundled fonts are under the SIL Open Font License.
 Stream<LicenseEntry> _fontLicenses() async* {

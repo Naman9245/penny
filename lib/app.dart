@@ -25,6 +25,7 @@ class _PennyAppState extends ConsumerState<PennyApp> {
   late final StreamSubscription<String> _shares;
   late final StreamSubscription<void> _captures;
   late final StreamSubscription<void> _openHome;
+  late final StreamSubscription<void> _refreshed;
   late final AppLifecycleListener _lifecycle;
   final _messenger = GlobalKey<ScaffoldMessengerState>();
 
@@ -41,6 +42,13 @@ class _PennyAppState extends ConsumerState<PennyApp> {
     _openHome = notifications.openHome.listen(
       (_) => ref.read(routerProvider).go('/home'),
     );
+    // Her hidden copy just read payments: show them, and take anything
+    // newer.
+    _refreshed = notifications.refreshed.listen((_) {
+      final db = ref.read(appDatabaseProvider);
+      db.markTablesUpdated([db.txns, db.pendingCaptures, db.prefs]);
+      _takeCaptures();
+    });
     ref.listenManual(demoModeProvider, (was, demo) {
       if (!demo) _takeCaptures();
     });
@@ -57,7 +65,7 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         // it. When this copy comes back to the front, re-read what that one
         // saved.
         final db = ref.read(appDatabaseProvider);
-        db.markTablesUpdated([db.txns]);
+        db.markTablesUpdated([db.txns, db.pendingCaptures, db.prefs]);
         // The phone may have slept through midnight.
         ref.read(todayProvider.notifier).check();
         ref.read(syncControllerProvider.notifier).syncNow();
@@ -140,6 +148,7 @@ class _PennyAppState extends ConsumerState<PennyApp> {
     _shares.cancel();
     _captures.cancel();
     _openHome.cancel();
+    _refreshed.cancel();
     _lifecycle.dispose();
     super.dispose();
   }

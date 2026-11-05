@@ -31,7 +31,14 @@ class AppDatabase extends _$AppDatabase {
 
   /// Opens `<name>.sqlite` in the app's documents folder: `penny` for the
   /// user's own money, or the demo's.
-  AppDatabase.named(String name) : super(driftDatabase(name: name));
+  AppDatabase.named(String name)
+    : super(driftDatabase(name: name, native: nativeOptions));
+
+  /// Penny's hidden copy may be writing while she's open, each with its own
+  /// connection: one waits up to 5 seconds for the other, rather than fail.
+  static final nativeOptions = DriftNativeOptions(
+    setup: (db) => db.execute('PRAGMA busy_timeout = 5000'),
+  );
 
   /// Deletes every row of every table: "Also clear this phone" when the
   /// account is deleted.

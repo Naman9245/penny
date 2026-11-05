@@ -36,12 +36,23 @@ class NotificationInbox implements CaptureSource {
   final MethodChannel _channel;
   final _arrived = StreamController<void>.broadcast();
   final _openHome = StreamController<void>.broadcast();
+  final _refreshed = StreamController<void>.broadcast();
 
   /// Fires when more are waiting while Penny is open.
   Stream<void> get arrived => _arrived.stream;
 
   /// Fires when Penny's own notification is tapped while she's open.
   Stream<void> get openHome => _openHome.stream;
+
+  /// Fires when Penny's hidden copy has just read payments while she's
+  /// open: what it wrote isn't on screen yet.
+  Stream<void> get refreshed => _refreshed.stream;
+
+  /// For Penny's hidden copy: whether more came while she was reading.
+  Future<bool> again() async => await _call<bool>('again') ?? false;
+
+  /// For Penny's hidden copy: she's finished, so Android can close her.
+  Future<void> done() => _call<void>('done');
 
   /// Whether the user has allowed Penny to read notifications.
   Future<bool> isAllowed() async => await _call<bool>('isEnabled') ?? false;
@@ -109,6 +120,8 @@ class NotificationInbox implements CaptureSource {
         _arrived.add(null);
       case 'openHome':
         _openHome.add(null);
+      case 'refresh':
+        _refreshed.add(null);
     }
   }
 
@@ -116,6 +129,7 @@ class NotificationInbox implements CaptureSource {
     _channel.setMethodCallHandler(null);
     _arrived.close();
     _openHome.close();
+    _refreshed.close();
   }
 }
 

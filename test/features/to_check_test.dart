@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/data/capture_repository.dart';
+import 'package:penny/data/providers.dart';
 import 'package:penny/services/captures.dart';
 
 import '../helpers/app_harness.dart';
@@ -251,5 +252,40 @@ void main() {
     await settle(tester);
     expect(find.text('1 payment to check'), findsOneWidget);
     await closeApp(tester, db);
+  });
+
+  testWidgets('what her hidden copy read shows as soon as it says so', (
+    tester,
+  ) async {
+    fakeAndroid(tester, []);
+    // One database file, as on the phone: the open Penny has one
+    // connection, her hidden copy another.
+    final files = TempDatabases();
+    await pumpPenny(
+      tester,
+      overrides: [databaseOpenerProvider.overrideWithValue(files.open)],
+    );
+    await settle(tester);
+    expect(key('to-check'), findsNothing);
+
+    await tester.runAsync(() async {
+      final hidden = files.open('penny');
+      final now = DateTime.now();
+      await CaptureRepository(hidden).hold(
+        readCapture((app: 'sms', title: 'AX-HDFCBK', text: bankSwiggy, at: now))!,
+        app: 'sms',
+        at: now,
+      );
+      await hidden.close();
+    });
+    await fromAndroid(tester, 'refresh');
+    await settle(tester);
+    expect(find.text('1 payment to check'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      files.delete();
+    });
   });
 }

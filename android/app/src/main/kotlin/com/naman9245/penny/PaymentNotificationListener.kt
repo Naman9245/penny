@@ -41,7 +41,7 @@ class PaymentNotificationListener : NotificationListenerService() {
             )
             kept = true
         }
-        if (kept) MainActivity.capturesArrived()
+        if (kept) BackgroundReader.wake(this)
     }
 
     /** Which of the apps Penny reads [pkg] is, or null for any other. */
