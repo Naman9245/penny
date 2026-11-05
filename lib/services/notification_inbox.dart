@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// One notification Penny read, as the Android listener kept it: from the
-/// SMS app ("sms"), or from "gpay", "phonepe" or "paytm".
+/// SMS app ("sms"), a payment app ("gpay", "phonepe", "paytm"), or a wallet
+/// or investing app ("payzapp", "groww" and the others in
+/// PaymentNotificationListener.kt).
 typedef Capture = ({String app, String title, String text, DateTime at});
 
 /// What Penny's own notification says: a title, a line, and one line each
@@ -24,8 +26,9 @@ abstract interface class CaptureSource {
 /// Payment notifications waiting on the "penny/notifications" channel.
 ///
 /// Android's PaymentNotificationListener keeps them in Penny's private
-/// storage until they're read here; it reads only the SMS app, GPay, PhonePe
-/// and Paytm, and only once the user allows it on Android's own page.
+/// storage until they're read here; it reads only the SMS app and a list of
+/// payment, wallet and investing apps, and only once the user allows it on
+/// Android's own page.
 class NotificationInbox implements CaptureSource {
   NotificationInbox([
     this._channel = const MethodChannel('penny/notifications'),

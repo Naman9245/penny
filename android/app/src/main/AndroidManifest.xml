@@ -37,9 +37,10 @@
                 <data android:mimeType="text/plain"/>
             </intent-filter>
         </activity>
-        <!-- Reads payment notifications from the SMS app, GPay, PhonePe and
-             Paytm once the user allows it on Android's Notification access
-             page. Nothing else is kept, and nothing leaves the phone. -->
+        <!-- Reads payment notifications from the SMS app and a list of
+             payment, wallet and investing apps once the user allows it on
+             Android's Notification access page. Nothing else is kept, and
+             nothing leaves the phone. -->
         <service
             android:name=".PaymentNotificationListener"
             android:label="Penny"

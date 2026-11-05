@@ -9,7 +9,8 @@ import org.json.JSONObject
 
 /**
  * Reads the notifications of a few apps only: the phone's SMS app, GPay,
- * PhonePe and Paytm. One that mentions money waits in Penny's private
+ * PhonePe, Paytm, and the wallet and investing apps in
+ * [WALLETS_AND_INVESTING]. One that mentions money waits in Penny's private
  * storage, as its title, text and time, until Penny takes it to read. Every
  * other notification is ignored as it arrives. Nothing is parsed here, and
  * nothing leaves the phone.
@@ -49,6 +50,7 @@ class PaymentNotificationListener : NotificationListenerService() {
         GPAY -> "gpay"
         PHONEPE -> "phonepe"
         PAYTM -> "paytm"
+        in WALLETS_AND_INVESTING -> WALLETS_AND_INVESTING[pkg]
         // Test notifications, which only a computer over USB can post.
         SHELL -> "sms"
         in SMS_APPS -> "sms"
@@ -81,6 +83,20 @@ class PaymentNotificationListener : NotificationListenerService() {
         private const val PHONEPE = "com.phonepe.app"
         private const val PAYTM = "net.one97.paytm"
         private const val SHELL = "com.android.shell"
+
+        /** Wallet and investing apps, by package, as Dart names them. */
+        private val WALLETS_AND_INVESTING = mapOf(
+            "com.hdfcbank.payzapp" to "payzapp",
+            "com.mobikwik_new" to "mobikwik",
+            "com.dreamplug.androidapp" to "cred",
+            "in.org.npci.upiapp" to "bhim",
+            "money.super.payments" to "supermoney",
+            "com.nextbillion.groww" to "groww",
+            "com.zerodha.kite3" to "kite",
+            "in.upstox.app" to "upstox",
+            "in.indwealth" to "indmoney",
+            "com.paytmmoney" to "paytmmoney",
+        )
 
         /** Messages apps, in case the phone doesn't say which is its own. */
         private val SMS_APPS = setOf(

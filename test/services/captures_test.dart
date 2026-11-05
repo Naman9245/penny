@@ -88,6 +88,26 @@ void main() {
         app('paytm', 'Get ₹50 cashback', 'on your first recharge. T&C apply'),
         null,
       ),
+      'PayZapp: paid from the wallet': (
+        app(
+          'payzapp',
+          'Payment successful',
+          '₹150 paid to Zomato from your PayZapp Wallet',
+        ),
+        'debit 15000 Zomato food',
+      ),
+      'Groww: a SIP gone through': (
+        app(
+          'groww',
+          'SIP successful',
+          'Your SIP of ₹500 in Parag Parikh Flexi Cap Fund has been processed',
+        ),
+        'debit 50000 Parag Parikh Flexi Cap Fund invest',
+      ),
+      'Groww: a nudge to invest': (
+        app('groww', 'Markets are up today', 'Start a SIP with just ₹100'),
+        null,
+      ),
     };
     for (final MapEntry(key: name, value: (capture, expected))
         in cases.entries) {

@@ -27,6 +27,16 @@ const _appNames = {
   'gpay': 'GPay',
   'phonepe': 'PhonePe',
   'paytm': 'Paytm',
+  'payzapp': 'PayZapp',
+  'mobikwik': 'MobiKwik',
+  'cred': 'CRED',
+  'bhim': 'BHIM',
+  'supermoney': 'super.money',
+  'groww': 'Groww',
+  'kite': 'Kite',
+  'upstox': 'Upstox',
+  'indmoney': 'INDmoney',
+  'paytmmoney': 'Paytm Money',
 };
 
 /// [app], as people call it: "SMS", "GPay".

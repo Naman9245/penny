@@ -101,11 +101,19 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
           const SizedBox(height: 4),
           Text(
             allowed
-                ? 'Penny reads payments from your SMS app, GPay, PhonePe and '
-                      "Paytm, so you don't have to type them."
-                : 'Let Penny read payments from your SMS app, GPay, PhonePe '
-                      "and Paytm, so you don't have to type them.",
+                ? 'Penny reads payments from your SMS app, payment and wallet '
+                      "apps, and investing apps, so you don't have to type them."
+                : 'Let Penny read payments from your SMS app, payment and '
+                      "wallet apps, and investing apps, so you don't have to "
+                      'type them.',
             style: AppText.body,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'GPay, PhonePe, Paytm, PayZapp, MobiKwik, CRED, BHIM, '
+            'super.money, Groww, Kite, Upstox, INDmoney and Paytm Money.',
+            key: ValueKey('notifications-apps'),
+            style: AppText.small,
           ),
           const SizedBox(height: 10),
           BrutalButton(
