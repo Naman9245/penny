@@ -434,6 +434,98 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   );
 }
 
+/// [raw] as a payment read some other way, by Penny's AI: [type] and
+/// [amountPaise], paid to [payee] (words of the message), in [categoryId].
+/// Null when [amountPaise] isn't an amount the message gives, so a misread
+/// amount is never kept. The rest is as [parseSms] would have it: the
+/// date, the fingerprint and the masked preview.
+SmsTxn? paymentFrom(
+  String raw, {
+  required TxnType type,
+  required int amountPaise,
+  String? payee,
+  String? categoryId,
+  DateTime? now,
+}) {
+  now ??= DateTime.now();
+  final text = _normalise(raw);
+  _Amount? amount;
+  for (final match in [
+    ..._currencyAmount.allMatches(text),
+    ..._anyNumber.allMatches(text),
+  ]) {
+    if (_toPaise(match.group(1)!) != amountPaise) continue;
+    amount = (paise: amountPaise, start: match.start, end: match.end);
+    break;
+  }
+  if (amount == null) return null;
+
+  _Payee? found;
+  final name = payee?.trim() ?? '';
+  final at = name.isEmpty ? -1 : text.toLowerCase().indexOf(name.toLowerCase());
+  if (at >= 0) {
+    final cleaned = _cleanName(text.substring(at, at + name.length));
+    if (cleaned != null) {
+      found = (
+        name: cleaned,
+        isPerson: _looksLikePerson(cleaned),
+        start: at,
+        end: at + name.length,
+      );
+    }
+  }
+  final accounts = _accountRef.allMatches(text).toList();
+  final date = _date(text, now);
+  return SmsTxn(
+    amountPaise: amountPaise,
+    type: type,
+    payee: found?.name,
+    // A name that reads like a person's is kept from the AI, whatever it's
+    // for.
+    payeeIsPerson: found != null && found.isPerson,
+    occurredAt: date?.at,
+    hasTime: date?.hasTime ?? false,
+    suggestedCategoryId: categoryId,
+    dedupeKey: _fingerprint(text),
+    preview: _preview(text, accounts, amount, found, date),
+  );
+}
+
+// A plain number, as in "debited by 250.0".
+final _anyNumber = RegExp(r'(?<![\d.,])([\d,]+(?:\.\d{1,2})?)(?![\d,]|\.\d)');
+
+/// [raw] with account and card numbers, references and UPI IDs blanked, as
+/// the SMS card shows a message, for one Penny couldn't read.
+String maskedText(String raw) {
+  final text = _normalise(raw);
+  final chars = text.split('');
+  final digit = RegExp(r'\d');
+  void blank(int start, int end, {bool all = false}) {
+    for (var i = start; i < end; i++) {
+      if (all || digit.hasMatch(chars[i])) chars[i] = '•';
+    }
+  }
+
+  for (final match in [
+    ..._accountRef.allMatches(text),
+    ..._blockRef.allMatches(text),
+  ]) {
+    final digits = match.group(1)!;
+    final start = match.start + match.group(0)!.lastIndexOf(digits);
+    blank(start, start + digits.length);
+  }
+  for (final match in _longDigits.allMatches(text)) {
+    blank(match.start, match.end);
+  }
+  for (final match in _vpa.allMatches(text)) {
+    final local = match.group(1)!;
+    if (local.length > 2) {
+      blank(match.start + 2, match.start + local.length, all: true);
+    }
+  }
+  return chars.join();
+}
+
 String _normalise(String raw) {
   return raw
       .replaceAll(RegExp('[​-‍﻿]'), '')

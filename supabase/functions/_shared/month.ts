@@ -3,7 +3,7 @@
 import { z } from "npm:zod@4.6.7";
 
 // Must match lib/models/category.dart in the app.
-const SPEND_IDS = [
+export const SPEND_IDS = [
   "food",
   "groceries",
   "travel",
@@ -35,7 +35,7 @@ const ONE_GO_IDS: readonly string[] = [
   "charges",
   "family",
 ];
-const INCOME_IDS = [
+export const INCOME_IDS = [
   "pocket_money",
   "salary",
   "freelance",
@@ -45,6 +45,10 @@ const INCOME_IDS = [
   "from_people",
   "other_income",
 ] as const;
+
+// The kinds of investing, which the month only ever has as a total. Must
+// match investCategories in lib/models/category.dart.
+export const INVEST_IDS = ["invest", "stocks", "deposits"] as const;
 
 const LABELS: Record<string, string> = {
   food: "Food",

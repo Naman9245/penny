@@ -13,6 +13,7 @@ class FakeAiClient implements AiClient {
     this.answer,
     this.reply,
     this.plan,
+    this.read,
     this.failure,
     this.isSetUp = true,
   });
@@ -20,6 +21,7 @@ class FakeAiClient implements AiClient {
   MonthInsight Function(InsightRequest request)? answer;
   String Function(ChatRequest request)? reply;
   GoalPlan Function(GoalPlanRequest request)? plan;
+  SmsAiRead Function(String text)? read;
   AiException? failure;
 
   /// While set, chat replies wait for it, so a test can see Penny typing.
@@ -31,6 +33,9 @@ class FakeAiClient implements AiClient {
   final requests = <InsightRequest>[];
   final chats = <ChatRequest>[];
   final plans = <GoalPlanRequest>[];
+
+  /// What each notification sent to be read said, names hidden.
+  final smsRead = <String>[];
 
   @override
   Future<AiAnswer> analyzeMonth(InsightRequest request) async {
@@ -66,6 +71,15 @@ class FakeAiClient implements AiClient {
       model: 'gemini-3.5-flash-lite',
       callsLeftToday: 9,
     );
+  }
+
+  @override
+  Future<SmsAiRead> readSms({required String from, required String text}) async {
+    smsRead.add(text);
+    if (failure case final failure?) throw failure;
+    final read = this.read;
+    if (read == null) throw const AiException(AiFailure.unavailable);
+    return read(text);
   }
 }
 

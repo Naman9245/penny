@@ -8,7 +8,10 @@ import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/captures.dart';
 import 'package:penny/services/notification_inbox.dart';
+import 'package:penny/services/penny_ai.dart';
 import 'package:penny/services/sms_parser.dart';
+
+import '../helpers/fake_ai.dart';
 
 /// Notifications waiting, as Android's listener would hand them over.
 class FakeSource implements CaptureSource {
@@ -666,6 +669,126 @@ void main() {
       await takeAndNote();
       final pref = (await db.select(db.prefs).get()).single;
       expect(pref.dirty, isFalse);
+    });
+  });
+
+  group("Penny's AI, for what the rules can't read", () {
+    late AppDatabase db;
+    late TxnRepository txns;
+    late CaptureRepository captures;
+    late PrefsRepository prefs;
+    late FakeSource source;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      txns = TxnRepository(db, clock: () => at);
+      captures = CaptureRepository(db, clock: () => at);
+      prefs = PrefsRepository(db, clock: () => at);
+      source = FakeSource();
+    });
+    tearDown(() => db.close());
+
+    // A wallet's SMS in a shape the rules don't know.
+    const odd = 'PayZapp: ₹1.00 moved to AMIT SHARMA for order 4521.';
+
+    SmsAiRead paid(int paise, {String? payee, String? category}) => (
+      payment: true,
+      ownMoney: false,
+      type: TxnType.debit,
+      amountPaise: paise,
+      categoryId: category,
+      payee: payee,
+    );
+
+    Future<List<CaptureRead>> take(FakeAiClient ai) => takeCaptures(
+      source: source,
+      db: db,
+      txns: txns,
+      captures: captures,
+      mode: CaptureMode.save,
+      now: at,
+      ai: ai,
+    );
+
+    test('reads it with names hidden, and puts them back', () async {
+      final ai = FakeAiClient(read: (_) => paid(100, payee: '[w2] [w3]'));
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      final read = (await take(ai)).single;
+      expect(read.outcome, CaptureOutcome.saved);
+      expect(read.categoryId, 'people');
+      final entry = (await txns.findById(read.entryId!))!;
+      expect(entry.amountPaise, 100);
+      expect(entry.merchant, 'Amit Sharma');
+      expect(entry.payeeIsPerson, isTrue);
+      // What went: no name.
+      expect(ai.smsRead.single, 'PayZapp: ₹1.00 [w1] to [w2] [w3] for order 4521.');
+    });
+
+    test("one it says only moved your own money is let go", () async {
+      final ai = FakeAiClient(
+        read: (_) => (
+          payment: false,
+          ownMoney: true,
+          type: null,
+          amountPaise: 0,
+          categoryId: null,
+          payee: null,
+        ),
+      );
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      expect((await take(ai)).single.what, 'a move between your own accounts');
+    });
+
+    test('an amount the message never gives is never kept', () async {
+      final ai = FakeAiClient(read: (_) => paid(50000));
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      final read = (await take(ai)).single;
+      expect(read.outcome, CaptureOutcome.letGo);
+      expect(await db.select(db.txns).get(), isEmpty);
+    });
+
+    test('a category only of the right kind', () async {
+      final ai = FakeAiClient(
+        read: (_) => paid(100, payee: '[w2] [w3]', category: 'salary'),
+      );
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      expect((await take(ai)).single.categoryId, 'people');
+    });
+
+    test("offline, it waits to be read, then is, once the AI's back", () async {
+      final ai = FakeAiClient(failure: const AiException(AiFailure.offline));
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      final first = (await take(ai)).single;
+      expect(first.outcome, CaptureOutcome.unread);
+      expect(await prefs.unread(), hasLength(1));
+      expect(noticeFor([first])!.title, "Penny couldn't read a payment message");
+
+      ai
+        ..failure = null
+        ..read = (_) => paid(100, payee: '[w2] [w3]');
+      final second = (await take(ai)).single;
+      expect(second.outcome, CaptureOutcome.saved);
+      expect(await prefs.unread(), isEmpty);
+    });
+
+    test("never asked about an OTP, a friend's text, or one with no money "
+        'moving', () async {
+      final ai = FakeAiClient(read: (_) => paid(100));
+      source.waiting.addAll([
+        sms('AX-HDFCBK', 'OTP is 482913 for txn of INR 649.00 at ZOMATO.'),
+        sms('Rahul', 'Rs 500 moved to Amit for the trip'),
+        sms('AX-HDFCBK', 'Dear Customer, Rs.1,000 is your monthly limit now.'),
+      ]);
+      await take(ai);
+      expect(ai.smsRead, isEmpty);
+    });
+
+    test('without the AI set up, it is let go as before', () async {
+      final ai = FakeAiClient(isSetUp: false, read: (_) => paid(100));
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      expect((await take(ai)).single.what, 'no payment in it');
+      expect(ai.smsRead, isEmpty);
+      expect(await prefs.unread(), isEmpty);
     });
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:penny/data/capture_repository.dart';
+import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/services/captures.dart';
 
@@ -287,5 +288,30 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
       files.delete();
     });
+  });
+
+  testWidgets("a message Penny couldn't read waits, numbers hidden, and "
+      'Skip lets it go', (tester) async {
+    fakeAndroid(tester, []);
+    final db = await pumpApp(
+      tester,
+      seedDb: (db) => PrefsRepository(db).setUnread([
+        (
+          app: 'sms',
+          title: 'JM-HDFCBK',
+          text: 'PayZapp: ₹1.00 moved to AMIT SHARMA. Ref 630512340001',
+          at: DateTime.now(),
+        ),
+      ]),
+    );
+    await settle(tester);
+    expect(find.text('1 message to read'), findsOneWidget);
+    final row = tester.widget<Text>(find.byKey(const ValueKey('unread-0')));
+    expect(row.data, contains('Ref ••••••••••••'));
+
+    await tester.tap(key('unread-skip-0'));
+    await tester.pumpAndSettle();
+    expect(key('to-check'), findsNothing);
+    await closeApp(tester, db);
   });
 }

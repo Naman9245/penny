@@ -7,10 +7,13 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/captures.dart';
 import 'package:penny/services/money_kinds.dart';
+import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/category_avatar.dart';
@@ -23,19 +26,30 @@ final waitingCapturesProvider =
       (ref) => ref.watch(captureRepositoryProvider).watchWaiting(),
     );
 
+/// Notifications Penny couldn't read yet, oldest first.
+final unreadCapturesProvider =
+    StreamProvider.autoDispose<List<UnreadCapture>>(
+      (ref) => ref.watch(prefsRepositoryProvider).watchUnread(),
+    );
+
 /// The most shown at once; the rest come up as these are done.
 const _shown = 5;
+
+/// The most not-yet-read ones shown at once.
+const _unreadShown = 3;
 
 /// "2 payments to check": what Penny read from notifications. Each adds in
 /// one tap with the category Penny guessed, opens to change anything, or is
 /// skipped. One that may already be logged says so, and Skip comes first.
+/// Below them, any message she couldn't read yet, to try again or skip.
 class ToCheckCard extends ConsumerWidget {
   const ToCheckCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final waiting = ref.watch(waitingCapturesProvider).value ?? const [];
-    if (waiting.isEmpty) return const SizedBox.shrink();
+    final unread = ref.watch(unreadCapturesProvider).value ?? const [];
+    if (waiting.isEmpty && unread.isEmpty) return const SizedBox.shrink();
     final more = waiting.length - _shown;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
@@ -46,14 +60,20 @@ class ToCheckCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              waiting.length == 1
-                  ? '1 payment to check'
-                  : '${waiting.length} payments to check',
+              switch ((waiting.length, unread.length)) {
+                (0, 1) => '1 message to read',
+                (0, final n) => '$n messages to read',
+                (1, _) => '1 payment to check',
+                (final n, _) => '$n payments to check',
+              },
               style: AppText.h3,
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Read from your notifications. Add each, or skip it.',
+            Text(
+              waiting.isEmpty
+                  ? "Penny couldn't read these yet. She'll try again when "
+                        "you're online."
+                  : 'Read from your notifications. Add each, or skip it.',
               style: AppText.small,
             ),
             for (final (i, capture) in waiting.take(_shown).indexed) ...[
@@ -67,6 +87,12 @@ class ToCheckCard extends ConsumerWidget {
                 style: AppText.small,
               ),
             ],
+            for (final (i, capture) in unread.reversed
+                .take(_unreadShown)
+                .indexed) ...[
+              const SizedBox(height: 12),
+              _UnreadRow(index: i, capture: capture),
+            ],
           ],
         ),
       ),
@@ -79,13 +105,6 @@ class _CaptureRow extends ConsumerWidget {
 
   final int index;
   final PendingCapture capture;
-
-  static const _apps = {
-    'sms': 'SMS',
-    'gpay': 'GPay',
-    'phonepe': 'PhonePe',
-    'paytm': 'Paytm',
-  };
 
   /// Opens it pre-filled, to change anything before ✓ adds it.
   void _open(BuildContext context) => context.push('/capture', extra: capture);
@@ -180,7 +199,7 @@ class _CaptureRow extends ConsumerWidget {
                         else
                           'Pick a category',
                         when,
-                        _apps[capture.app] ?? capture.app,
+                        appName(capture.app),
                       ].join(' · '),
                       style: AppText.small,
                     ),
@@ -202,6 +221,85 @@ class _CaptureRow extends ConsumerWidget {
           spacing: 8,
           runSpacing: 8,
           children: lookalike != null ? [skip, add] : [add, skip],
+        ),
+      ],
+    );
+  }
+}
+
+/// A message Penny couldn't read yet, numbers hidden, to try again or skip.
+class _UnreadRow extends ConsumerWidget {
+  const _UnreadRow({required this.index, required this.capture});
+
+  final int index;
+  final UnreadCapture capture;
+
+  Future<void> _retry(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final reads = await ref.read(captureIntakeProvider).take();
+    if (reads.isEmpty) return;
+    final still = reads.any((r) => r.outcome == CaptureOutcome.unread);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            still
+                ? "Still couldn't read it. Penny will try again later."
+                : 'Penny read it.',
+          ),
+        ),
+      );
+  }
+
+  Future<void> _skip(WidgetRef ref) async {
+    final prefs = ref.read(prefsRepositoryProvider);
+    final all = await prefs.unread();
+    await prefs.setUnread([
+      for (final other in all)
+        if (other != capture) other,
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = capture.app == 'sms' || capture.title.trim().isEmpty
+        ? capture.text
+        : '${capture.title}\n${capture.text}';
+    final when =
+        '${dayLabel(capture.at)}, ${DateFormat('h:mm a').format(capture.at)}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          maskedText(text),
+          key: ValueKey('unread-$index'),
+          style: AppText.small.copyWith(color: AppColors.ink),
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+        ),
+        Text(
+          "Couldn't read yet · $when · ${appName(capture.app)}",
+          style: AppText.small,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            BrutalChip(
+              key: ValueKey('unread-retry-$index'),
+              label: 'Try again',
+              icon: Icons.refresh_rounded,
+              onTap: () => _retry(context, ref),
+            ),
+            BrutalChip(
+              key: ValueKey('unread-skip-$index'),
+              label: 'Skip',
+              icon: Icons.close_rounded,
+              onTap: () => _skip(ref),
+            ),
+          ],
         ),
       ],
     );

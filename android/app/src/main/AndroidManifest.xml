@@ -39,8 +39,9 @@
         </activity>
         <!-- Reads payment notifications from the SMS app and a list of
              payment, wallet and investing apps once the user allows it on
-             Android's Notification access page. Nothing else is kept, and
-             nothing leaves the phone. -->
+             Android's Notification access page. Nothing else is kept. Only
+             a payment Penny's rules can't read leaves the phone, to her AI,
+             with every name and long number hidden. -->
         <service
             android:name=".PaymentNotificationListener"
             android:label="Penny"

@@ -217,8 +217,11 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
           const SizedBox(height: 10),
           const Text(
             'Only those apps, and only what looks like a payment. It stays on '
-            "this phone, and people's names never reach the AI. What Penny "
-            'read keeps what she did with each, never the message.',
+            "this phone, except one Penny's rules can't read: that goes to "
+            "her AI with every name and long number hidden, so people's "
+            'names never reach it. What Penny read keeps what she did with '
+            'each, never the message.',
+            key: ValueKey('notifications-privacy'),
             style: AppText.small,
           ),
         ],
@@ -238,6 +241,7 @@ class _LogLine extends StatelessWidget {
     'waiting': 'Waiting',
     'saved': 'Saved',
     'letGo': 'Let go',
+    'unread': "Couldn't read yet",
   };
 
   @override

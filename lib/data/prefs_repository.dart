@@ -15,6 +15,10 @@ typedef CaptureLogEntry = ({
   String what,
 });
 
+/// A notification Penny's rules couldn't read and her AI couldn't yet, as
+/// it came: kept on this phone to try again.
+typedef UnreadCapture = ({String app, String title, String text, DateTime at});
+
 /// Small settings kept on this phone. The note to Penny is backed up too.
 class PrefsRepository {
   PrefsRepository(this._db, {DateTime Function()? clock})
@@ -111,6 +115,81 @@ class PrefsRepository {
             dirty: const Value(false),
           ),
         );
+  }
+
+  /// Notifications to read again once Penny's AI can. Stays on this phone.
+  static const captureUnreadName = 'capture_unread';
+
+  /// How many wait to be read again; older ones are let go.
+  static const captureUnreadLength = 20;
+
+  /// The ones waiting to be read again, oldest first.
+  Stream<List<UnreadCapture>> watchUnread() {
+    final query = _db.select(_db.prefs)
+      ..where((p) => p.name.equals(captureUnreadName));
+    return query.watchSingleOrNull().map((pref) => _unread(pref?.value));
+  }
+
+  Future<List<UnreadCapture>> unread() async {
+    final pref = await (_db.select(
+      _db.prefs,
+    )..where((p) => p.name.equals(captureUnreadName))).getSingleOrNull();
+    return _unread(pref?.value);
+  }
+
+  /// Makes [captures] the ones waiting to be read again, keeping the newest
+  /// [captureUnreadLength].
+  Future<void> setUnread(List<UnreadCapture> captures) async {
+    if (captures.isEmpty) {
+      await (_db.delete(
+        _db.prefs,
+      )..where((p) => p.name.equals(captureUnreadName))).go();
+      return;
+    }
+    final kept = captures.length > captureUnreadLength
+        ? captures.sublist(captures.length - captureUnreadLength)
+        : captures;
+    await _db
+        .into(_db.prefs)
+        .insertOnConflictUpdate(
+          PrefsCompanion.insert(
+            name: captureUnreadName,
+            value: jsonEncode([
+              for (final capture in kept)
+                {
+                  'app': capture.app,
+                  'title': capture.title,
+                  'text': capture.text,
+                  'at': capture.at.millisecondsSinceEpoch,
+                },
+            ]),
+            updatedAt: _clock(),
+            dirty: const Value(false),
+          ),
+        );
+  }
+
+  static List<UnreadCapture> _unread(String? value) {
+    if (value == null) return const [];
+    try {
+      return [
+        for (final item in jsonDecode(value) as List<dynamic>)
+          if (item case {
+            'app': final String app,
+            'title': final String title,
+            'text': final String text,
+            'at': final int at,
+          })
+            (
+              app: app,
+              title: title,
+              text: text,
+              at: DateTime.fromMillisecondsSinceEpoch(at),
+            ),
+      ];
+    } on FormatException {
+      return const [];
+    }
   }
 
   static List<CaptureLogEntry> _log(String? value) {

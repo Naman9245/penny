@@ -106,8 +106,22 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         if (read.outcome == CaptureOutcome.saved) read,
     ];
     final waiting = reads.where((r) => r.outcome == CaptureOutcome.waiting);
+    final unread = reads.where((r) => r.outcome == CaptureOutcome.unread);
+    if (saved.isEmpty && waiting.isEmpty) {
+      if (unread.isEmpty) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Penny couldn't read a payment message. She'll try again when "
+              "you're online.",
+            ),
+          ),
+        );
+      return;
+    }
     if (saved.isEmpty) {
-      if (waiting.isEmpty) return;
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(

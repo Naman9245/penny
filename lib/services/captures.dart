@@ -15,6 +15,8 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
+import 'package:penny/services/penny_ai.dart';
+import 'package:penny/services/sms_ai.dart';
 import 'package:penny/services/sms_parser.dart';
 
 // Payments read from notifications, all on the phone: which notifications
@@ -97,6 +99,68 @@ String _appKey(SmsTxn payment, DateTime at) {
 
 /// [capture]'s payment, or null when it isn't one.
 SmsTxn? readCapture(Capture capture) => explainCapture(capture).payment;
+
+/// Words that say money moved. Only a notification with one is worth
+/// asking Penny's AI about.
+final _moneyMoved = RegExp(
+  r'\b(?:debit(?:ed)?|credit(?:ed)?|paid|pay(?:ment)?|sent|received|deducted|added|spent|withdrawn|transferred|refund(?:ed)?|cashback|invest(?:ed|ment)?|purchased?|order|sip|emi|txn|transaction|dr|cr|units?|allotted|deposit(?:ed)?|redeemed|redemption)\b',
+  caseSensitive: false,
+);
+
+/// What [capture] says, as it's read: a payment app puts half of it in the
+/// title.
+String _textOf(Capture capture) =>
+    capture.app == 'sms' || capture.title.trim().isEmpty
+    ? capture.text
+    : '${capture.title}\n${capture.text}';
+
+/// [capture], which Penny's rules couldn't read, as her AI reads it: every
+/// word that could be a name hidden first ([maskForAi]), and put back in
+/// what the AI answers. A payment counts only with an amount the message
+/// gives. Throws [AiException] when the AI can't answer now.
+Future<({SmsTxn? payment, String? letGo})> readWithAi(
+  AiClient ai,
+  Capture capture,
+) async {
+  final fromSms = capture.app == 'sms';
+  final text = _textOf(capture);
+  final masked = maskForAi(text);
+  final read = await ai.readSms(
+    from: fromSms ? 'sms' : 'app',
+    text: masked.text,
+  );
+  final type = read.type;
+  if (!read.payment || type == null) {
+    return (
+      payment: null,
+      letGo: read.ownMoney
+          ? _letGo[IgnoreReason.ownTransfer]
+          : _letGo[IgnoreReason.unreadable],
+    );
+  }
+  final id = read.categoryId;
+  final categoryId =
+      id != null && categoryById(id).id == id && categoryById(id).type == type
+      ? id
+      : null;
+  final payment = paymentFrom(
+    text,
+    type: type,
+    amountPaise: read.amountPaise,
+    payee: unmask(read.payee, masked.tags),
+    categoryId: categoryId,
+    now: capture.at,
+  );
+  if (payment == null) {
+    return (payment: null, letGo: _letGo[IgnoreReason.unreadable]);
+  }
+  return (
+    payment: fromSms
+        ? payment
+        : payment.withDedupeKey(_appKey(payment, capture.at)),
+    letGo: null,
+  );
+}
 
 /// When [sms] happened: the time it gives, or else when its notification
 /// came, on the day it gives.
@@ -288,8 +352,9 @@ Future<String?> typedLookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async 
       '${typed.merchant ?? kindLabel(typed.type, typed.categoryId)}';
 }
 
-/// What Penny did with a notification she read.
-enum CaptureOutcome { waiting, saved, letGo }
+/// What Penny did with a notification she read. [unread]: neither her rules
+/// nor, for now, her AI could read it; it's read again later.
+enum CaptureOutcome { waiting, saved, letGo, unread }
 
 /// One notification Penny read, and what she did with it. [what] says what
 /// it was, like "−₹250 · Swiggy", or why it was let go, like "an OTP".
@@ -318,8 +383,15 @@ String _letGoKey(Capture capture) => sha256
 /// payment is saved straight away, in its guessed category or else
 /// [fallbackCategoryOf], unless it's one already read from somewhere else
 /// ([repeatOf]), which is let go. Under [CaptureMode.check] each is held to
-/// be checked. Anything that isn't a payment is let go. Returns what Penny
-/// did with each, leaving out payments she had already met.
+/// be checked. Anything that isn't a payment is let go.
+///
+/// One from a bank, a wallet or a payment app that says money moved, but
+/// that the rules can't read, goes to [ai] with its names hidden
+/// ([readWithAi]). When the AI can't answer now, it's kept to be read again
+/// next time, with the ones already kept.
+///
+/// Returns what Penny did with each, leaving out payments she had already
+/// met.
 Future<List<CaptureRead>> takeCaptures({
   required CaptureSource source,
   required AppDatabase db,
@@ -327,11 +399,18 @@ Future<List<CaptureRead>> takeCaptures({
   required CaptureRepository captures,
   required CaptureMode mode,
   required DateTime now,
+  AiClient? ai,
 }) async {
   final waiting = await source.peek();
   final reads = <CaptureRead>[];
-  for (final capture in waiting.captures) {
-    final (:payment, :letGo) = explainCapture(capture);
+  final asking = ai != null && ai.isSetUp ? ai : null;
+  final prefs = PrefsRepository(db);
+  final again = asking == null
+      ? const <UnreadCapture>[]
+      : await prefs.unread();
+  final stillUnread = <String, UnreadCapture>{};
+  for (final capture in [...again, ...waiting.captures]) {
+    var (:payment, :letGo) = explainCapture(capture);
     final sender = capture.app == 'sms' ? capture.title.trim() : null;
     CaptureRead read(
       CaptureOutcome outcome,
@@ -355,6 +434,18 @@ Future<List<CaptureRead>> takeCaptures({
       note: note,
     );
 
+    if (payment == null &&
+        asking != null &&
+        letGo == _letGo[IgnoreReason.unreadable] &&
+        _moneyMoved.hasMatch(_textOf(capture))) {
+      try {
+        (:payment, :letGo) = await readWithAi(asking, capture);
+      } on AiException {
+        stillUnread[_letGoKey(capture)] = capture;
+        reads.add(read(CaptureOutcome.unread, 'Penny will try again'));
+        continue;
+      }
+    }
     if (payment == null) {
       reads.add(read(CaptureOutcome.letGo, letGo ?? 'no payment in it'));
       continue;
@@ -446,6 +537,7 @@ Future<List<CaptureRead>> takeCaptures({
   // A skipped one is let go after two months, as is the record of a saved
   // one.
   await captures.forgetOld(now.subtract(const Duration(days: 60)));
+  if (asking != null) await prefs.setUnread([...stillUnread.values]);
   if (waiting.count > 0) await source.drop(waiting.count);
   return reads;
 }
@@ -455,10 +547,22 @@ Future<List<CaptureRead>> takeCaptures({
 PennyNotice? noticeFor(List<CaptureRead> reads) {
   final payments = [
     for (final read in reads)
-      if (read.outcome != CaptureOutcome.letGo) read,
+      if (read.outcome
+          case CaptureOutcome.saved || CaptureOutcome.waiting)
+        read,
   ];
-  if (payments.isEmpty) return null;
-  if (payments case [final one]) {
+  final unread = reads.where((r) => r.outcome == CaptureOutcome.unread).length;
+  if (payments.isEmpty) {
+    if (unread == 0) return null;
+    return (
+      title: unread == 1
+          ? "Penny couldn't read a payment message"
+          : "Penny couldn't read $unread payment messages",
+      text: "She'll try again when you're online. It's on Home.",
+      lines: const [],
+    );
+  }
+  if (payments case [final one] when unread == 0) {
     final category = _categoryOf(one);
     return one.outcome == CaptureOutcome.saved
         ? (
@@ -481,10 +585,13 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
   final saved = payments.where((p) => p.outcome == CaptureOutcome.saved);
   final held = payments.length - saved.length;
   return (
-    title: 'Penny read ${payments.length} payments',
+    title: payments.length == 1
+        ? 'Penny read 1 payment'
+        : 'Penny read ${payments.length} payments',
     text: [
       if (held > 0) '$held waiting on Home',
       if (saved.isNotEmpty) '${saved.length} saved',
+      if (unread > 0) "$unread she couldn't read yet",
     ].join(', '),
     lines: [
       for (final read in payments.take(5))
@@ -541,6 +648,7 @@ class CaptureIntake {
           captures: _ref.read(captureRepositoryProvider),
           mode: _ref.read(captureModeProvider),
           now: DateTime.now(),
+          ai: _ref.read(aiClientProvider),
         );
         await noteReads(PrefsRepository(db), round);
         reads.addAll(round);

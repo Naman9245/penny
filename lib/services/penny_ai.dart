@@ -182,9 +182,60 @@ class ChatAnswer {
 }
 
 /// Asks Penny's server for a look at one month, or for a chat reply.
+/// What Penny's AI made of a notification her rules couldn't read: a
+/// payment ([type], [amountPaise], maybe a category, and the words naming
+/// [payee], tags included), or not one, maybe because it only moved the
+/// user's own money.
+typedef SmsAiRead = ({
+  bool payment,
+  bool ownMoney,
+  TxnType? type,
+  int amountPaise,
+  String? categoryId,
+  String? payee,
+});
+
+/// [data], read-sms's reply, or null when it makes no sense.
+SmsAiRead? smsAiReadFrom(Object? data) {
+  if (data is! Map || data['read'] is! Map) return null;
+  final read = data['read'] as Map;
+  if (read['payment'] == false) {
+    return (
+      payment: false,
+      ownMoney: read['why'] == 'own',
+      type: null,
+      amountPaise: 0,
+      categoryId: null,
+      payee: null,
+    );
+  }
+  final type = switch (read['type']) {
+    'debit' => TxnType.debit,
+    'credit' => TxnType.credit,
+    _ => null,
+  };
+  final paise = read['amountPaise'];
+  if (read['payment'] != true || type == null || paise is! int || paise <= 0) {
+    return null;
+  }
+  return (
+    payment: true,
+    ownMoney: false,
+    type: type,
+    amountPaise: paise,
+    categoryId: read['category'] is String ? read['category'] as String : null,
+    payee: read['payee'] is String ? read['payee'] as String : null,
+  );
+}
+
 abstract interface class AiClient {
   /// Whether this build knows where Penny's server is.
   bool get isSetUp;
+
+  /// What Penny's AI makes of [text], a notification from [from] ("sms" or
+  /// "app") with names and long numbers already hidden. Throws
+  /// [AiException] when there's no answer.
+  Future<SmsAiRead> readSms({required String from, required String text});
 
   /// Penny's look at [request]'s month. Throws [AiException] when there is
   /// no answer.
@@ -199,8 +250,8 @@ abstract interface class AiClient {
   Future<PlanAnswer> planGoal(GoalPlanRequest request);
 }
 
-/// [AiClient] over the analyze-month, penny-chat and plan-goal Edge
-/// Functions. Unless the phone is signed in for backup, it signs in
+/// [AiClient] over the analyze-month, penny-chat, plan-goal and read-sms
+/// Edge Functions. Unless the phone is signed in for backup, it signs in
 /// anonymously (no email, no name) the first time Penny is asked.
 class SupabaseAiClient implements AiClient {
   SupabaseAiClient({
@@ -228,6 +279,10 @@ class SupabaseAiClient implements AiClient {
     request.toJson(),
     (data) => planAnswerFrom(data, request),
   );
+
+  @override
+  Future<SmsAiRead> readSms({required String from, required String text}) =>
+      _call('read-sms', {'v': 1, 'from': from, 'text': text}, smsAiReadFrom);
 
   /// Calls [function] with [body] and reads its reply with [read], which
   /// returns null for a reply that makes no sense.

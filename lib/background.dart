@@ -8,6 +8,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/services/captures.dart';
 import 'package:penny/services/notification_inbox.dart';
+import 'package:penny/services/penny_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Penny's hidden copy, which Android starts when payment notifications
@@ -23,6 +24,7 @@ Future<void> readInBackground() async {
       inbox: inbox,
       prefs: await SharedPreferences.getInstance(),
       open: AppDatabase.named,
+      ai: SupabaseAiClient(),
     );
   } finally {
     await inbox.done();
@@ -30,13 +32,15 @@ Future<void> readInBackground() async {
 }
 
 /// What [readInBackground] does once started: takes everything waiting in
-/// [inbox] into the user's own database, opened with [open], goes round
-/// again while more arrive, and posts one notification about it all. With
-/// demo data on, they wait for the user's own money.
+/// [inbox] into the user's own database, opened with [open], asking [ai]
+/// about what the rules can't read, goes round again while more arrive, and
+/// posts one notification about it all. With demo data on, they wait for
+/// the user's own money.
 Future<List<CaptureRead>> readWaiting({
   required NotificationInbox inbox,
   required SharedPreferences prefs,
   required AppDatabase Function(String name) open,
+  AiClient? ai,
 }) async {
   if (prefs.getBool(DemoMode.key) ?? false) return const [];
   final db = open('penny');
@@ -51,6 +55,7 @@ Future<List<CaptureRead>> readWaiting({
         captures: CaptureRepository(db),
         mode: mode,
         now: DateTime.now(),
+        ai: ai,
       );
       await noteReads(PrefsRepository(db), round);
       reads.addAll(round);
