@@ -102,7 +102,7 @@ GoalPlanRequest? buildGoalPlanRequest({
     month: month,
     tags: groupTags(month, monthTxns, insights[month.month], rules: rules),
     goal: {
-      'title': goal.title,
+      'title': maskLongNumbers(goal.title),
       'target': _rupees(goal.targetPaise),
       'saved': _rupees(math.max(0, progress.savedPaise)),
       // The server takes up to ten years of weeks.

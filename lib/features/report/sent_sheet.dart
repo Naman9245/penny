@@ -132,7 +132,7 @@ class _SentSheet extends StatelessWidget {
                 for (final (i, goal) in goals.indexed)
                   (
                     key: 'sent-goals-$i',
-                    title: goal.title,
+                    title: maskLongNumbers(goal.title),
                     detail:
                         '${formatPaise(goal.savedPaise)} put aside · by '
                         '${DateFormat('d MMM y').format(goal.deadline)}',

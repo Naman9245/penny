@@ -135,7 +135,7 @@ class ChatRequest {
     'goals': [
       for (final goal in goals)
         {
-          'title': goal.title,
+          'title': maskLongNumbers(goal.title),
           'target': _rupees(goal.targetPaise),
           'saved': _rupees(goal.savedPaise),
           'deadline': DateFormat('yyyy-MM-dd').format(goal.deadline),
@@ -144,8 +144,16 @@ class ChatRequest {
         },
     ],
     if (mood case final mood?) 'mood': mood.name,
+    // What the user typed goes with long numbers hidden; the chat here
+    // keeps it as typed.
     'messages': [
-      for (final turn in turns) {'role': turn.role.name, 'text': turn.text},
+      for (final turn in turns)
+        {
+          'role': turn.role.name,
+          'text': turn.role == ChatRole.user
+              ? maskLongNumbers(turn.text)
+              : turn.text,
+        },
     ],
   };
 }

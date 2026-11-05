@@ -51,6 +51,15 @@ bool isPersonPayee(Txn txn) {
   return merchant != null && safePayeeName(merchant) == null;
 }
 
+/// Nine or more digits in a row, spaces or dashes allowed between them:
+/// phone, account and card numbers. Amounts written with commas, like
+/// 1,20,000, don't count.
+final _longNumber = RegExp(r'\d(?:[\s-]?\d){8,}');
+
+/// [text] with every long number hidden as •••, before it leaves the
+/// phone. The server does the same again, as it must not rely on this.
+String maskLongNumbers(String text) => text.replaceAll(_longNumber, '•••');
+
 /// A shop name with only letters and simple punctuation, so phone and
 /// reference numbers can't ride along. Null when nothing is left.
 String? cleanShopName(String? raw) {
@@ -241,7 +250,8 @@ InsightRequest buildInsightRequest({
     },
     'spends': spends,
     'income': income,
-    if (note?.trim() case final text? when text.isNotEmpty) 'note': text,
+    if (note?.trim() case final text? when text.isNotEmpty)
+      'note': maskLongNumbers(text),
     // Each category's amount goes as a cap, and the everyday part of their
     // total as the everyday budget.
     if (!budget.isEmpty)
