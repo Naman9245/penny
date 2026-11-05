@@ -4675,6 +4675,26 @@ class $PendingCapturesTable extends PendingCaptures
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _senderMeta = const VerificationMeta('sender');
+  @override
+  late final GeneratedColumn<String> sender = GeneratedColumn<String>(
+    'sender',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _savedAsMeta = const VerificationMeta(
+    'savedAs',
+  );
+  @override
+  late final GeneratedColumn<String> savedAs = GeneratedColumn<String>(
+    'saved_as',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _amountPaiseMeta = const VerificationMeta(
     'amountPaise',
   );
@@ -4799,6 +4819,8 @@ class $PendingCapturesTable extends PendingCaptures
   List<GeneratedColumn> get $columns => [
     dedupeKey,
     app,
+    sender,
+    savedAs,
     amountPaise,
     type,
     payee,
@@ -4838,6 +4860,18 @@ class $PendingCapturesTable extends PendingCaptures
       );
     } else if (isInserting) {
       context.missing(_appMeta);
+    }
+    if (data.containsKey('sender')) {
+      context.handle(
+        _senderMeta,
+        sender.isAcceptableOrUnknown(data['sender']!, _senderMeta),
+      );
+    }
+    if (data.containsKey('saved_as')) {
+      context.handle(
+        _savedAsMeta,
+        savedAs.isAcceptableOrUnknown(data['saved_as']!, _savedAsMeta),
+      );
     }
     if (data.containsKey('amount_paise')) {
       context.handle(
@@ -4940,6 +4974,14 @@ class $PendingCapturesTable extends PendingCaptures
         DriftSqlType.string,
         data['${effectivePrefix}app'],
       )!,
+      sender: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sender'],
+      ),
+      savedAs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}saved_as'],
+      ),
       amountPaise: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}amount_paise'],
@@ -5004,6 +5046,14 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
 
   /// Where it was read: "sms", "gpay", "phonepe" or "paytm".
   final String app;
+
+  /// Who sent it, for an SMS, as the Messages app names them: "JM-HDFCBK",
+  /// "HDFC Bank". Tells one payment seen twice from two payments.
+  final String? sender;
+
+  /// The entry it was saved as, once saved. Kept, out of sight, so the same
+  /// payment read again from another app is known.
+  final String? savedAs;
   final int amountPaise;
   final TxnType type;
   final String? payee;
@@ -5026,6 +5076,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
   const PendingCapture({
     required this.dedupeKey,
     required this.app,
+    this.sender,
+    this.savedAs,
     required this.amountPaise,
     required this.type,
     this.payee,
@@ -5043,6 +5095,12 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     final map = <String, Expression>{};
     map['dedupe_key'] = Variable<String>(dedupeKey);
     map['app'] = Variable<String>(app);
+    if (!nullToAbsent || sender != null) {
+      map['sender'] = Variable<String>(sender);
+    }
+    if (!nullToAbsent || savedAs != null) {
+      map['saved_as'] = Variable<String>(savedAs);
+    }
     map['amount_paise'] = Variable<int>(amountPaise);
     {
       map['type'] = Variable<String>(
@@ -5073,6 +5131,12 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     return PendingCapturesCompanion(
       dedupeKey: Value(dedupeKey),
       app: Value(app),
+      sender: sender == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sender),
+      savedAs: savedAs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(savedAs),
       amountPaise: Value(amountPaise),
       type: Value(type),
       payee: payee == null && nullToAbsent
@@ -5103,6 +5167,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     return PendingCapture(
       dedupeKey: serializer.fromJson<String>(json['dedupeKey']),
       app: serializer.fromJson<String>(json['app']),
+      sender: serializer.fromJson<String?>(json['sender']),
+      savedAs: serializer.fromJson<String?>(json['savedAs']),
       amountPaise: serializer.fromJson<int>(json['amountPaise']),
       type: $PendingCapturesTable.$convertertype.fromJson(
         serializer.fromJson<String>(json['type']),
@@ -5126,6 +5192,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     return <String, dynamic>{
       'dedupeKey': serializer.toJson<String>(dedupeKey),
       'app': serializer.toJson<String>(app),
+      'sender': serializer.toJson<String?>(sender),
+      'savedAs': serializer.toJson<String?>(savedAs),
       'amountPaise': serializer.toJson<int>(amountPaise),
       'type': serializer.toJson<String>(
         $PendingCapturesTable.$convertertype.toJson(type),
@@ -5145,6 +5213,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
   PendingCapture copyWith({
     String? dedupeKey,
     String? app,
+    Value<String?> sender = const Value.absent(),
+    Value<String?> savedAs = const Value.absent(),
     int? amountPaise,
     TxnType? type,
     Value<String?> payee = const Value.absent(),
@@ -5159,6 +5229,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
   }) => PendingCapture(
     dedupeKey: dedupeKey ?? this.dedupeKey,
     app: app ?? this.app,
+    sender: sender.present ? sender.value : this.sender,
+    savedAs: savedAs.present ? savedAs.value : this.savedAs,
     amountPaise: amountPaise ?? this.amountPaise,
     type: type ?? this.type,
     payee: payee.present ? payee.value : this.payee,
@@ -5177,6 +5249,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     return PendingCapture(
       dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
       app: data.app.present ? data.app.value : this.app,
+      sender: data.sender.present ? data.sender.value : this.sender,
+      savedAs: data.savedAs.present ? data.savedAs.value : this.savedAs,
       amountPaise: data.amountPaise.present
           ? data.amountPaise.value
           : this.amountPaise,
@@ -5208,6 +5282,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     return (StringBuffer('PendingCapture(')
           ..write('dedupeKey: $dedupeKey, ')
           ..write('app: $app, ')
+          ..write('sender: $sender, ')
+          ..write('savedAs: $savedAs, ')
           ..write('amountPaise: $amountPaise, ')
           ..write('type: $type, ')
           ..write('payee: $payee, ')
@@ -5227,6 +5303,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
   int get hashCode => Object.hash(
     dedupeKey,
     app,
+    sender,
+    savedAs,
     amountPaise,
     type,
     payee,
@@ -5245,6 +5323,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
       (other is PendingCapture &&
           other.dedupeKey == this.dedupeKey &&
           other.app == this.app &&
+          other.sender == this.sender &&
+          other.savedAs == this.savedAs &&
           other.amountPaise == this.amountPaise &&
           other.type == this.type &&
           other.payee == this.payee &&
@@ -5261,6 +5341,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
 class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   final Value<String> dedupeKey;
   final Value<String> app;
+  final Value<String?> sender;
+  final Value<String?> savedAs;
   final Value<int> amountPaise;
   final Value<TxnType> type;
   final Value<String?> payee;
@@ -5276,6 +5358,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   const PendingCapturesCompanion({
     this.dedupeKey = const Value.absent(),
     this.app = const Value.absent(),
+    this.sender = const Value.absent(),
+    this.savedAs = const Value.absent(),
     this.amountPaise = const Value.absent(),
     this.type = const Value.absent(),
     this.payee = const Value.absent(),
@@ -5292,6 +5376,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   PendingCapturesCompanion.insert({
     required String dedupeKey,
     required String app,
+    this.sender = const Value.absent(),
+    this.savedAs = const Value.absent(),
     required int amountPaise,
     required TxnType type,
     this.payee = const Value.absent(),
@@ -5316,6 +5402,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   static Insertable<PendingCapture> custom({
     Expression<String>? dedupeKey,
     Expression<String>? app,
+    Expression<String>? sender,
+    Expression<String>? savedAs,
     Expression<int>? amountPaise,
     Expression<String>? type,
     Expression<String>? payee,
@@ -5332,6 +5420,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     return RawValuesInsertable({
       if (dedupeKey != null) 'dedupe_key': dedupeKey,
       if (app != null) 'app': app,
+      if (sender != null) 'sender': sender,
+      if (savedAs != null) 'saved_as': savedAs,
       if (amountPaise != null) 'amount_paise': amountPaise,
       if (type != null) 'type': type,
       if (payee != null) 'payee': payee,
@@ -5351,6 +5441,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   PendingCapturesCompanion copyWith({
     Value<String>? dedupeKey,
     Value<String>? app,
+    Value<String?>? sender,
+    Value<String?>? savedAs,
     Value<int>? amountPaise,
     Value<TxnType>? type,
     Value<String?>? payee,
@@ -5367,6 +5459,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     return PendingCapturesCompanion(
       dedupeKey: dedupeKey ?? this.dedupeKey,
       app: app ?? this.app,
+      sender: sender ?? this.sender,
+      savedAs: savedAs ?? this.savedAs,
       amountPaise: amountPaise ?? this.amountPaise,
       type: type ?? this.type,
       payee: payee ?? this.payee,
@@ -5390,6 +5484,12 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     }
     if (app.present) {
       map['app'] = Variable<String>(app.value);
+    }
+    if (sender.present) {
+      map['sender'] = Variable<String>(sender.value);
+    }
+    if (savedAs.present) {
+      map['saved_as'] = Variable<String>(savedAs.value);
     }
     if (amountPaise.present) {
       map['amount_paise'] = Variable<int>(amountPaise.value);
@@ -5439,6 +5539,8 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     return (StringBuffer('PendingCapturesCompanion(')
           ..write('dedupeKey: $dedupeKey, ')
           ..write('app: $app, ')
+          ..write('sender: $sender, ')
+          ..write('savedAs: $savedAs, ')
           ..write('amountPaise: $amountPaise, ')
           ..write('type: $type, ')
           ..write('payee: $payee, ')
@@ -8018,6 +8120,8 @@ typedef $$PendingCapturesTableCreateCompanionBuilder =
     PendingCapturesCompanion Function({
       required String dedupeKey,
       required String app,
+      Value<String?> sender,
+      Value<String?> savedAs,
       required int amountPaise,
       required TxnType type,
       Value<String?> payee,
@@ -8035,6 +8139,8 @@ typedef $$PendingCapturesTableUpdateCompanionBuilder =
     PendingCapturesCompanion Function({
       Value<String> dedupeKey,
       Value<String> app,
+      Value<String?> sender,
+      Value<String?> savedAs,
       Value<int> amountPaise,
       Value<TxnType> type,
       Value<String?> payee,
@@ -8065,6 +8171,16 @@ class $$PendingCapturesTableFilterComposer
 
   ColumnFilters<String> get app => $composableBuilder(
     column: $table.app,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get savedAs => $composableBuilder(
+    column: $table.savedAs,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8144,6 +8260,16 @@ class $$PendingCapturesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get sender => $composableBuilder(
+    column: $table.sender,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get savedAs => $composableBuilder(
+    column: $table.savedAs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get amountPaise => $composableBuilder(
     column: $table.amountPaise,
     builder: (column) => ColumnOrderings(column),
@@ -8214,6 +8340,12 @@ class $$PendingCapturesTableAnnotationComposer
 
   GeneratedColumn<String> get app =>
       $composableBuilder(column: $table.app, builder: (column) => column);
+
+  GeneratedColumn<String> get sender =>
+      $composableBuilder(column: $table.sender, builder: (column) => column);
+
+  GeneratedColumn<String> get savedAs =>
+      $composableBuilder(column: $table.savedAs, builder: (column) => column);
 
   GeneratedColumn<int> get amountPaise => $composableBuilder(
     column: $table.amountPaise,
@@ -8300,6 +8432,8 @@ class $$PendingCapturesTableTableManager
               ({
                 Value<String> dedupeKey = const Value.absent(),
                 Value<String> app = const Value.absent(),
+                Value<String?> sender = const Value.absent(),
+                Value<String?> savedAs = const Value.absent(),
                 Value<int> amountPaise = const Value.absent(),
                 Value<TxnType> type = const Value.absent(),
                 Value<String?> payee = const Value.absent(),
@@ -8315,6 +8449,8 @@ class $$PendingCapturesTableTableManager
               }) => PendingCapturesCompanion(
                 dedupeKey: dedupeKey,
                 app: app,
+                sender: sender,
+                savedAs: savedAs,
                 amountPaise: amountPaise,
                 type: type,
                 payee: payee,
@@ -8332,6 +8468,8 @@ class $$PendingCapturesTableTableManager
               ({
                 required String dedupeKey,
                 required String app,
+                Value<String?> sender = const Value.absent(),
+                Value<String?> savedAs = const Value.absent(),
                 required int amountPaise,
                 required TxnType type,
                 Value<String?> payee = const Value.absent(),
@@ -8347,6 +8485,8 @@ class $$PendingCapturesTableTableManager
               }) => PendingCapturesCompanion.insert(
                 dedupeKey: dedupeKey,
                 app: app,
+                sender: sender,
+                savedAs: savedAs,
                 amountPaise: amountPaise,
                 type: type,
                 payee: payee,

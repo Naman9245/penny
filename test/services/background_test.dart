@@ -82,28 +82,34 @@ void main() {
     final reads = await read({'capture_mode': 'save'});
     expect(
       [for (final r in reads) r.outcome],
-      [CaptureOutcome.saved, CaptureOutcome.letGo, CaptureOutcome.waiting],
+      [CaptureOutcome.saved, CaptureOutcome.letGo, CaptureOutcome.saved],
     );
     expect(android.calls.where((c) => c == 'drop'), hasLength(2));
     expect(android.notified, [
       {
         'title': 'Penny read 2 payments',
-        'text': '1 waiting on Home, 1 saved',
-        'lines': ['−₹250 · Swiggy · 🍔 Food', '+₹500 · Rahul Kumar'],
+        'text': '2 saved',
+        'lines': [
+          '−₹250 · Swiggy · 🍔 Food',
+          '+₹500 · Rahul Kumar · 🤝 From people',
+        ],
       },
     ]);
     expect(files.opened, ['penny']);
 
     // What she wrote is there when Penny opens.
     final db = files.open('penny');
-    final entry = (await db.select(db.txns).get()).single;
-    expect(entry.source, TxnSource.sms);
-    expect(entry.categoryId, 'food');
-    expect(entry.merchant, 'Swiggy');
-    final waiting = await CaptureRepository(db).watchWaiting().first;
-    expect([for (final c in waiting) c.amountPaise], [50000]);
+    final entries = await db.select(db.txns).get();
+    expect(
+      {for (final e in entries) e.merchant: (e.source, e.categoryId)},
+      {
+        'Swiggy': (TxnSource.sms, 'food'),
+        'Rahul Kumar': (TxnSource.sms, 'from_people'),
+      },
+    );
+    expect(await CaptureRepository(db).watchWaiting().first, isEmpty);
     final log = await PrefsRepository(db).watchCaptureLog().first;
-    expect([for (final e in log) e.outcome], ['waiting', 'letGo', 'saved']);
+    expect([for (final e in log) e.outcome], ['saved', 'letGo', 'saved']);
     await db.close();
   });
 

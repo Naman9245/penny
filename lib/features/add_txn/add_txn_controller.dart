@@ -259,31 +259,35 @@ class AddTxnController extends Notifier<AddTxnState> {
       final existing = sms == null
           ? null
           : await repo.findByDedupeKey(sms.dedupeKey);
+      final id =
+          existing?.id ??
+          await repo.add(
+            amountPaise: state.amountPaise,
+            type: state.type,
+            categoryId: state.categoryId!,
+            occurredAt: state.occurredAt,
+            merchant: state.merchant,
+            source: args.capture != null
+                ? TxnSource.sms
+                : sms == null
+                ? TxnSource.manual
+                : TxnSource.share,
+            dedupeKey: sms?.dedupeKey,
+            payeeIsPerson: sms == null
+                ? null
+                : _payeeIsPerson(
+                    wasPerson: sms.payeeIsPerson,
+                    renamed: state.merchant != sms.payee,
+                  ),
+          );
       // Saved one way or another, a payment read from a notification
       // stops waiting.
       if (args.capture case final capture?) {
-        await ref.read(captureRepositoryProvider).remove(capture.dedupeKey);
+        await ref
+            .read(captureRepositoryProvider)
+            .markSaved(capture.dedupeKey, id);
       }
-      if (existing != null) return existing.id;
-      return repo.add(
-        amountPaise: state.amountPaise,
-        type: state.type,
-        categoryId: state.categoryId!,
-        occurredAt: state.occurredAt,
-        merchant: state.merchant,
-        source: args.capture != null
-            ? TxnSource.sms
-            : sms == null
-            ? TxnSource.manual
-            : TxnSource.share,
-        dedupeKey: sms?.dedupeKey,
-        payeeIsPerson: sms == null
-            ? null
-            : _payeeIsPerson(
-                wasPerson: sms.payeeIsPerson,
-                renamed: state.merchant != sms.payee,
-              ),
-      );
+      return id;
     }
     await repo.update(
       editing.id,

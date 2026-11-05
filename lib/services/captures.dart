@@ -21,6 +21,17 @@ import 'package:penny/services/sms_parser.dart';
 // are payments, which of those are already here, what's done with the rest,
 // and what Penny tells the user about it.
 
+/// The apps Penny reads, as people call them.
+const _appNames = {
+  'sms': 'SMS',
+  'gpay': 'GPay',
+  'phonepe': 'PhonePe',
+  'paytm': 'Paytm',
+};
+
+/// [app], as people call it: "SMS", "GPay".
+String appName(String app) => _appNames[app] ?? app;
+
 /// Why a notification isn't a payment, in words for "What Penny read".
 const _letGo = {
   IgnoreReason.otp: 'an OTP',
@@ -51,9 +62,27 @@ const _letGo = {
       ? capture.text
       : '${capture.title}\n${capture.text}';
   return switch (parseSms(text, now: capture.at)) {
+    // A payment app's notices for two payments can read alike, word for
+    // word: the minute each came tells them apart. An SMS never does, with
+    // its own reference or balance.
+    final SmsTxn payment when !fromSms => (
+      payment: payment.withDedupeKey(_appKey(payment, capture.at)),
+      letGo: null,
+    ),
     final SmsTxn payment => (payment: payment, letGo: null),
     SmsIgnored(:final reason) => (payment: null, letGo: _letGo[reason]),
   };
+}
+
+String _appKey(SmsTxn payment, DateTime at) {
+  final minute = DateTime(at.year, at.month, at.day, at.hour, at.minute);
+  return sha256
+      .convert(
+        utf8.encode(
+          'penny-app|${payment.dedupeKey}|${minute.millisecondsSinceEpoch}',
+        ),
+      )
+      .toString();
 }
 
 /// [capture]'s payment, or null when it isn't one.
@@ -75,12 +104,22 @@ String whatOf(SmsTxn sms) {
   return '$sign${formatPaise(sms.amountPaise)} · $who';
 }
 
-/// Its guessed category, like "🍔 Food", or null without one.
-String? _categoryOf(SmsTxn sms) {
-  final id = sms.suggestedCategoryId;
-  if (id == null) return null;
+/// The category [read] went in, or would, like "🍔 Food". Null without
+/// one.
+String? _categoryOf(CaptureRead read) {
+  final id = read.categoryId;
+  final sms = read.sms;
+  if (id == null || sms == null) return null;
   return '${categoryById(id).emoji} ${kindLabel(sms.type, id)}';
 }
+
+/// Where a payment Penny can't place goes when she saves it straight away:
+/// To people, or From people, for a person; Other for anything else. The
+/// user can change it.
+String fallbackCategoryOf(SmsTxn sms) => switch (sms.type) {
+  TxnType.debit => sms.payeeIsPerson ? 'people' : 'other',
+  TxnType.credit => sms.payeeIsPerson ? 'from_people' : 'other_income',
+};
 
 /// How far apart a bank SMS and a payment app's notice of one payment can
 /// come.
@@ -135,20 +174,129 @@ Future<String?> lookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async {
 
 String _time(DateTime at) => DateFormat('h:mm a').format(at);
 
+/// How far apart a bank's SMS for an investment and the fund's own
+/// confirmation of it can come.
+const _sameInvestment = Duration(days: 3);
+
+/// Where a payment was read: an app, or for an SMS, who sent it. A sender
+/// code's route prefix and suffix don't count: "JM-HDFCBK-S" is "HDFCBK".
+String _sourceOf(String app, String? sender) {
+  if (app != 'sms') return app;
+  final name = (sender ?? '').trim();
+  final code = _senderCode.firstMatch(name)?.group(1);
+  return 'sms:${(code ?? name).toUpperCase()}';
+}
+
+final _senderCode = RegExp(
+  r'^[A-Z]{2}-([A-Z0-9]{3,9})(?:-[A-Z])?$',
+  caseSensitive: false,
+);
+
+/// The same payment, read already: from another app (the bank's SMS, then
+/// GPay's notice) for the same amount the same way, within half an hour.
+/// For investing, also another sender's SMS within three days: the bank's
+/// debit, then the fund's confirmation. Two payments from one place are two
+/// payments, and one already matched with a copy from this place isn't
+/// matched again. Says where it was read, in words for "What Penny read"
+/// like "already saved from SMS", and the entry it was saved as, if it was.
+Future<({String what, String? entryId})?> repeatOf(
+  AppDatabase db,
+  SmsTxn sms,
+  DateTime at, {
+  required String app,
+  String? sender,
+}) async {
+  final investing = isInvestCategory(sms.suggestedCategoryId);
+  final window = investing ? _sameInvestment : _sameMoment;
+  final source = _sourceOf(app, sender);
+  final rows =
+      await (db.select(db.pendingCaptures)..where(
+            (p) =>
+                p.dedupeKey.equals(sms.dedupeKey).not() &
+                p.amountPaise.equals(sms.amountPaise) &
+                p.type.equalsValue(sms.type) &
+                p.occurredAt.isBetweenValues(
+                  at.subtract(window),
+                  at.add(window),
+                ),
+          ))
+          .get();
+  for (final row in rows) {
+    // Kept before senders were: who sent it isn't known.
+    if (row.app == 'sms' && row.sender == null) continue;
+    final from = _sourceOf(row.app, row.sender);
+    if (from == source) continue;
+    // Two SMS are one payment only as an investment and its confirmation.
+    if (row.app == app && !investing) continue;
+    final entryId = row.savedAs;
+    if (entryId != null) {
+      final copies =
+          await (db.select(db.pendingCaptures)..where(
+                (p) =>
+                    p.savedAs.equals(entryId) &
+                    p.dedupeKey.equals(row.dedupeKey).not(),
+              ))
+              .get();
+      if (copies.any((copy) => _sourceOf(copy.app, copy.sender) == source)) {
+        continue;
+      }
+    }
+    final where = appName(row.app);
+    return (
+      what: entryId != null
+          ? 'already saved from $where'
+          : row.skippedAt != null
+          ? 'already skipped from $where'
+          : 'already waiting from $where',
+      entryId: entryId,
+    );
+  }
+  return null;
+}
+
+/// An entry typed by hand on [at]'s day for the same amount the same way,
+/// in words like "₹250 · Lunch", or null when there's none.
+Future<String?> typedLookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async {
+  final day = dayStart(at);
+  final typed =
+      await (db.select(db.txns)
+            ..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.source.equalsValue(TxnSource.manual) &
+                  t.amountPaise.equals(sms.amountPaise) &
+                  t.type.equalsValue(sms.type) &
+                  t.occurredAt.isBetweenValues(
+                    day,
+                    DateTime(day.year, day.month, day.day + 1),
+                  ),
+            )
+            ..limit(1))
+          .getSingleOrNull();
+  if (typed == null) return null;
+  return '${formatPaise(typed.amountPaise)} · '
+      '${typed.merchant ?? kindLabel(typed.type, typed.categoryId)}';
+}
+
 /// What Penny did with a notification she read.
 enum CaptureOutcome { waiting, saved, letGo }
 
 /// One notification Penny read, and what she did with it. [what] says what
 /// it was, like "−₹250 · Swiggy", or why it was let go, like "an OTP".
-/// [key] tells it apart from others without keeping its text.
+/// [key] tells it apart from others without keeping its text. [sender] is
+/// who sent an SMS; [categoryId] is where a payment went, or would go; and
+/// [note] names an entry typed by hand that a saved one may repeat.
 typedef CaptureRead = ({
   String key,
   String app,
+  String? sender,
   DateTime at,
   CaptureOutcome outcome,
   String what,
   SmsTxn? sms,
+  String? categoryId,
   String? entryId,
+  String? note,
 });
 
 /// A let-go notification's key: a fingerprint, never its text.
@@ -156,11 +304,12 @@ String _letGoKey(Capture capture) => sha256
     .convert(utf8.encode('penny-let-go|${capture.app}|${capture.text}'))
     .toString();
 
-/// Takes everything waiting in [source]. Under [CaptureMode.save] a payment
-/// is saved straight away when it's clear-cut: nothing it may already be,
-/// and a category to go in. Every other payment is held to be checked, and
-/// anything that isn't one is let go. Returns what Penny did with each,
-/// leaving out payments she had already met.
+/// Takes everything waiting in [source]. Under [CaptureMode.save] every
+/// payment is saved straight away, in its guessed category or else
+/// [fallbackCategoryOf], unless it's one already read from somewhere else
+/// ([repeatOf]), which is let go. Under [CaptureMode.check] each is held to
+/// be checked. Anything that isn't a payment is let go. Returns what Penny
+/// did with each, leaving out payments she had already met.
 Future<List<CaptureRead>> takeCaptures({
   required CaptureSource source,
   required AppDatabase db,
@@ -173,25 +322,69 @@ Future<List<CaptureRead>> takeCaptures({
   final reads = <CaptureRead>[];
   for (final capture in waiting.captures) {
     final (:payment, :letGo) = explainCapture(capture);
+    final sender = capture.app == 'sms' ? capture.title.trim() : null;
+    CaptureRead read(
+      CaptureOutcome outcome,
+      String what, {
+      String? key,
+      DateTime? at,
+      SmsTxn? sms,
+      String? categoryId,
+      String? entryId,
+      String? note,
+    }) => (
+      key: key ?? _letGoKey(capture),
+      app: capture.app,
+      sender: sender,
+      at: at ?? capture.at,
+      outcome: outcome,
+      what: what,
+      sms: sms,
+      categoryId: categoryId,
+      entryId: entryId,
+      note: note,
+    );
+
     if (payment == null) {
-      reads.add((
-        key: _letGoKey(capture),
-        app: capture.app,
-        at: capture.at,
-        outcome: CaptureOutcome.letGo,
-        what: letGo ?? 'no payment in it',
-        sms: null,
-        entryId: null,
-      ));
+      reads.add(read(CaptureOutcome.letGo, letGo ?? 'no payment in it'));
       continue;
     }
     if (await captures.isKnown(payment.dedupeKey)) continue;
     final at = occurredAtOf(payment, capture.at);
-    final lookalike = await lookalikeOf(db, payment, at);
-    final categoryId = payment.suggestedCategoryId;
-    String? entryId;
-    if (mode == CaptureMode.save && lookalike == null && categoryId != null) {
-      entryId = await txns.add(
+    if (mode == CaptureMode.save) {
+      final repeat = await repeatOf(
+        db,
+        payment,
+        at,
+        app: capture.app,
+        sender: sender,
+      );
+      if (repeat != null) {
+        // Kept as a copy of that entry: known if shown again, and never
+        // matched to another.
+        if (repeat.entryId case final entryId?) {
+          await captures.recordSaved(
+            payment,
+            app: capture.app,
+            at: at,
+            entryId: entryId,
+            sender: sender,
+          );
+        }
+        reads.add(
+          read(
+            CaptureOutcome.letGo,
+            repeat.what,
+            key: payment.dedupeKey,
+            at: at,
+          ),
+        );
+        continue;
+      }
+      final categoryId =
+          payment.suggestedCategoryId ?? fallbackCategoryOf(payment);
+      final note = await typedLookalikeOf(db, payment, at);
+      final entryId = await txns.add(
         amountPaise: payment.amountPaise,
         type: payment.type,
         categoryId: categoryId,
@@ -201,26 +394,48 @@ Future<List<CaptureRead>> takeCaptures({
         dedupeKey: payment.dedupeKey,
         payeeIsPerson: payment.payeeIsPerson,
       );
-    } else {
-      await captures.hold(
+      await captures.recordSaved(
         payment,
         app: capture.app,
         at: at,
-        lookalike: lookalike,
+        entryId: entryId,
+        sender: sender,
       );
+      reads.add(
+        read(
+          CaptureOutcome.saved,
+          whatOf(payment),
+          key: payment.dedupeKey,
+          at: at,
+          sms: payment,
+          categoryId: categoryId,
+          entryId: entryId,
+          note: note,
+        ),
+      );
+      continue;
     }
-    reads.add((
-      key: payment.dedupeKey,
+    await captures.hold(
+      payment,
       app: capture.app,
       at: at,
-      outcome: entryId != null ? CaptureOutcome.saved : CaptureOutcome.waiting,
-      what: whatOf(payment),
-      sms: payment,
-      entryId: entryId,
-    ));
+      sender: sender,
+      lookalike: await lookalikeOf(db, payment, at),
+    );
+    reads.add(
+      read(
+        CaptureOutcome.waiting,
+        whatOf(payment),
+        key: payment.dedupeKey,
+        at: at,
+        sms: payment,
+        categoryId: payment.suggestedCategoryId,
+      ),
+    );
   }
-  // A skipped one is let go after two months.
-  await captures.forgetSkipped(now.subtract(const Duration(days: 60)));
+  // A skipped one is let go after two months, as is the record of a saved
+  // one.
+  await captures.forgetOld(now.subtract(const Duration(days: 60)));
   if (waiting.count > 0) await source.drop(waiting.count);
   return reads;
 }
@@ -234,11 +449,15 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
   ];
   if (payments.isEmpty) return null;
   if (payments case [final one]) {
-    final category = _categoryOf(one.sms!);
+    final category = _categoryOf(one);
     return one.outcome == CaptureOutcome.saved
         ? (
             title: 'Penny saved ${one.what}',
-            text: '$category. Open Penny to change it or undo it.',
+            text: [
+              '$category.',
+              if (one.note case final note?) 'May repeat $note you typed.',
+              'Open Penny to change it or undo it.',
+            ].join(' '),
             lines: const [],
           )
         : (
@@ -259,7 +478,11 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
     ].join(', '),
     lines: [
       for (final read in payments.take(5))
-        [read.what, ?_categoryOf(read.sms!)].join(' · '),
+        [
+          read.what,
+          ?_categoryOf(read),
+          if (read.note != null) 'may repeat one you typed',
+        ].join(' · '),
     ],
   );
 }

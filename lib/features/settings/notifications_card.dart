@@ -6,6 +6,7 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/services/captures.dart';
 import 'package:penny/services/notification_inbox.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
@@ -225,13 +226,6 @@ class _LogLine extends StatelessWidget {
   final CaptureLogEntry entry;
   final DateTime today;
 
-  static const _apps = {
-    'sms': 'SMS',
-    'gpay': 'GPay',
-    'phonepe': 'PhonePe',
-    'paytm': 'Paytm',
-  };
-
   static const _outcomes = {
     'waiting': 'Waiting',
     'saved': 'Saved',
@@ -247,7 +241,7 @@ class _LogLine extends StatelessWidget {
     return Text.rich(
       TextSpan(
         children: [
-          TextSpan(text: '$when · ${_apps[entry.app] ?? entry.app} · '),
+          TextSpan(text: '$when · ${appName(entry.app)} · '),
           TextSpan(
             text: '${_outcomes[entry.outcome] ?? entry.outcome}: ',
             style: const TextStyle(fontWeight: FontWeight.w700),

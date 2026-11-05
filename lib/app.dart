@@ -121,15 +121,18 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         );
       return;
     }
-    final first = saved.first.sms!;
+    final first = saved.first;
+    final firstSms = first.sms!;
     showUndoSnackBarOn(
       messenger,
       message: [
         saved.length == 1
-            ? 'Added ${formatPaise(first.amountPaise)} · '
-                  '${kindLabel(first.type, first.suggestedCategoryId!)} '
+            ? 'Added ${formatPaise(firstSms.amountPaise)} · '
+                  '${kindLabel(firstSms.type, first.categoryId!)} '
                   'from a notification'
             : 'Added ${saved.length} payments from notifications',
+        if (saved.length == 1 && first.note != null)
+          'It may repeat ${first.note} you typed',
         if (waiting.isNotEmpty) '${waiting.length} more to check on Home',
       ].join('. '),
       onUndo: () async {
@@ -137,7 +140,12 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         final captures = ref.read(captureRepositoryProvider);
         for (final one in saved) {
           await txns.softDelete(one.entryId!);
-          await captures.hold(one.sms!, app: one.app, at: one.at);
+          await captures.hold(
+            one.sms!,
+            app: one.app,
+            at: one.at,
+            sender: one.sender,
+          );
         }
       },
     );

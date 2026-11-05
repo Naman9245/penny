@@ -87,6 +87,19 @@ class SmsTxn extends SmsParse {
   /// Fingerprint of the message. Local only: never synced.
   final String dedupeKey;
   final SmsPreview preview;
+
+  /// The same payment, fingerprinted as [key].
+  SmsTxn withDedupeKey(String key) => SmsTxn(
+    amountPaise: amountPaise,
+    type: type,
+    payee: payee,
+    payeeIsPerson: payeeIsPerson,
+    occurredAt: occurredAt,
+    hasTime: hasTime,
+    suggestedCategoryId: suggestedCategoryId,
+    dedupeKey: key,
+    preview: preview,
+  );
 }
 
 class SmsIgnored extends SmsParse {
@@ -125,6 +138,12 @@ final _receipt = _rx(
   r'\b(?:emi|loan|repayment|instal(?:l)?ments?|premium)\b[^\n]{0,80}\b(?:received|realised|realized)\b',
 );
 final _receiptFor = _rx(r'\b(?:towards|for|against)\s+(?:your|the)\b');
+// A shop's thanks for a payment the bank's own message has.
+final _shopReceipt = _rx(
+  r'\b(?:received|realised|realized)\s+your\s+payment\b'
+  r'|\byour\s+payment\b[^\n]{0,40}\b(?:has\s+been|was|is)\s+received\b'
+  r'|\bthank(?:s|\s+you)\s+for\s+(?:your|the)\s+payment\b',
+);
 final _receiptTowards = _rx(
   r'\b(?:received|realised|realized)\b[^\n]{0,40}\btowards\b[^\n]{0,20}\b(?:emi|loan|repayment|instal(?:l)?ments?|premium|policy)\b',
 );
@@ -376,7 +395,8 @@ SmsParse parseSms(String raw, {DateTime? now}) {
     return const SmsIgnored(IgnoreReason.ownTransfer);
   }
   if ((_receipt.hasMatch(text) && _receiptFor.hasMatch(text)) ||
-      _receiptTowards.hasMatch(text)) {
+      _receiptTowards.hasMatch(text) ||
+      _shopReceipt.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.receipt);
   }
   if (_walletLoad.hasMatch(text) && !_notALoad.hasMatch(text)) {

@@ -243,6 +243,14 @@ class PendingCaptures extends Table {
 
   /// Where it was read: "sms", "gpay", "phonepe" or "paytm".
   TextColumn get app => text()();
+
+  /// Who sent it, for an SMS, as the Messages app names them: "JM-HDFCBK",
+  /// "HDFC Bank". Tells one payment seen twice from two payments.
+  TextColumn get sender => text().nullable()();
+
+  /// The entry it was saved as, once saved. Kept, out of sight, so the same
+  /// payment read again from another app is known.
+  TextColumn get savedAs => text().nullable()();
   IntColumn get amountPaise => integer()();
   TextColumn get type => textEnum<TxnType>()();
   TextColumn get payee => text().nullable()();

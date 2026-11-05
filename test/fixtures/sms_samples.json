@@ -230,5 +230,7 @@
   {"bank": "ICICI", "case": "to your own account", "sms": "Rs.10,000.00 transferred from your A/c XX4821 to your own A/c XX9911 on 05-11-26. -ICICI Bank",
    "ignored": "ownTransfer"},
   {"bank": "Axis", "case": "UPI self transfer", "sms": "Rs.5,000.00 debited from A/c XX4821 on 05-11-26 for UPI self transfer to A/c XX9911. -Axis Bank",
-   "ignored": "ownTransfer"}
+   "ignored": "ownTransfer"},
+  {"bank": "Any", "case": "a shop's thanks for your payment", "sms": "We have received your payment of Rs.250.00 for order 4521. Thank you for ordering with Swiggy.",
+   "ignored": "receipt"}
 ]

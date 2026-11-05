@@ -51,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -113,6 +113,15 @@ class AppDatabase extends _$AppDatabase {
       // v8: payments read from notifications, waiting to be checked.
       from7To8: (m, schema) async {
         await m.createTable(schema.pendingCaptures);
+      },
+      // v9: who sent each payment read, and what it was saved as, so one
+      // payment seen from two apps is kept once.
+      from8To9: (m, schema) async {
+        await m.addColumn(schema.pendingCaptures, schema.pendingCaptures.sender);
+        await m.addColumn(
+          schema.pendingCaptures,
+          schema.pendingCaptures.savedAs,
+        );
       },
     ),
   );

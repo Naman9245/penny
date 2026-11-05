@@ -105,7 +105,7 @@ class _CaptureRow extends ConsumerWidget {
       dedupeKey: capture.dedupeKey,
       payeeIsPerson: capture.payeeIsPerson,
     );
-    await captures.remove(capture.dedupeKey);
+    await captures.markSaved(capture.dedupeKey, id);
     if (!context.mounted) return;
     showUndoSnackBar(
       context,

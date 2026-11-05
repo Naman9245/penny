@@ -250,27 +250,43 @@ void main() {
       expect(await waiting(), hasLength(2));
     });
 
-    test('saved straight away when clear-cut, held when not', () async {
+    Future<List<Txn>> entries() => db.select(db.txns).get();
+
+    test('saved straight away: a person in To people or From people, '
+        "anything else Penny can't place in Other", () async {
       source.waiting.addAll([
         sms('AX-HDFCBK', bankSwiggy),
-        // No category to go in.
         app('gpay', 'Rahul Kumar', 'Paid you ₹500'),
+        sms(
+          'AX-HDFCBK',
+          'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
+              'Ref 630512340001',
+        ),
+        sms('HDFC Bank', '₹1.00 deducted from your PayZapp Wallet.'),
       ]);
       final reads = await take(CaptureMode.save);
       expect(
         [for (final r in reads) r.outcome],
-        [CaptureOutcome.saved, CaptureOutcome.waiting],
+        everyElement(CaptureOutcome.saved),
       );
-      final entry = (await txns.findById(reads.first.entryId!))!;
-      expect(entry.source, TxnSource.sms);
-      expect(entry.categoryId, 'food');
-      expect(entry.merchant, 'Swiggy');
-      expect(entry.occurredAt, at);
-      expect([for (final c in await waiting()) c.amountPaise], [50000]);
+      expect([for (final r in reads) r.categoryId], [
+        'food',
+        'from_people',
+        'people',
+        'other',
+      ]);
+      final swiggy = (await txns.findById(reads.first.entryId!))!;
+      expect(swiggy.source, TxnSource.sms);
+      expect(swiggy.merchant, 'Swiggy');
+      expect(swiggy.occurredAt, at);
+      final rahul = (await txns.findById(reads[1].entryId!))!;
+      expect(rahul.categoryId, 'from_people');
+      expect(rahul.payeeIsPerson, isTrue);
+      // Nothing waits.
+      expect(await waiting(), isEmpty);
     });
 
-    test('one payment, seen twice, counts once', () async {
-      // The bank's SMS, then GPay's notice a few minutes later.
+    test('one payment seen from the bank and from GPay is kept once', () async {
       source.waiting.addAll([
         sms('AX-HDFCBK', bankSwiggy),
         app(
@@ -280,13 +296,108 @@ void main() {
           when: at.add(const Duration(minutes: 4)),
         ),
       ]);
-      await take(CaptureMode.save);
-      final held = (await waiting()).single;
-      expect(held.app, 'gpay');
-      expect(held.lookalike, '₹250 · Swiggy at 2:30 PM');
+      final reads = await take(CaptureMode.save);
+      expect(
+        [for (final r in reads) '${r.outcome.name}: ${r.what}'],
+        ['saved: −₹250 · Swiggy', 'letGo: already saved from SMS'],
+      );
+      expect(await entries(), hasLength(1));
     });
 
-    test('one typed by hand the same day is a lookalike too', () async {
+    test('two payments, each seen from the bank and from GPay, are two', () async {
+      String bank(String ref) =>
+          'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
+          'Ref $ref';
+      Capture gpay(int minutes) => app(
+        'gpay',
+        '₹1 paid to Amit Sharma',
+        'Payment successful',
+        when: at.add(Duration(minutes: minutes)),
+      );
+      source.waiting.addAll([
+        sms('AX-HDFCBK', bank('630512340001')),
+        gpay(1),
+        sms(
+          'AX-HDFCBK',
+          bank('630512340002'),
+          when: at.add(const Duration(minutes: 5)),
+        ),
+        gpay(6),
+      ]);
+      final reads = await take(CaptureMode.save);
+      expect([for (final r in reads) r.outcome], [
+        CaptureOutcome.saved,
+        CaptureOutcome.letGo,
+        CaptureOutcome.saved,
+        CaptureOutcome.letGo,
+      ]);
+      expect(await entries(), hasLength(2));
+
+      // GPay's notice shown again is known: nothing new.
+      source.waiting.add(gpay(1));
+      expect(await take(CaptureMode.save), isEmpty);
+    });
+
+    test('two payments of one amount from one place are two payments', () async {
+      String sent(String ref) =>
+          'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
+          'Ref $ref';
+      source.waiting.addAll([
+        sms('JM-HDFCBK', sent('630512340001')),
+        // The same bank by another route: still one place.
+        sms(
+          'VM-HDFCBK-S',
+          sent('630512340002'),
+          when: at.add(const Duration(minutes: 3)),
+        ),
+      ]);
+      final reads = await take(CaptureMode.save);
+      expect(
+        [for (final r in reads) r.outcome],
+        [CaptureOutcome.saved, CaptureOutcome.saved],
+      );
+      expect(await entries(), hasLength(2));
+    });
+
+    test("a fund's confirmation days after the bank's debit is the same "
+        'investment', () async {
+      source.waiting.add(
+        sms(
+          'AX-HDFCBK',
+          'Rs.500.00 debited from A/c XX4821 towards NACH ICCL MUTUAL FUND.',
+        ),
+      );
+      await take(CaptureMode.save);
+      source.waiting.add(
+        sms(
+          'VM-GROWWZ',
+          'You have successfully invested Rs.500.00 in Parag Parikh Flexi '
+              'Cap Fund via SIP.',
+          when: at.add(const Duration(days: 2)),
+        ),
+      );
+      final reads = await take(CaptureMode.save);
+      expect(reads.single.what, 'already saved from SMS');
+      final saved = (await entries()).single;
+      expect(saved.categoryId, 'invest');
+    });
+
+    test('one like an entry typed by hand that day is saved, saying so', () async {
+      await txns.add(
+        amountPaise: 25000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: DateTime(2026, 11, 5, 9),
+        merchant: 'Lunch',
+      );
+      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.outcome, CaptureOutcome.saved);
+      expect(read.note, '₹250 · Lunch');
+      expect(await entries(), hasLength(2));
+    });
+
+    test('waiting to be checked, one like an entry says which', () async {
       await txns.add(
         amountPaise: 25000,
         type: TxnType.debit,
@@ -296,10 +407,24 @@ void main() {
       );
       source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
       expect(
-        [for (final r in await take(CaptureMode.save)) r.outcome],
+        [for (final r in await take(CaptureMode.check)) r.outcome],
         [CaptureOutcome.waiting],
       );
       expect((await waiting()).single.lookalike, '₹250 · Lunch at 9:00 AM');
+    });
+
+    test('saved straight away, then undone: it waits to be checked', () async {
+      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+      final read = (await take(CaptureMode.save)).single;
+      expect(await waiting(), isEmpty);
+      await txns.softDelete(read.entryId!);
+      await captures.hold(
+        read.sms!,
+        app: read.app,
+        at: read.at,
+        sender: read.sender,
+      );
+      expect((await waiting()).single.amountPaise, 25000);
     });
 
     test('skipped, or added and deleted, it never comes back', () async {
@@ -323,7 +448,7 @@ void main() {
         source: TxnSource.sms,
         dedupeKey: second.dedupeKey,
       );
-      await captures.remove(second.dedupeKey);
+      await captures.markSaved(second.dedupeKey, id);
       await txns.softDelete(id);
       source.waiting.add(gpay);
       await take(CaptureMode.check);
@@ -354,16 +479,20 @@ void main() {
       CaptureOutcome outcome,
       Capture capture, {
       String? entryId,
+      String? note,
     }) {
       final sms = readCapture(capture)!;
       return (
         key: sms.dedupeKey,
         app: capture.app,
+        sender: null,
         at: capture.at,
         outcome: outcome,
         what: whatOf(sms),
         sms: sms,
+        categoryId: sms.suggestedCategoryId,
         entryId: entryId,
+        note: note,
       );
     }
 
@@ -372,11 +501,14 @@ void main() {
     final CaptureRead otp = (
       key: 'otp',
       app: 'sms',
+      sender: 'AX-HDFCBK',
       at: at,
       outcome: CaptureOutcome.letGo,
       what: 'an OTP',
       sms: null,
+      categoryId: null,
       entryId: null,
+      note: null,
     );
 
     test('one waiting, with the category Penny guessed', () {
@@ -402,6 +534,17 @@ void main() {
       ])!;
       expect(notice.title, 'Penny saved −₹250 · Swiggy');
       expect(notice.text, '🍔 Food. Open Penny to change it or undo it.');
+    });
+
+    test('one saved that may repeat an entry typed by hand', () {
+      final notice = noticeFor([
+        read(CaptureOutcome.saved, swiggy, entryId: 'e1', note: '₹250 · Lunch'),
+      ])!;
+      expect(
+        notice.text,
+        '🍔 Food. May repeat ₹250 · Lunch you typed. Open Penny to change it '
+        'or undo it.',
+      );
     });
 
     test('several at once, a line each', () {
