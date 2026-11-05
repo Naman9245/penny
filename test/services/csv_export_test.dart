@@ -30,7 +30,7 @@ void main() {
       'Date,Time,Kind,Category,Place,Amount (₹),Your tag,Added',
       '2026-11-01,09:00,Got,Pocket money,,15000.00,,Shared SMS',
       '2026-11-01,21:05,Spent,Food,Swiggy,250.00,Wasteful,Read automatically',
-      '2026-11-02,10:00,Invested,Invest / SIP,,1000.00,,Typed',
+      '2026-11-02,10:00,Invested,Mutual funds & SIP,,1000.00,,Typed',
       '2026-11-03,09:00,Paid back,Food,,300.00,,Typed',
       '',
     ]);

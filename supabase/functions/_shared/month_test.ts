@@ -114,6 +114,17 @@ Deno.test("Gemini sees people only as aliases, and labels not ids", () => {
   assert.ok(!text.includes("Asha") && !text.includes("Vikram"));
 });
 
+Deno.test("the newer categories go along, as their labels", () => {
+  const request = sampleRequest();
+  request.spends[0].category = "fuel";
+  request.spends[1].category = "people";
+  request.income[0].category = "from_people";
+  const input = modelInput(parsed(request));
+  assert.equal(input.spends[0].category, "Fuel");
+  assert.equal(input.spends[1].category, "To people");
+  assert.equal(input.income[0].category, "From people");
+});
+
 Deno.test("the note goes along with long numbers hidden", () => {
   const input = modelInput(parsed({
     ...sampleRequest(),

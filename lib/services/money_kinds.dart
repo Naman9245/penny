@@ -22,11 +22,11 @@ enum MoneyKind {
   /// income.
   paidBack,
 
-  /// Money out, into Invest / SIP: put away, not spent.
+  /// Money out, into one of the kinds of investing: put away, not spent.
   invested;
 
   static MoneyKind of(TxnType type, String categoryId) => switch (type) {
-    TxnType.debit when categoryId == investCategory.id => invested,
+    TxnType.debit when isInvestCategory(categoryId) => invested,
     TxnType.debit => spent,
     TxnType.credit when isSpendCategory(categoryId) => paidBack,
     TxnType.credit => got,
@@ -74,7 +74,7 @@ class MoneyTotals {
   final _paidOut = <String, int>{};
   final _paidBack = <String, int>{};
   final _got = <String, int>{};
-  var _invested = 0;
+  final _invested = <String, int>{};
 
   void _add(TxnType type, String categoryId, int paise) {
     void into(Map<String, int> map) =>
@@ -87,7 +87,7 @@ class MoneyTotals {
       case MoneyKind.got:
         into(_got);
       case MoneyKind.invested:
-        _invested += paise;
+        into(_invested);
     }
   }
 
@@ -118,13 +118,18 @@ class MoneyTotals {
   /// Income only: what came back isn't income.
   int get gotPaise => _sum(_got.values);
 
-  int get investedPaise => _invested;
+  int get investedPaise => _sum(_invested.values);
+
+  /// Kinds of investing with anything put in.
+  Iterable<String> get investIds => _invested.keys;
+
+  int investedIn(String categoryId) => _invested[categoryId] ?? 0;
 
   /// Everything that came in, less everything that went out, invested
   /// included. Usually income less spending and investing; more when
   /// something came back to a category with less spent in it so far.
   int get leftPaise =>
-      gotPaise + paidBackPaise - _sum(_paidOut.values) - _invested;
+      gotPaise + paidBackPaise - _sum(_paidOut.values) - investedPaise;
 
   static int _sum(Iterable<int> values) => values.fold(0, (a, b) => a + b);
 }
@@ -155,12 +160,12 @@ List<CategoryTotal> categoryTotalsOf(Iterable<CategorySum> sums) {
         totalPaise: totals.gotIn(id),
         count: countOf(MoneyKind.got, id),
       ),
-    if (countOf(MoneyKind.invested, investCategory.id) > 0)
+    for (final id in totals.investIds)
       CategoryTotal(
-        categoryId: investCategory.id,
+        categoryId: id,
         kind: MoneyKind.invested,
-        totalPaise: totals.investedPaise,
-        count: countOf(MoneyKind.invested, investCategory.id),
+        totalPaise: totals.investedIn(id),
+        count: countOf(MoneyKind.invested, id),
       ),
   ]..sort((a, b) => b.totalPaise.compareTo(a.totalPaise));
 }

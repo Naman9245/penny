@@ -108,7 +108,7 @@
   {"bank": "HDFC", "case": "salary credit", "sms": "Dear Customer, your A/c XX4821 is credited with INR 25,000.00 on 31-10-26 by SALARY OCT26 ACME TECHNOLOGIES. -HDFC Bank",
    "expect": {"type": "credit", "paise": 2500000, "payee": "Salary Oct26 Acme Technologies", "date": "2026-10-31", "category": "salary"}},
   {"bank": "HDFC", "case": "fuel on debit card", "sms": "Spent Rs.500.00 On HDFC Bank Card 7712 At HP PETROL PUMP On 2026-11-02:08:15:00 Bal Rs.40710.33",
-   "expect": {"type": "debit", "paise": 50000, "payee": "HP Petrol Pump", "date": "2026-11-02", "time": "08:15:00", "category": "travel"}},
+   "expect": {"type": "debit", "paise": 50000, "payee": "HP Petrol Pump", "date": "2026-11-02", "time": "08:15:00", "category": "fuel"}},
   {"bank": "HDFC", "case": "rent sent to a person", "sms": "Sent Rs.8000.00\nFrom HDFC Bank A/C *4821\nTo SUNITA DEVI\nOn 01/11/26\nRef 630512348888\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808",
    "expect": {"type": "debit", "paise": 800000, "payee": "Sunita Devi", "date": "2026-11-01", "category": null, "person": true}},
   {"bank": "HDFC", "case": "electricity bill", "sms": "Rs.1,240.00 debited from HDFC Bank A/c XX4821 on 03-11-26 for BESCOM bill payment via BillPay. Ref 630712340000",

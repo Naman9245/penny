@@ -64,13 +64,22 @@ void main() {
     expect(back.summary, 'You can do it!');
   });
 
-  test('rent, bills, subscriptions and education are paid in one go', () {
+  test('rent, bills, subscriptions, EMIs, charges, education and money '
+      'sent home are paid in one go', () {
     expect(
       [
         for (final category in spendCategories)
           if (category.oneGo) category.id,
       ],
-      ['bills', 'rent', 'subscriptions', 'education'],
+      [
+        'bills',
+        'rent',
+        'subscriptions',
+        'emi',
+        'charges',
+        'education',
+        'family',
+      ],
     );
   });
 }

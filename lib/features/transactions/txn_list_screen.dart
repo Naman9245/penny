@@ -184,11 +184,7 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
   Future<void> _pickCategory(List<Txn> month) async {
     final present = {for (final txn in month) txn.categoryId};
     final choices = [
-      for (final category in [
-        ...spendCategories,
-        investCategory,
-        ...incomeCategories,
-      ])
+      for (final category in allCategories)
         if (present.contains(category.id)) category,
     ];
     final picked = await showModalBottomSheet<String>(

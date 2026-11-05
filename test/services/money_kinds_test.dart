@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:penny/models/budget.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/merchant_categories.dart';
@@ -75,7 +76,7 @@ void main() {
   test('a payback says what it was for', () {
     expect(kindLabel(TxnType.credit, 'food'), 'Food · paid back');
     expect(kindLabel(TxnType.debit, 'food'), 'Food');
-    expect(kindLabel(TxnType.debit, 'invest'), 'Invest / SIP');
+    expect(kindLabel(TxnType.debit, 'invest'), 'Mutual funds & SIP');
     expect(kindLabel(TxnType.credit, 'salary'), 'Salary/stipend');
   });
 
@@ -85,21 +86,25 @@ void main() {
     expect(tiles.last.id, 'other');
     expect(isSpendCategory('invest'), isFalse);
     expect(spendCategories.map((c) => c.id), isNot(contains('invest')));
-    expect(categoryById('invest').label, 'Invest / SIP');
+    expect(categoryById('invest').label, 'Mutual funds & SIP');
   });
 
-  test('investing apps and SIPs are recognised', () {
-    for (final payee in [
-      'Zerodha Broking',
-      'GROWW',
-      'INDmoney',
-      'Kuvera',
-      'Upstox',
-      'Zerodha Coin',
-    ]) {
+  test('investing apps and SIPs are recognised, each kind apart', () {
+    final cases = {
+      'GROWW': 'invest',
+      'INDmoney': 'invest',
+      'Kuvera': 'invest',
+      'Zerodha Coin': 'invest',
+      'Zerodha Broking': 'stocks',
+      'Upstox': 'stocks',
+      'Angel One': 'stocks',
+      'Fixed Deposit booking': 'deposits',
+      'PPF Account': 'deposits',
+    };
+    for (final MapEntry(key: payee, value: category) in cases.entries) {
       expect(
         suggestCategory(type: TxnType.debit, text: '', payee: payee),
-        'invest',
+        category,
         reason: payee,
       );
     }
@@ -115,5 +120,88 @@ void main() {
       suggestCategory(type: TxnType.credit, text: 'Groww redemption'),
       isNull,
     );
+  });
+
+  test('every kind of investing is put away, each a tile of its own', () {
+    expect(MoneyKind.of(TxnType.debit, 'stocks'), MoneyKind.invested);
+    expect(MoneyKind.of(TxnType.debit, 'deposits'), MoneyKind.invested);
+    expect(isSpendCategory('stocks'), isFalse);
+    expect(isInvestCategory('deposits'), isTrue);
+    const sums = <CategorySum>[
+      (type: TxnType.debit, categoryId: 'invest', paise: 100000, count: 1),
+      (type: TxnType.debit, categoryId: 'stocks', paise: 50000, count: 2),
+      (type: TxnType.debit, categoryId: 'deposits', paise: 20000, count: 1),
+      (type: TxnType.credit, categoryId: 'salary', paise: 500000, count: 1),
+    ];
+    expect(
+      [
+        for (final total in categoryTotalsOf(sums))
+          if (total.kind == MoneyKind.invested)
+            (total.categoryId, total.totalPaise, total.count),
+      ],
+      [('invest', 100000, 1), ('stocks', 50000, 2), ('deposits', 20000, 1)],
+    );
+    final money = MoneyTotals.fromSums(sums);
+    expect(money.investedPaise, 170000);
+    expect(money.spentPaise, 0);
+    expect(money.leftPaise, 330000);
+  });
+
+  test("Penny's guesses for the newer categories", () {
+    final byPayee = {
+      'Indian Oil': 'fuel',
+      'HP Petrol Pump': 'fuel',
+      'Indane Gas': 'home',
+      'Pepperfry': 'home',
+      'Looks Salon': 'care',
+      'Cult.fit': 'care',
+      'Bajaj Finserv': 'emi',
+      'Temple Trust': 'gifts',
+      'Ketto': 'gifts',
+    };
+    for (final MapEntry(key: payee, value: category) in byPayee.entries) {
+      expect(
+        suggestCategory(type: TxnType.debit, text: '', payee: payee),
+        category,
+        reason: payee,
+      );
+    }
+    expect(
+      suggestCategory(
+        type: TxnType.debit,
+        text: 'Rs.590 debited from A/c XX4821 for annual fee of your debit card',
+      ),
+      'charges',
+    );
+    expect(
+      suggestCategory(
+        type: TxnType.debit,
+        text: 'Rs.5,000 debited from A/c XX4821 towards your loan EMI',
+      ),
+      'emi',
+    );
+    // A bill that mentions its charges is still a bill.
+    expect(
+      suggestCategory(
+        type: TxnType.debit,
+        text: 'Rs.1,240 paid for BESCOM electricity incl. charges',
+      ),
+      'bills',
+    );
+  });
+
+  test('the everyday budget has Fuel, Home and Care in it, not EMIs', () {
+    const budget = Budget(
+      byCategory: {
+        'fuel': 100000,
+        'home': 50000,
+        'care': 30000,
+        'emi': 500000,
+        'charges': 10000,
+        'family': 300000,
+      },
+    );
+    expect(budget.everydayPaise, 180000);
+    expect(budget.oneGoPaise, 810000);
   });
 }

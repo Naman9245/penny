@@ -342,7 +342,7 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                       // Only spending is necessary or wasteful.
                       if (widget.args.editing case final txn?
                           when state.type == TxnType.debit &&
-                              state.categoryId != investCategory.id) ...[
+                              !isInvestCategory(state.categoryId)) ...[
                         const SizedBox(height: 16),
                         _TagChoice(
                           tag: state.tag,

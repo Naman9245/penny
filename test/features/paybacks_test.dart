@@ -44,13 +44,12 @@ void main() {
     routerOf(tester).push('/add?type=credit');
     await tester.pumpAndSettle();
     await typeKeys(tester, '300');
-    await tester.tap(find.text('Paid back'));
-    await tester.pumpAndSettle();
+    await tapInView(tester, find.text('Paid back'));
     expect(find.text('Paid back for what?'), findsOneWidget);
     // Only spending can come back: no investing, no income.
     final grid = find.byKey(const ValueKey('paid-back-grid'));
     expect(
-      find.descendant(of: grid, matching: find.text('Invest / SIP')),
+      find.descendant(of: grid, matching: find.text('Mutual funds & SIP')),
       findsNothing,
     );
     await tester.tap(find.descendant(of: grid, matching: find.text('Food')));
@@ -105,9 +104,9 @@ void main() {
     await tester.pumpAndSettle();
     await typeKeys(tester, '1000');
     // In the grid's last row, just before Other.
-    await tester.ensureVisible(find.text('Invest / SIP'));
+    await tester.ensureVisible(find.text('Mutual funds & SIP'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Invest / SIP'));
+    await tester.tap(find.text('Mutual funds & SIP'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('key-done')));
     await tester.pumpAndSettle();
