@@ -19,6 +19,10 @@ enum IgnoreReason {
   ownTransfer(
     'It moves money between your own accounts, so Penny leaves it out.',
   ),
+  receipt(
+    "It confirms a payment you've already made, which your bank's message "
+    'covers.',
+  ),
   balance('It only tells you a balance.'),
   unreadable("Penny couldn't find an amount and a debit or credit in it.");
 
@@ -115,6 +119,51 @@ final _ownCardPayment = _rx(
 final _failed = _rx(
   r'\b(?:failed|declined|unsuccessful|could not be processed|was not processed|insufficient (?:funds|balance))\b',
 );
+// A lender's receipt for an EMI, or an insurer's for a premium: the bank's
+// own message already has the money leaving.
+final _receipt = _rx(
+  r'\b(?:emi|loan|repayment|instal(?:l)?ments?|premium)\b[^\n]{0,80}\b(?:received|realised|realized)\b',
+);
+final _receiptFor = _rx(r'\b(?:towards|for|against)\s+(?:your|the)\b');
+final _receiptTowards = _rx(
+  r'\b(?:received|realised|realized)\b[^\n]{0,40}\btowards\b[^\n]{0,20}\b(?:emi|loan|repayment|instal(?:l)?ments?|premium|policy)\b',
+);
+// Money moved to the user's own account.
+final _ownAccount = _rx(
+  r'\bto\s+(?:your\s+)?own\b|\bself[\s-]?transfer\b|\bto\s+self\b|\bown\s+a/?c\b',
+);
+// A refund that reached the user, as against one promised.
+final _refundedTo = _rx(r'\brefunded\s+(?:to|into)\b');
+// Money moved into a wallet or UPI Lite from the user's own bank account.
+// Only paying from it is spending.
+final _walletLoad = _rx(
+  r'\b(?:add(?:ed)?\s+money|money\s+added|loaded|load|top[\s-]?up|topped\s+up|added|recharged)\b[^\n]{0,60}\b(?:wallet|upi\s*lite|pay\s+balance)\b'
+  r'|\b(?:wallet|upi\s*lite)\b[^\n]{0,30}\b(?:load|loaded|top[\s-]?up|topped\s+up)\b',
+);
+final _notALoad = _rx(
+  r'\b(?:cashback|refund(?:ed)?|reward|rewards|reversal|reversed)\b',
+);
+// Money put into investing, even when the message never says "invested":
+// a SIP processed, units allotted, a contribution or units credited to an
+// investment, funds added to a broker, a deposit booked.
+final _investOut = _rx(
+  r'\b(?:invested|allotted|allotment)\b'
+  r'|\bsip\b[^\n]{0,80}\b(?:processed|successful|successfully|executed|debited|paid|received)\b'
+  r'|\b(?:contribution|units?)\b[^\n]{0,60}\bcredited\b'
+  r'|\bfunds?\b[^\n]{0,30}\badded\b'
+  r'|\badded\b[^\n]{0,40}\b(?:trading|demat|broking)\s+(?:a/?c|account)\b'
+  r'|\b(?:fixed deposit|recurring deposit|fd|rd)\b[^\n]{0,60}\b(?:booked|opened|created)\b',
+);
+final _autopay = _rx(
+  r'\bauto[\s-]?pay\b[^\n]{0,60}\b(?:successful|successfully|executed|processed)\b',
+);
+// "Rs.350.00 Dr", "is Dr with Rs.350", "Rs.2,000.00 Cr to A/c".
+final _drWord = _rx(
+  r'(?<=\d\s{0,2})dr\b|\bdr\.?(?=\s*(?:rs\b|inr\b|₹|for\b|with\b|by\b))',
+);
+final _crWord = _rx(
+  r'(?<=\d\s{0,2})cr\b|\bcr\.?(?=\s*(?:rs\b|inr\b|₹|to\b|for\b|with\b|by\b))',
+);
 final _refundWord = _rx(r'\b(?:refund|refunded|reversal|reversed)\b');
 final _credited = _rx(r'\bcredited\b');
 final _offer = _rx(
@@ -122,9 +171,10 @@ final _offer = _rx(
 );
 final _balanceWord = _rx(r'\b(?:bal|balance|avl|available)\b');
 
-// "A/c XX4821", "Card 7712", "AC X8899", "account XXX234", "card ending 4455".
+// "A/c XX4821", "Card 7712", "AC X8899", "account XXX234", "card ending 4455",
+// "a/c 91XXXX8888".
 final _accountRef = _rx(
-  r'\b(?:a/?c|acct|account|card)(?:\s*no\.?)?(?:\s*ending(?:\s*with)?)?[\s:.]*([xX*•.]*\d{2,})',
+  r'\b(?:a/?c|acct|account|card)(?:\s*no\.?)?(?:\s*ending(?:\s*with)?)?[\s:.]*([xX*•.]*\d[\dxX*•]*\d)',
 );
 final _vpa = _rx(r'\b([\w.\-]{2,})@([a-z][a-z.]*)\b');
 // The account or card tail in a bank's "SMS BLOCK DC 7712 to …" footer.
@@ -132,10 +182,10 @@ final _blockRef = _rx(r'\bblock\s*(?:dc|cc|upi)?\s+(\d{3,6})\b');
 final _longDigits = RegExp(r'\d{6,}');
 
 final _strongDebit = _rx(
-  r'\b(?:debited|spent|sent|paid|withdrawn|deducted|purchased?|transferred\s+to(?!\s+your)|transferred\s+from)\b',
+  r'\b(?:debited|spent|sent|paid|withdrawn|deducted|purchased?|levied|charged|transferred\s+to(?!\s+your)|transferred\s+from)\b',
 );
 final _strongCredit = _rx(
-  r'\b(?:credited|received|deposited|refund(?:ed)?|reversal|reversed|credit\s+of|paid\s+you|sent\s+you)\b',
+  r'\b(?:credited|received|deposited|refund(?:ed)?|reversal|reversed|credit\s+of|paid\s+you|sent\s+you|dividends?|cashback\s+(?:of\s+)?(?:rs\.?|inr|₹)?\s*[\d,.]*\s*(?:added|credited))\b',
 );
 final _weakDebit = _rx(r'\b(?:txn|transaction|payment)\b');
 
@@ -146,16 +196,22 @@ final _bareAmount = _rx(
   r'\b(?:debited|credited)\s+(?:by|for|with)\s+([\d,]+(?:\.\d{1,2})?)\b',
 );
 final _amountIsBalance = _rx(
-  r'(?:bal(?:ance)?|limit|avl(?:bl)?|avail(?:able)?|outstanding|due|min(?:imum)?)\.?[\s:.\-]*(?:amt|amount|bal(?:ance)?)?[\s:.\-]*$',
+  r'(?:bal(?:ance)?|limit|avl(?:bl)?|avail(?:able)?|outstanding|due|min(?:imum)?)\.?[\s:.\-]*(?:amt|amount|bal(?:ance)?)?[\s:.\-]*(?:is\s*)?(?:of\s*)?$',
+);
+final _balanceAfter = _rx(
+  r'^\s*(?:is\s+(?:your\s+)?)?(?:the\s+)?(?:avl\.?\s*|available\s+)?bal(?:ance)?\b',
 );
 
 // Payee patterns. A name runs until a word or mark that ends it.
 const _honorific = r'(?:(?:mr|mrs|ms|miss|shri|smt|dr)\.?\s+)?';
 const _name = r"([a-z][a-z0-9&'* ]{0,40}?)";
 const _end =
-    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal)\b|\s+-)';
+    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account)\b|\s+-)';
 final _upiPath = _rx(r'\bupi/(?:p2[am]/)?\d+/([a-z][^/\n.]{1,40})');
 final _debitPayees = [
+  _rx(
+    r'\b(?:invested|allotted|sip)\b[^\n]{0,40}?\bin\s+' + _name + _end,
+  ),
   _rx(
     r'\bto\s+(?:vpa\s+)?'
     r'([\w.\-]{2,}@[a-z][a-z.]*)\b',
@@ -188,7 +244,7 @@ final _creditPayees = [
   ),
 ];
 final _notAPayee = _rx(
-  r'^(?:(?:rs|inr)\.?\s*\d|(?:rs|inr|upi|txn|your|you|ur|a/?c|ac|acct|account|card|bank|the|ref|vpa|imps|neft|date|dt)\b)',
+  r'^(?:(?:rs|inr)\.?\s*\d|(?:rs|inr|upi|txn|your|you|ur|a/?c|ac|acct|account|card|bank|the|ref|vpa|imps|neft|nach|ecs|pran|folio|date|dt)\b)',
 );
 final _atmWithdrawal = _rx(
   r'\b(?:withdrawn|withdrawal)\b[^\n]*\batm\b|\batm\b[^\n]*\bwithdrawn\b',
@@ -208,6 +264,27 @@ const _acronyms = {
   'HDFC',
   'ICICI',
   'SBI',
+  'BSE',
+  'NSE',
+  'NSDL',
+  'CDSL',
+  'ICCL',
+  'NACH',
+  'SIP',
+  'NPS',
+  'PPF',
+  'GST',
+  'SMS',
+  'UTI',
+  'AMC',
+  'ETF',
+  'IPO',
+  'IDFC',
+  'IDBI',
+  'PNB',
+  'RBL',
+  'DBS',
+  'HSBC',
 };
 // Vowel-less, but words rather than abbreviations.
 const _plainWords = {'PVT', 'LTD'};
@@ -237,6 +314,38 @@ const _months = [
   'dec',
 ];
 
+// A sender as a Messages app shows it: a bank's code, with its prefix
+// ("JM-HDFCBK", "VM-GROWWZ-S") or without ("HDFCBK"), or a money brand by
+// name ("HDFC Bank", "PayZapp").
+final _senderCode = _rx(r'^[A-Z]{2}-[A-Z0-9]{3,9}(?:-[A-Z])?$');
+final _bareSenderCode = RegExp(r'^[A-Z][A-Z0-9]{5}$');
+final _moneyBrand = _rx(
+  r'\b(?:bank|wallet|cards?|payments?|pay|upi|mf|amc|mutual\s*funds?|securities|broking|finserv|finance|capital'
+  r'|sbi|hdfc|icici|axis|kotak|indusind|idfc|idbi|baroda|bob|pnb|canara|federal|rbl|equitas|ujjivan|bandhan|dbs|hsbc|citi|amex'
+  r'|payzapp|paytm|phonepe|gpay|mobikwik|freecharge|cred|bhim|onecard|slice|groww|zerodha|upstox|kuvera|indmoney|cams|kfintech|nsdl|cdsl'
+  r'|super\.money|angel\s*one|jio\s*money|airtel\s*money|et\s*money)\b',
+);
+// Where else a payment can come from than an account or card.
+final _moneyPlace = _rx(
+  r'\b(?:wallet|upi\s*lite|pay\s+balance|folio|demat|trading\s+account|pran)\b',
+);
+
+/// Whether an SMS from [sender], as the Messages app names it, can be from a
+/// bank, a wallet or an investment: a sender code, or a money brand's name.
+/// A friend's name never is.
+bool isMoneySender(String sender) {
+  final name = sender.trim();
+  return _senderCode.hasMatch(name) ||
+      _bareSenderCode.hasMatch(name) ||
+      _moneyBrand.hasMatch(name);
+}
+
+/// Whether [text] names where its money is, as only a bank's, a wallet's or
+/// an investment's message does: an account or card, a wallet, UPI Lite, a
+/// folio.
+bool mentionsMoneyPlace(String text) =>
+    mentionsAccount(text) || _moneyPlace.hasMatch(_normalise(text));
+
 /// Whether [text] names an account or card, as a bank's message does: "A/c
 /// XX4821", "card ending 4455".
 bool mentionsAccount(String text) => _accountRef.hasMatch(_normalise(text));
@@ -254,11 +363,23 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   }
   if (_request.hasMatch(text)) return const SmsIgnored(IgnoreReason.request);
   if (_upcoming.hasMatch(text)) return const SmsIgnored(IgnoreReason.upcoming);
-  final refundCredited = _refundWord.hasMatch(text) && _credited.hasMatch(text);
+  final refundCredited =
+      _refundWord.hasMatch(text) &&
+      (_credited.hasMatch(text) || _refundedTo.hasMatch(text));
   if (!refundCredited && _failed.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.failed);
   }
   if (_ownCardPayment.hasMatch(text)) {
+    return const SmsIgnored(IgnoreReason.ownTransfer);
+  }
+  if (_ownAccount.hasMatch(text)) {
+    return const SmsIgnored(IgnoreReason.ownTransfer);
+  }
+  if ((_receipt.hasMatch(text) && _receiptFor.hasMatch(text)) ||
+      _receiptTowards.hasMatch(text)) {
+    return const SmsIgnored(IgnoreReason.receipt);
+  }
+  if (_walletLoad.hasMatch(text) && !_notALoad.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.ownTransfer);
   }
   final accounts = _accountRef.allMatches(text).toList();
@@ -308,12 +429,25 @@ String _fingerprint(String text) {
   return sha256.convert(utf8.encode('penny-sms-v1|$canonical')).toString();
 }
 
-/// The earliest clear money verb decides; "txn" or "payment" alone means
-/// money out.
+/// Money put into investing is money out, whatever words it uses ("units
+/// credited"). Otherwise the earliest clear money word decides; "txn" or
+/// "payment" alone means money out.
 TxnType? _direction(String text) {
-  final debit = _strongDebit.firstMatch(text);
-  final credit = _strongCredit.firstMatch(text);
-  if (debit != null && (credit == null || debit.start < credit.start)) {
+  if (_investOut.hasMatch(text)) return TxnType.debit;
+  int? earliest(List<RegExp> patterns) {
+    int? start;
+    for (final pattern in patterns) {
+      final match = pattern.firstMatch(text);
+      if (match != null && (start == null || match.start < start)) {
+        start = match.start;
+      }
+    }
+    return start;
+  }
+
+  final debit = earliest([_strongDebit, _drWord, _autopay]);
+  final credit = earliest([_strongCredit, _crWord]);
+  if (debit != null && (credit == null || debit < credit)) {
     return TxnType.debit;
   }
   if (credit != null) return TxnType.credit;
@@ -327,6 +461,7 @@ _Amount? _amount(String text) {
   for (final match in _currencyAmount.allMatches(text)) {
     final before = text.substring(math.max(0, match.start - 25), match.start);
     if (_amountIsBalance.hasMatch(before)) continue;
+    if (_balanceAfter.hasMatch(text.substring(match.end))) continue;
     final paise = _toPaise(match.group(1)!);
     if (paise != null && paise > 0) {
       return (paise: paise, start: match.start, end: match.end);
@@ -374,6 +509,10 @@ _Payee? _payee(String text, TxnType type) {
           end: end,
         );
       }
+      if (raw == raw.toLowerCase() &&
+          _domainNext.hasMatch(text.substring(end))) {
+        continue;
+      }
       final name = _cleanName(raw);
       if (name == null) continue;
       final isPerson =
@@ -389,6 +528,8 @@ _Payee? _payee(String text, TxnType type) {
   }
   return null;
 }
+
+final _domainNext = RegExp(r'^\.[a-z]{2,6}\b');
 
 String? _cleanName(String raw) {
   final name = raw

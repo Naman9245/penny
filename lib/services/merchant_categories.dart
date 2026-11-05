@@ -26,6 +26,7 @@ const _spendKeywords = <String, List<String>>{
     'mutual fund',
     'mutual funds',
     'mf',
+    'bse limited',
     'bse star mf',
     'iccl',
     'indian clearing corporation',
@@ -68,6 +69,7 @@ const _spendKeywords = <String, List<String>>{
     'equity',
     'demat',
     'trading account',
+    'nse clearing',
     'ipo',
     'etf',
   ],
@@ -250,6 +252,7 @@ const _spendKeywords = <String, List<String>>{
     'gym',
     'cultfit',
     'cult.fit',
+    'cult fit',
     'fitness',
     'naturals',
     'jawed habib',
@@ -335,6 +338,11 @@ final _refund = RegExp(
   r'\b(?:refund|refunded|reversal|reversed|cashback)\b',
   caseSensitive: false,
 );
+final _dividend = RegExp(r'\bdividends?\b', caseSensitive: false);
+final _interest = RegExp(
+  r'\b(?:interest|int\.?\s*pd|int\.?\s*cr)\b',
+  caseSensitive: false,
+);
 
 /// The id of the category [payee] (or failing that, the whole [text])
 /// most likely belongs to, or null when nothing fits well enough.
@@ -354,6 +362,8 @@ String? suggestCategory({
       return null;
     case TxnType.credit:
       if (_refund.hasMatch(text)) return 'refund';
+      if (_dividend.hasMatch(text)) return 'dividends';
+      if (_interest.hasMatch(text)) return 'interest';
       if (_salary.hasMatch(text)) return 'salary';
       if (_bankTransfer.hasMatch(text) && _company.hasMatch(payee ?? text)) {
         return 'salary';

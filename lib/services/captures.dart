@@ -21,13 +21,6 @@ import 'package:penny/services/sms_parser.dart';
 // are payments, which of those are already here, what's done with the rest,
 // and what Penny tells the user about it.
 
-/// A bank's sender ID, as a Messages app shows it: "AX-HDFCBK",
-/// "JD-ICICIT-S".
-final _senderId = RegExp(
-  r'^[A-Z]{2}-[A-Z0-9]{3,9}(?:-[A-Z])?$',
-  caseSensitive: false,
-);
-
 /// Why a notification isn't a payment, in words for "What Penny read".
 const _letGo = {
   IgnoreReason.otp: 'an OTP',
@@ -36,19 +29,21 @@ const _letGo = {
   IgnoreReason.failed: 'a failed payment',
   IgnoreReason.offer: 'an offer',
   IgnoreReason.ownTransfer: 'a move between your own accounts',
+  IgnoreReason.receipt: 'a receipt for a payment already made',
   IgnoreReason.balance: 'only a balance',
   IgnoreReason.unreadable: 'no payment in it',
 };
 
 /// [capture] read the way a shared SMS is: the payment in it, or why it was
-/// let go. From the SMS app it counts only when it's from a bank: a bank's
-/// sender ID, or a message naming an account or card. So a friend's text
-/// about money isn't taken.
+/// let go. From the SMS app it counts only when it's from a bank, a wallet
+/// or an investment: a sender code or a money brand's name, or a message
+/// naming an account, card or wallet. So a friend's text about money isn't
+/// taken.
 ({SmsTxn? payment, String? letGo}) explainCapture(Capture capture) {
   final fromSms = capture.app == 'sms';
   if (fromSms &&
-      !_senderId.hasMatch(capture.title.trim()) &&
-      !mentionsAccount(capture.text)) {
+      !isMoneySender(capture.title) &&
+      !mentionsMoneyPlace(capture.text)) {
     return (payment: null, letGo: 'not from a bank');
   }
   // A payment app puts half of it in the title: "₹250 paid to Swiggy".

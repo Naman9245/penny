@@ -133,6 +133,64 @@ void main() {
     });
   });
 
+  group('who counts as a bank', () {
+    const payZapp =
+        '₹1.00 deducted from your PayZapp Wallet on 05-Nov-26. ₹9.88 bal is '
+        'left in your PayZapp Wallet. Not you? Report at hdfcbank.com -HDFC Bank';
+    for (final sender in [
+      'HDFC Bank',
+      'JM-HDFCBK',
+      'JM-HDFCBK-S',
+      'HDFCBK',
+      'PayZapp',
+      'VM-GROWWZ',
+    ]) {
+      test('$sender: read', () {
+        final payment = explainCapture(sms(sender, payZapp)).payment!;
+        expect(payment.amountPaise, 100);
+        expect(payment.payee, isNull);
+      });
+    }
+
+    test("a friend's money text never is, by name or by number", () {
+      for (final sender in [
+        'Rahul',
+        'RAHUL',
+        'Rahul Kumar',
+        'Mom',
+        '+91 98765 43210',
+      ]) {
+        expect(
+          explainCapture(
+            sms(sender, 'I paid Rs 500 for the tickets, send me your share'),
+          ).letGo,
+          'not from a bank',
+          reason: sender,
+        );
+      }
+    });
+
+    test('a message naming a wallet or UPI Lite counts from any sender', () {
+      final capture = sms(
+        '+91 98765 43210',
+        'Paid Rs.20.00 via UPI Lite to RAMESH TEA STALL on 05-11-26.',
+      );
+      expect(explainCapture(capture).payment!.amountPaise, 2000);
+    });
+
+    test("a lender's receipt is let go, saying why", () {
+      final capture = sms(
+        'BZ-BAJAJF',
+        'Dear Customer, EMI of Rs.4,500.00 for your loan A/c XX8812 has been '
+            'received on 05-11-26.',
+      );
+      expect(
+        explainCapture(capture).letGo,
+        'a receipt for a payment already made',
+      );
+    });
+  });
+
   test('a payment is dated by its own time, or else its notification', () {
     final noDate = readCapture(sms('AX-HDFCBK', bankSwiggy))!;
     expect(occurredAtOf(noDate, at), at);
