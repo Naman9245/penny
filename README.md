@@ -2,7 +2,7 @@
 
 A money manager for Indian users, with Penny, a coin who reacts to how your month is going. An Android app built with Flutter.
 
-**Status: six milestones done.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, Penny's animations, the welcome, and Google sign-in with backup and sync work. Reading bank SMS and payment notifications automatically comes later.
+**Status: seven milestones done.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, payments read from notifications, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, CSV export, Penny's animations, the welcome, and Google sign-in with backup and sync work. Receipt photos come later.
 
 ## What works now
 
@@ -14,6 +14,8 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 - **Paybacks**: when a friend pays you back their share, log it under Got → Paid back and say what it was for. It reads "Food · paid back", comes off that category's spending (never below zero) on Home, Analysis, the budget and Penny's mood, and isn't counted as income. A day keeps what you paid that day, and its sheet says what came back.
 - **Investing**: 📈 Invest / SIP is money put away, not spent. Zerodha, Groww, INDmoney, Kuvera, Upstox, Coin, SIPs and mutual funds are recognised. It stays out of Spent, the budget, the mood and necessary vs wasteful; Left takes it off with "₹1,000 invested" under it, and Analysis shows it under Put away.
 - **Bank SMS import**: share an SMS from Messages to Penny, or paste one. It's read on the phone: numbers are masked, OTPs and look-alikes (payment requests, reminders, offers) are refused with a reason, and the SMS itself is never saved.
+- **Payments read from notifications** (Android, opt-in): once you allow Penny on Android's Notification access page (Settings → Read payment notifications), it reads payments from your SMS app (bank SMS only: a bank's sender ID, or one naming an account or card), GPay, PhonePe and Paytm, with the same rules as a shared SMS. Each waits on Home under "payments to check" (Add with Penny's guessed category, open it to change anything, or Skip), or, if you choose Save straight away, is saved at once with Undo. One payment seen twice (a bank SMS and a GPay notice, or one you typed) is held as "Looks like one you have". Entries read this way show "Auto".
+- **Export**: Settings → Export entries sends every entry as a CSV, through the share menu, that opens in Excel or Google Sheets.
 - **Analysis**: spent and got, a card per category with what came back, the necessary-vs-wasteful split, what you put away, and the last six months as a chart.
 - **Month routines**:
   - **Fixed bills**: in a month's first week, Home offers last month's rent, bills, subscriptions and education not logged yet. Log adds one today, with Undo; Skip hides it for the month.
@@ -37,6 +39,7 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 
 ## Privacy
 
+- Reading notifications happens only on the phone and only with your permission. Penny looks only at your SMS app, GPay, PhonePe and Paytm, ignores every other app's notifications as they arrive, and keeps only what looks like a payment: the notification's text waits in Penny's private storage until Penny reads it, then is deleted, and what's waiting to be checked keeps only the read entry and its masked preview. None of it is synced or sent to the AI.
 - Penny calls the AI when you tap Ask Penny, Refresh or Plan with Penny, when you send her a chat message, and by herself when you open a report for a month she has looked at before whose entries, note or budget have changed since.
 - She sends one month as totals per shop, plus your note and budget, and what came back per category and what you invested as totals: never single entries, SMS text, account numbers, or the names of people you pay (they go as "Person 1, 2"). A payee you type goes only as the words Penny knows from a list of everyday expenses, shops and brands, like "Cook" from "For Cook"; any other word could be a name, so it stays on the phone (tested against `test/fixtures/payee_names.json`). A plan also sends that goal, and the chat your goals, Penny's mood on Home and your messages; any run of 9 or more digits in messages, the note and goal titles is hidden as ••• on the phone before it's sent, and again on the server. "See what Penny sends" lists exactly what goes out.
 - Gemini sorts, picks and explains; every rupee in the report and in a plan is computed on the phone, and the server drops any sentence from Gemini that contains a number. In the chat Penny may use numbers from your month, saying "about" for estimates.
@@ -123,6 +126,7 @@ supabase/     migrations, and the analyze-month, penny-chat, plan-goal and
 4. ✅ Budgets, goal planner, Penny's moods, mood calendar
 5. ✅ Penny's animations, polish (icon, launch screen, welcome), Google sign-in with backup and sync
 6. ✅ Faster logging (split, usual entries, type it), paybacks and investing, fixed bills, a forecast and search
-7. Later: reading bank SMS and GPay or PhonePe notifications automatically (Android, opt-in), and receipt photos
+7. ✅ Payments read from notifications (bank SMS, GPay, PhonePe, Paytm), checked first or saved straight away, and CSV export
+8. Later: receipt photos, and bank apps' own notifications
 
 Baloo 2 and DM Sans are bundled under the SIL Open Font License.
