@@ -23,13 +23,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> tap(WidgetTester tester, String key) async {
-    final target = find.byKey(ValueKey(key));
-    await tester.ensureVisible(target);
-    await tester.pumpAndSettle();
-    await tester.tap(target);
-    await tester.pumpAndSettle();
-  }
+  Future<void> tap(WidgetTester tester, String key) =>
+      tapInView(tester, find.byKey(ValueKey(key)));
 
   testWidgets("a build without Google's id says backup isn't set up", (
     tester,

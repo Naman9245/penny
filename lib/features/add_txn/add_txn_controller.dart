@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
+import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/txn_enums.dart';
@@ -10,20 +11,40 @@ import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 
 /// What the Add screen opens with: a fresh entry of [type], [editing] an
-/// existing one, or an [sms] to review before it is saved.
+/// existing one, or an [sms] to review before it is saved: one shared, or a
+/// [capture] read from a notification.
 @immutable
 class AddTxnArgs {
-  const AddTxnArgs.create(this.type) : editing = null, sms = null;
+  const AddTxnArgs.create(this.type)
+    : editing = null,
+      sms = null,
+      capture = null;
 
-  AddTxnArgs.edit(Txn txn) : type = txn.type, editing = txn, sms = null;
+  AddTxnArgs.edit(Txn txn)
+    : type = txn.type,
+      editing = txn,
+      sms = null,
+      capture = null;
 
-  AddTxnArgs.fromSms(SmsTxn this.sms) : type = sms.type, editing = null;
+  AddTxnArgs.fromSms(SmsTxn this.sms)
+    : type = sms.type,
+      editing = null,
+      capture = null;
+
+  AddTxnArgs.fromCapture(PendingCapture this.capture)
+    : sms = CaptureRepository.toSms(capture),
+      type = capture.type,
+      editing = null;
 
   final TxnType type;
   final Txn? editing;
 
   /// An SMS already read and masked on the phone.
   final SmsTxn? sms;
+
+  /// The payment read from a notification that [sms] came from. Saving it
+  /// stops it waiting.
+  final PendingCapture? capture;
 
   bool get isEditing => editing != null;
 
@@ -238,6 +259,11 @@ class AddTxnController extends Notifier<AddTxnState> {
       final existing = sms == null
           ? null
           : await repo.findByDedupeKey(sms.dedupeKey);
+      // Saved one way or another, a payment read from a notification
+      // stops waiting.
+      if (args.capture case final capture?) {
+        await ref.read(captureRepositoryProvider).remove(capture.dedupeKey);
+      }
       if (existing != null) return existing.id;
       return repo.add(
         amountPaise: state.amountPaise,
@@ -245,7 +271,11 @@ class AddTxnController extends Notifier<AddTxnState> {
         categoryId: state.categoryId!,
         occurredAt: state.occurredAt,
         merchant: state.merchant,
-        source: sms == null ? TxnSource.manual : TxnSource.share,
+        source: args.capture != null
+            ? TxnSource.sms
+            : sms == null
+            ? TxnSource.manual
+            : TxnSource.share,
         dedupeKey: sms?.dedupeKey,
         payeeIsPerson: sms == null
             ? null

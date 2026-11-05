@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:penny/core/router/app_shell.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/add_txn/add_txn_controller.dart';
 import 'package:penny/features/add_txn/add_txn_screen.dart';
 import 'package:penny/features/analysis/analysis_screen.dart';
 import 'package:penny/features/budget/budget_screen.dart';
@@ -88,6 +90,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             _ => null,
           },
         ),
+      ),
+      // A payment read from a notification, to check before it's added.
+      GoRoute(
+        path: '/capture',
+        builder: (context, state) => switch (state.extra) {
+          final PendingCapture capture => AddTxnView(
+            args: AddTxnArgs.fromCapture(capture),
+          ),
+          _ => const ImportScreen(sms: null),
+        },
       ),
       GoRoute(
         path: '/txns',

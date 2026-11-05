@@ -8,12 +8,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// SMS app ("sms"), or from "gpay", "phonepe" or "paytm".
 typedef Capture = ({String app, String title, String text, DateTime at});
 
+/// Where captures wait: Android's listener, or a fake in tests.
+abstract interface class CaptureSource {
+  /// Everything waiting, oldest first, and how many there were in all.
+  Future<({List<Capture> captures, int count})> peek();
+
+  /// Forgets the oldest [count], once they're kept.
+  Future<void> drop(int count);
+}
+
 /// Payment notifications waiting on the "penny/notifications" channel.
 ///
 /// Android's PaymentNotificationListener keeps them in Penny's private
 /// storage until they're read here; it reads only the SMS app, GPay, PhonePe
 /// and Paytm, and only once the user allows it on Android's own page.
-class NotificationInbox {
+class NotificationInbox implements CaptureSource {
   NotificationInbox([
     this._channel = const MethodChannel('penny/notifications'),
   ]) {
@@ -32,9 +41,9 @@ class NotificationInbox {
   /// Opens Android's page where the user allows it.
   Future<void> openSettings() => _call<void>('openSettings');
 
-  /// Everything waiting, oldest first, and how many there were in all, to
-  /// [drop] once they're kept. Anything unreadable is left out, and dropped
-  /// with the rest.
+  /// Anything unreadable is left out of the captures, and dropped with the
+  /// rest.
+  @override
   Future<({List<Capture> captures, int count})> peek() async {
     final json = await _call<String>('peek');
     final items = json == null ? const [] : jsonDecode(json) as List<dynamic>;
@@ -58,7 +67,7 @@ class NotificationInbox {
     );
   }
 
-  /// Forgets the oldest [count], once they're kept.
+  @override
   Future<void> drop(int count) => _call<void>('drop', count);
 
   Future<T?> _call<T>(String method, [Object? arguments]) async {

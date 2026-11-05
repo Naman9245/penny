@@ -94,6 +94,27 @@ Future<void> _dragHome(WidgetTester tester, double dy) async {
   await tester.pumpAndSettle();
 }
 
+/// Taps [target], scrolling the topmost list only when it isn't in view:
+/// Settings is taller than the screen and builds as it scrolls. (Scrolling
+/// to a target that's already in view lifts it to the top, which can push
+/// what's above it out of the list.)
+Future<void> tapInView(WidgetTester tester, Finder target) async {
+  if (target.hitTestable().evaluate().isEmpty) {
+    if (target.evaluate().isEmpty) {
+      // Not built: it may be above or below. From the top down, then.
+      final list = find.byType(Scrollable).last;
+      tester.state<ScrollableState>(list).position.jumpTo(0);
+      await tester.pump();
+      await tester.scrollUntilVisible(target, 200, scrollable: list);
+    } else {
+      await tester.ensureVisible(target);
+    }
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 /// The app's router, for opening routes the way a share would.
 GoRouter routerOf(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(PennyApp)))

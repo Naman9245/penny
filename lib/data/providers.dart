@@ -4,6 +4,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/budget_repository.dart';
+import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/chat_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/demo_data.dart';
@@ -142,6 +143,11 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   ref.onDispose(db.close);
   return db;
 });
+
+/// Payments read from notifications, waiting to be checked.
+final captureRepositoryProvider = Provider<CaptureRepository>(
+  (ref) => CaptureRepository(ref.watch(appDatabaseProvider)),
+);
 
 final txnRepositoryProvider = Provider<TxnRepository>(
   (ref) => TxnRepository(ref.watch(appDatabaseProvider)),

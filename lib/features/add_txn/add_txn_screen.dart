@@ -137,7 +137,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     if (_busy) return;
     _busy = true;
     try {
+      // Read now: the Undo can come after this screen has closed.
       final repo = ref.read(txnRepositoryProvider);
+      final captures = ref.read(captureRepositoryProvider);
+      final capture = widget.args.capture;
       final id = await _controller.save();
       if (!mounted) return;
       HapticFeedback.mediumImpact();
@@ -152,7 +155,11 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
           message: MoneyKind.of(state.type, categoryId) == MoneyKind.invested
               ? 'Invested $amount'
               : 'Added $amount · ${kindLabel(state.type, categoryId)}',
-          onUndo: () => repo.softDelete(id),
+          onUndo: () async {
+            await repo.softDelete(id);
+            // Read from a notification: it goes back to wait on Home.
+            if (capture != null) await captures.putBack(capture);
+          },
         );
       }
       context.pop();

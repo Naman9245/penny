@@ -10,6 +10,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/goals/goal_widgets.dart';
 import 'package:penny/features/home/fixed_bills_card.dart';
+import 'package:penny/features/home/to_check_card.dart';
 import 'package:penny/features/settings/settings_sheet.dart';
 import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/month_summary.dart';
@@ -120,6 +121,8 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          // Payments read from notifications, waiting to be checked.
+          const ToCheckCard(),
           // Last month's rent and bills, in a month's first week.
           const FixedBillsCard(),
           const SizedBox(height: 16),

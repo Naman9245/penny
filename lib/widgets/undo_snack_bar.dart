@@ -9,14 +9,26 @@ void showUndoSnackBar(
   BuildContext context, {
   required String message,
   required VoidCallback onUndo,
+}) => showUndoSnackBarOn(
+  ScaffoldMessenger.of(context),
+  message: message,
+  onUndo: onUndo,
+);
+
+/// [showUndoSnackBar] through [messenger], for code with no screen of its
+/// own, like the app reading payments as it opens.
+void showUndoSnackBarOn(
+  ScaffoldMessengerState messenger, {
+  required String message,
+  required VoidCallback onUndo,
 }) {
-  ScaffoldMessenger.of(context)
+  messenger
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(message),
         duration: const Duration(seconds: 5),
-        persist: MediaQuery.accessibleNavigationOf(context),
+        persist: MediaQuery.accessibleNavigationOf(messenger.context),
         action: SnackBarAction(label: 'Undo', onPressed: onUndo),
       ),
     );

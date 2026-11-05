@@ -20,6 +20,7 @@ part 'app_database.g.dart';
     GoalDeposits,
     GoalPlans,
     SyncCursors,
+    PendingCaptures,
   ],
   // Edits here always move a row's stamp forward.
   include: {'stamps.drift'},
@@ -43,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +102,10 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await m.createTrigger(trigger);
         }
+      },
+      // v8: payments read from notifications, waiting to be checked.
+      from7To8: (m, schema) async {
+        await m.createTable(schema.pendingCaptures);
       },
     ),
   );

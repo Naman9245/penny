@@ -232,3 +232,37 @@ class GoalPlans extends Table {
   @override
   Set<Column<Object>> get primaryKey => {goalId};
 }
+
+/// Payments Penny read from notifications, waiting on Home to be added or
+/// skipped; and the ones skipped, kept a while so a notification that comes
+/// again doesn't bring one back. Never synced: they stay on this phone.
+@DataClassName('PendingCapture')
+class PendingCaptures extends Table {
+  /// The fingerprint of what was read, as its entry would keep it.
+  TextColumn get dedupeKey => text()();
+
+  /// Where it was read: "sms", "gpay", "phonepe" or "paytm".
+  TextColumn get app => text()();
+  IntColumn get amountPaise => integer()();
+  TextColumn get type => textEnum<TxnType>()();
+  TextColumn get payee => text().nullable()();
+  BoolColumn get payeeIsPerson => boolean()();
+  DateTimeColumn get occurredAt => dateTime()();
+  TextColumn get suggestedCategoryId => text().nullable()();
+
+  /// What was read, with numbers hidden as on the SMS card.
+  TextColumn get preview => text()();
+
+  /// The preview's marked stretches, as JSON: [[start, end, kind], …].
+  TextColumn get previewSpans => text()();
+
+  /// An entry it may already be, in words, like "₹250 · Swiggy at 2:10 PM".
+  TextColumn get lookalike => text().nullable()();
+  DateTimeColumn get capturedAt => dateTime()();
+
+  /// When it was skipped. A skipped one stays out of sight for a while.
+  DateTimeColumn get skippedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {dedupeKey};
+}

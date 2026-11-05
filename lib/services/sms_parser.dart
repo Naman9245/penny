@@ -118,7 +118,7 @@ final _failed = _rx(
 final _refundWord = _rx(r'\b(?:refund|refunded|reversal|reversed)\b');
 final _credited = _rx(r'\bcredited\b');
 final _offer = _rx(
-  r"\b(?:pre-?approved|apply now|loan (?:of )?(?:up ?to|upto)|cashback (?:of )?up ?to|offer|congratulations|t&c|limited period|get flat|use code)\b",
+  r"\b(?:pre-?approved|apply now|loan (?:of )?(?:up ?to|upto)|cashback (?:of )?up ?to|offer|congratulations|t&c|limited period|get flat|use code|scratch ?card|you(?:'ve| have)? won|win up ?to)\b",
 );
 final _balanceWord = _rx(r'\b(?:bal|balance|avl|available)\b');
 
@@ -135,7 +135,7 @@ final _strongDebit = _rx(
   r'\b(?:debited|spent|sent|paid|withdrawn|deducted|purchased?|transferred\s+to(?!\s+your)|transferred\s+from)\b',
 );
 final _strongCredit = _rx(
-  r'\b(?:credited|received|deposited|refund(?:ed)?|reversal|reversed|credit\s+of)\b',
+  r'\b(?:credited|received|deposited|refund(?:ed)?|reversal|reversed|credit\s+of|paid\s+you|sent\s+you)\b',
 );
 final _weakDebit = _rx(r'\b(?:txn|transaction|payment)\b');
 
@@ -179,6 +179,13 @@ final _creditPayees = [
   _rx(r'\bneft\s*cr-[a-z0-9]+-([a-z][a-z0-9 .&]{1,60}?)-'),
   _rx(r'\bfrom\s+' + _honorific + _name + _end),
   _rx(r'\bby\s+' + _name + _end),
+  // "Rahul Kumar paid you ₹500", as payment apps say it.
+  _rx(
+    r'(?:^|[.:]\s+)' +
+        _honorific +
+        _name +
+        r'[.:]?\s+(?:has\s+)?(?:paid|sent)\s+you\b',
+  ),
 ];
 final _notAPayee = _rx(
   r'^(?:(?:rs|inr)\.?\s*\d|(?:rs|inr|upi|txn|your|you|ur|a/?c|ac|acct|account|card|bank|the|ref|vpa|imps|neft|date|dt)\b)',
@@ -229,6 +236,10 @@ const _months = [
   'nov',
   'dec',
 ];
+
+/// Whether [text] names an account or card, as a bank's message does: "A/c
+/// XX4821", "card ending 4455".
+bool mentionsAccount(String text) => _accountRef.hasMatch(_normalise(text));
 
 /// Reads [raw], one SMS, as a payment, or says why it isn't one. [now] is
 /// for dates: one later than tomorrow or over a year old is not believed.

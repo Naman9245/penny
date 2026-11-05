@@ -65,8 +65,7 @@ void main() {
 
     await openSettings();
     expect(reset, findsNothing);
-    await tester.tap(demoSwitch);
-    await tester.pumpAndSettle();
+    await tapInView(tester, demoSwitch);
     expect(reset, findsOneWidget);
     // The samples sit below the account and demo cards.
     final copy = find.byKey(const ValueKey('sms-copy-0'));
@@ -108,13 +107,11 @@ void main() {
     // Reset keeps the demo on, from fresh.
     await tester.tap(find.byKey(const ValueKey('demo-banner')));
     await tester.pumpAndSettle();
-    await tester.tap(reset);
-    await tester.pumpAndSettle();
+    await tapInView(tester, reset);
     expect(reset, findsOneWidget);
 
     // Off again: your own money, as it was.
-    await tester.tap(demoSwitch);
-    await tester.pumpAndSettle();
+    await tapInView(tester, demoSwitch);
     expect(reset, findsNothing);
     await closeSettings();
     expect(find.byKey(const ValueKey('demo-banner')), findsNothing);

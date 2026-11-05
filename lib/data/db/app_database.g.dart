@@ -4649,6 +4649,813 @@ class SyncCursorsCompanion extends UpdateCompanion<SyncCursor> {
   }
 }
 
+class $PendingCapturesTable extends PendingCaptures
+    with TableInfo<$PendingCapturesTable, PendingCapture> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingCapturesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dedupeKeyMeta = const VerificationMeta(
+    'dedupeKey',
+  );
+  @override
+  late final GeneratedColumn<String> dedupeKey = GeneratedColumn<String>(
+    'dedupe_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _appMeta = const VerificationMeta('app');
+  @override
+  late final GeneratedColumn<String> app = GeneratedColumn<String>(
+    'app',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountPaiseMeta = const VerificationMeta(
+    'amountPaise',
+  );
+  @override
+  late final GeneratedColumn<int> amountPaise = GeneratedColumn<int>(
+    'amount_paise',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TxnType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<TxnType>($PendingCapturesTable.$convertertype);
+  static const VerificationMeta _payeeMeta = const VerificationMeta('payee');
+  @override
+  late final GeneratedColumn<String> payee = GeneratedColumn<String>(
+    'payee',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payeeIsPersonMeta = const VerificationMeta(
+    'payeeIsPerson',
+  );
+  @override
+  late final GeneratedColumn<bool> payeeIsPerson = GeneratedColumn<bool>(
+    'payee_is_person',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("payee_is_person" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _suggestedCategoryIdMeta =
+      const VerificationMeta('suggestedCategoryId');
+  @override
+  late final GeneratedColumn<String> suggestedCategoryId =
+      GeneratedColumn<String>(
+        'suggested_category_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _previewMeta = const VerificationMeta(
+    'preview',
+  );
+  @override
+  late final GeneratedColumn<String> preview = GeneratedColumn<String>(
+    'preview',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _previewSpansMeta = const VerificationMeta(
+    'previewSpans',
+  );
+  @override
+  late final GeneratedColumn<String> previewSpans = GeneratedColumn<String>(
+    'preview_spans',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lookalikeMeta = const VerificationMeta(
+    'lookalike',
+  );
+  @override
+  late final GeneratedColumn<String> lookalike = GeneratedColumn<String>(
+    'lookalike',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _capturedAtMeta = const VerificationMeta(
+    'capturedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> capturedAt = GeneratedColumn<DateTime>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _skippedAtMeta = const VerificationMeta(
+    'skippedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> skippedAt = GeneratedColumn<DateTime>(
+    'skipped_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    dedupeKey,
+    app,
+    amountPaise,
+    type,
+    payee,
+    payeeIsPerson,
+    occurredAt,
+    suggestedCategoryId,
+    preview,
+    previewSpans,
+    lookalike,
+    capturedAt,
+    skippedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_captures';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingCapture> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dedupe_key')) {
+      context.handle(
+        _dedupeKeyMeta,
+        dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dedupeKeyMeta);
+    }
+    if (data.containsKey('app')) {
+      context.handle(
+        _appMeta,
+        app.isAcceptableOrUnknown(data['app']!, _appMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_appMeta);
+    }
+    if (data.containsKey('amount_paise')) {
+      context.handle(
+        _amountPaiseMeta,
+        amountPaise.isAcceptableOrUnknown(
+          data['amount_paise']!,
+          _amountPaiseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaiseMeta);
+    }
+    if (data.containsKey('payee')) {
+      context.handle(
+        _payeeMeta,
+        payee.isAcceptableOrUnknown(data['payee']!, _payeeMeta),
+      );
+    }
+    if (data.containsKey('payee_is_person')) {
+      context.handle(
+        _payeeIsPersonMeta,
+        payeeIsPerson.isAcceptableOrUnknown(
+          data['payee_is_person']!,
+          _payeeIsPersonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payeeIsPersonMeta);
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('suggested_category_id')) {
+      context.handle(
+        _suggestedCategoryIdMeta,
+        suggestedCategoryId.isAcceptableOrUnknown(
+          data['suggested_category_id']!,
+          _suggestedCategoryIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preview')) {
+      context.handle(
+        _previewMeta,
+        preview.isAcceptableOrUnknown(data['preview']!, _previewMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_previewMeta);
+    }
+    if (data.containsKey('preview_spans')) {
+      context.handle(
+        _previewSpansMeta,
+        previewSpans.isAcceptableOrUnknown(
+          data['preview_spans']!,
+          _previewSpansMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_previewSpansMeta);
+    }
+    if (data.containsKey('lookalike')) {
+      context.handle(
+        _lookalikeMeta,
+        lookalike.isAcceptableOrUnknown(data['lookalike']!, _lookalikeMeta),
+      );
+    }
+    if (data.containsKey('captured_at')) {
+      context.handle(
+        _capturedAtMeta,
+        capturedAt.isAcceptableOrUnknown(data['captured_at']!, _capturedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_capturedAtMeta);
+    }
+    if (data.containsKey('skipped_at')) {
+      context.handle(
+        _skippedAtMeta,
+        skippedAt.isAcceptableOrUnknown(data['skipped_at']!, _skippedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {dedupeKey};
+  @override
+  PendingCapture map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingCapture(
+      dedupeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dedupe_key'],
+      )!,
+      app: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app'],
+      )!,
+      amountPaise: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_paise'],
+      )!,
+      type: $PendingCapturesTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      payee: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payee'],
+      ),
+      payeeIsPerson: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}payee_is_person'],
+      )!,
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      )!,
+      suggestedCategoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}suggested_category_id'],
+      ),
+      preview: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview'],
+      )!,
+      previewSpans: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_spans'],
+      )!,
+      lookalike: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lookalike'],
+      ),
+      capturedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}captured_at'],
+      )!,
+      skippedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}skipped_at'],
+      ),
+    );
+  }
+
+  @override
+  $PendingCapturesTable createAlias(String alias) {
+    return $PendingCapturesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<TxnType, String, String> $convertertype =
+      const EnumNameConverter<TxnType>(TxnType.values);
+}
+
+class PendingCapture extends DataClass implements Insertable<PendingCapture> {
+  /// The fingerprint of what was read, as its entry would keep it.
+  final String dedupeKey;
+
+  /// Where it was read: "sms", "gpay", "phonepe" or "paytm".
+  final String app;
+  final int amountPaise;
+  final TxnType type;
+  final String? payee;
+  final bool payeeIsPerson;
+  final DateTime occurredAt;
+  final String? suggestedCategoryId;
+
+  /// What was read, with numbers hidden as on the SMS card.
+  final String preview;
+
+  /// The preview's marked stretches, as JSON: [[start, end, kind], …].
+  final String previewSpans;
+
+  /// An entry it may already be, in words, like "₹250 · Swiggy at 2:10 PM".
+  final String? lookalike;
+  final DateTime capturedAt;
+
+  /// When it was skipped. A skipped one stays out of sight for a while.
+  final DateTime? skippedAt;
+  const PendingCapture({
+    required this.dedupeKey,
+    required this.app,
+    required this.amountPaise,
+    required this.type,
+    this.payee,
+    required this.payeeIsPerson,
+    required this.occurredAt,
+    this.suggestedCategoryId,
+    required this.preview,
+    required this.previewSpans,
+    this.lookalike,
+    required this.capturedAt,
+    this.skippedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dedupe_key'] = Variable<String>(dedupeKey);
+    map['app'] = Variable<String>(app);
+    map['amount_paise'] = Variable<int>(amountPaise);
+    {
+      map['type'] = Variable<String>(
+        $PendingCapturesTable.$convertertype.toSql(type),
+      );
+    }
+    if (!nullToAbsent || payee != null) {
+      map['payee'] = Variable<String>(payee);
+    }
+    map['payee_is_person'] = Variable<bool>(payeeIsPerson);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    if (!nullToAbsent || suggestedCategoryId != null) {
+      map['suggested_category_id'] = Variable<String>(suggestedCategoryId);
+    }
+    map['preview'] = Variable<String>(preview);
+    map['preview_spans'] = Variable<String>(previewSpans);
+    if (!nullToAbsent || lookalike != null) {
+      map['lookalike'] = Variable<String>(lookalike);
+    }
+    map['captured_at'] = Variable<DateTime>(capturedAt);
+    if (!nullToAbsent || skippedAt != null) {
+      map['skipped_at'] = Variable<DateTime>(skippedAt);
+    }
+    return map;
+  }
+
+  PendingCapturesCompanion toCompanion(bool nullToAbsent) {
+    return PendingCapturesCompanion(
+      dedupeKey: Value(dedupeKey),
+      app: Value(app),
+      amountPaise: Value(amountPaise),
+      type: Value(type),
+      payee: payee == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payee),
+      payeeIsPerson: Value(payeeIsPerson),
+      occurredAt: Value(occurredAt),
+      suggestedCategoryId: suggestedCategoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedCategoryId),
+      preview: Value(preview),
+      previewSpans: Value(previewSpans),
+      lookalike: lookalike == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lookalike),
+      capturedAt: Value(capturedAt),
+      skippedAt: skippedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(skippedAt),
+    );
+  }
+
+  factory PendingCapture.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingCapture(
+      dedupeKey: serializer.fromJson<String>(json['dedupeKey']),
+      app: serializer.fromJson<String>(json['app']),
+      amountPaise: serializer.fromJson<int>(json['amountPaise']),
+      type: $PendingCapturesTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      payee: serializer.fromJson<String?>(json['payee']),
+      payeeIsPerson: serializer.fromJson<bool>(json['payeeIsPerson']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      suggestedCategoryId: serializer.fromJson<String?>(
+        json['suggestedCategoryId'],
+      ),
+      preview: serializer.fromJson<String>(json['preview']),
+      previewSpans: serializer.fromJson<String>(json['previewSpans']),
+      lookalike: serializer.fromJson<String?>(json['lookalike']),
+      capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
+      skippedAt: serializer.fromJson<DateTime?>(json['skippedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dedupeKey': serializer.toJson<String>(dedupeKey),
+      'app': serializer.toJson<String>(app),
+      'amountPaise': serializer.toJson<int>(amountPaise),
+      'type': serializer.toJson<String>(
+        $PendingCapturesTable.$convertertype.toJson(type),
+      ),
+      'payee': serializer.toJson<String?>(payee),
+      'payeeIsPerson': serializer.toJson<bool>(payeeIsPerson),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'suggestedCategoryId': serializer.toJson<String?>(suggestedCategoryId),
+      'preview': serializer.toJson<String>(preview),
+      'previewSpans': serializer.toJson<String>(previewSpans),
+      'lookalike': serializer.toJson<String?>(lookalike),
+      'capturedAt': serializer.toJson<DateTime>(capturedAt),
+      'skippedAt': serializer.toJson<DateTime?>(skippedAt),
+    };
+  }
+
+  PendingCapture copyWith({
+    String? dedupeKey,
+    String? app,
+    int? amountPaise,
+    TxnType? type,
+    Value<String?> payee = const Value.absent(),
+    bool? payeeIsPerson,
+    DateTime? occurredAt,
+    Value<String?> suggestedCategoryId = const Value.absent(),
+    String? preview,
+    String? previewSpans,
+    Value<String?> lookalike = const Value.absent(),
+    DateTime? capturedAt,
+    Value<DateTime?> skippedAt = const Value.absent(),
+  }) => PendingCapture(
+    dedupeKey: dedupeKey ?? this.dedupeKey,
+    app: app ?? this.app,
+    amountPaise: amountPaise ?? this.amountPaise,
+    type: type ?? this.type,
+    payee: payee.present ? payee.value : this.payee,
+    payeeIsPerson: payeeIsPerson ?? this.payeeIsPerson,
+    occurredAt: occurredAt ?? this.occurredAt,
+    suggestedCategoryId: suggestedCategoryId.present
+        ? suggestedCategoryId.value
+        : this.suggestedCategoryId,
+    preview: preview ?? this.preview,
+    previewSpans: previewSpans ?? this.previewSpans,
+    lookalike: lookalike.present ? lookalike.value : this.lookalike,
+    capturedAt: capturedAt ?? this.capturedAt,
+    skippedAt: skippedAt.present ? skippedAt.value : this.skippedAt,
+  );
+  PendingCapture copyWithCompanion(PendingCapturesCompanion data) {
+    return PendingCapture(
+      dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
+      app: data.app.present ? data.app.value : this.app,
+      amountPaise: data.amountPaise.present
+          ? data.amountPaise.value
+          : this.amountPaise,
+      type: data.type.present ? data.type.value : this.type,
+      payee: data.payee.present ? data.payee.value : this.payee,
+      payeeIsPerson: data.payeeIsPerson.present
+          ? data.payeeIsPerson.value
+          : this.payeeIsPerson,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      suggestedCategoryId: data.suggestedCategoryId.present
+          ? data.suggestedCategoryId.value
+          : this.suggestedCategoryId,
+      preview: data.preview.present ? data.preview.value : this.preview,
+      previewSpans: data.previewSpans.present
+          ? data.previewSpans.value
+          : this.previewSpans,
+      lookalike: data.lookalike.present ? data.lookalike.value : this.lookalike,
+      capturedAt: data.capturedAt.present
+          ? data.capturedAt.value
+          : this.capturedAt,
+      skippedAt: data.skippedAt.present ? data.skippedAt.value : this.skippedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingCapture(')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('app: $app, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('type: $type, ')
+          ..write('payee: $payee, ')
+          ..write('payeeIsPerson: $payeeIsPerson, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('suggestedCategoryId: $suggestedCategoryId, ')
+          ..write('preview: $preview, ')
+          ..write('previewSpans: $previewSpans, ')
+          ..write('lookalike: $lookalike, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('skippedAt: $skippedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    dedupeKey,
+    app,
+    amountPaise,
+    type,
+    payee,
+    payeeIsPerson,
+    occurredAt,
+    suggestedCategoryId,
+    preview,
+    previewSpans,
+    lookalike,
+    capturedAt,
+    skippedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingCapture &&
+          other.dedupeKey == this.dedupeKey &&
+          other.app == this.app &&
+          other.amountPaise == this.amountPaise &&
+          other.type == this.type &&
+          other.payee == this.payee &&
+          other.payeeIsPerson == this.payeeIsPerson &&
+          other.occurredAt == this.occurredAt &&
+          other.suggestedCategoryId == this.suggestedCategoryId &&
+          other.preview == this.preview &&
+          other.previewSpans == this.previewSpans &&
+          other.lookalike == this.lookalike &&
+          other.capturedAt == this.capturedAt &&
+          other.skippedAt == this.skippedAt);
+}
+
+class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
+  final Value<String> dedupeKey;
+  final Value<String> app;
+  final Value<int> amountPaise;
+  final Value<TxnType> type;
+  final Value<String?> payee;
+  final Value<bool> payeeIsPerson;
+  final Value<DateTime> occurredAt;
+  final Value<String?> suggestedCategoryId;
+  final Value<String> preview;
+  final Value<String> previewSpans;
+  final Value<String?> lookalike;
+  final Value<DateTime> capturedAt;
+  final Value<DateTime?> skippedAt;
+  final Value<int> rowid;
+  const PendingCapturesCompanion({
+    this.dedupeKey = const Value.absent(),
+    this.app = const Value.absent(),
+    this.amountPaise = const Value.absent(),
+    this.type = const Value.absent(),
+    this.payee = const Value.absent(),
+    this.payeeIsPerson = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.suggestedCategoryId = const Value.absent(),
+    this.preview = const Value.absent(),
+    this.previewSpans = const Value.absent(),
+    this.lookalike = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.skippedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PendingCapturesCompanion.insert({
+    required String dedupeKey,
+    required String app,
+    required int amountPaise,
+    required TxnType type,
+    this.payee = const Value.absent(),
+    required bool payeeIsPerson,
+    required DateTime occurredAt,
+    this.suggestedCategoryId = const Value.absent(),
+    required String preview,
+    required String previewSpans,
+    this.lookalike = const Value.absent(),
+    required DateTime capturedAt,
+    this.skippedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : dedupeKey = Value(dedupeKey),
+       app = Value(app),
+       amountPaise = Value(amountPaise),
+       type = Value(type),
+       payeeIsPerson = Value(payeeIsPerson),
+       occurredAt = Value(occurredAt),
+       preview = Value(preview),
+       previewSpans = Value(previewSpans),
+       capturedAt = Value(capturedAt);
+  static Insertable<PendingCapture> custom({
+    Expression<String>? dedupeKey,
+    Expression<String>? app,
+    Expression<int>? amountPaise,
+    Expression<String>? type,
+    Expression<String>? payee,
+    Expression<bool>? payeeIsPerson,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? suggestedCategoryId,
+    Expression<String>? preview,
+    Expression<String>? previewSpans,
+    Expression<String>? lookalike,
+    Expression<DateTime>? capturedAt,
+    Expression<DateTime>? skippedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dedupeKey != null) 'dedupe_key': dedupeKey,
+      if (app != null) 'app': app,
+      if (amountPaise != null) 'amount_paise': amountPaise,
+      if (type != null) 'type': type,
+      if (payee != null) 'payee': payee,
+      if (payeeIsPerson != null) 'payee_is_person': payeeIsPerson,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (suggestedCategoryId != null)
+        'suggested_category_id': suggestedCategoryId,
+      if (preview != null) 'preview': preview,
+      if (previewSpans != null) 'preview_spans': previewSpans,
+      if (lookalike != null) 'lookalike': lookalike,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (skippedAt != null) 'skipped_at': skippedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PendingCapturesCompanion copyWith({
+    Value<String>? dedupeKey,
+    Value<String>? app,
+    Value<int>? amountPaise,
+    Value<TxnType>? type,
+    Value<String?>? payee,
+    Value<bool>? payeeIsPerson,
+    Value<DateTime>? occurredAt,
+    Value<String?>? suggestedCategoryId,
+    Value<String>? preview,
+    Value<String>? previewSpans,
+    Value<String?>? lookalike,
+    Value<DateTime>? capturedAt,
+    Value<DateTime?>? skippedAt,
+    Value<int>? rowid,
+  }) {
+    return PendingCapturesCompanion(
+      dedupeKey: dedupeKey ?? this.dedupeKey,
+      app: app ?? this.app,
+      amountPaise: amountPaise ?? this.amountPaise,
+      type: type ?? this.type,
+      payee: payee ?? this.payee,
+      payeeIsPerson: payeeIsPerson ?? this.payeeIsPerson,
+      occurredAt: occurredAt ?? this.occurredAt,
+      suggestedCategoryId: suggestedCategoryId ?? this.suggestedCategoryId,
+      preview: preview ?? this.preview,
+      previewSpans: previewSpans ?? this.previewSpans,
+      lookalike: lookalike ?? this.lookalike,
+      capturedAt: capturedAt ?? this.capturedAt,
+      skippedAt: skippedAt ?? this.skippedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dedupeKey.present) {
+      map['dedupe_key'] = Variable<String>(dedupeKey.value);
+    }
+    if (app.present) {
+      map['app'] = Variable<String>(app.value);
+    }
+    if (amountPaise.present) {
+      map['amount_paise'] = Variable<int>(amountPaise.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $PendingCapturesTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (payee.present) {
+      map['payee'] = Variable<String>(payee.value);
+    }
+    if (payeeIsPerson.present) {
+      map['payee_is_person'] = Variable<bool>(payeeIsPerson.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (suggestedCategoryId.present) {
+      map['suggested_category_id'] = Variable<String>(
+        suggestedCategoryId.value,
+      );
+    }
+    if (preview.present) {
+      map['preview'] = Variable<String>(preview.value);
+    }
+    if (previewSpans.present) {
+      map['preview_spans'] = Variable<String>(previewSpans.value);
+    }
+    if (lookalike.present) {
+      map['lookalike'] = Variable<String>(lookalike.value);
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<DateTime>(capturedAt.value);
+    }
+    if (skippedAt.present) {
+      map['skipped_at'] = Variable<DateTime>(skippedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingCapturesCompanion(')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('app: $app, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('type: $type, ')
+          ..write('payee: $payee, ')
+          ..write('payeeIsPerson: $payeeIsPerson, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('suggestedCategoryId: $suggestedCategoryId, ')
+          ..write('preview: $preview, ')
+          ..write('previewSpans: $previewSpans, ')
+          ..write('lookalike: $lookalike, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('skippedAt: $skippedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4686,6 +5493,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ChatMessagesTable chatMessages = $ChatMessagesTable(this);
   late final $GoalPlansTable goalPlans = $GoalPlansTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
+  late final $PendingCapturesTable pendingCaptures = $PendingCapturesTable(
+    this,
+  );
   late final Index txnsOccurredAt = Index(
     'txns_occurred_at',
     'CREATE INDEX txns_occurred_at ON txns (occurred_at)',
@@ -4731,6 +5541,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     chatMessages,
     goalPlans,
     syncCursors,
+    pendingCaptures,
     txnsOccurredAt,
     txnsDedupeKey,
     tagRulesKindRuleKey,
@@ -7203,6 +8014,386 @@ typedef $$SyncCursorsTableProcessedTableManager =
       SyncCursor,
       PrefetchHooks Function()
     >;
+typedef $$PendingCapturesTableCreateCompanionBuilder =
+    PendingCapturesCompanion Function({
+      required String dedupeKey,
+      required String app,
+      required int amountPaise,
+      required TxnType type,
+      Value<String?> payee,
+      required bool payeeIsPerson,
+      required DateTime occurredAt,
+      Value<String?> suggestedCategoryId,
+      required String preview,
+      required String previewSpans,
+      Value<String?> lookalike,
+      required DateTime capturedAt,
+      Value<DateTime?> skippedAt,
+      Value<int> rowid,
+    });
+typedef $$PendingCapturesTableUpdateCompanionBuilder =
+    PendingCapturesCompanion Function({
+      Value<String> dedupeKey,
+      Value<String> app,
+      Value<int> amountPaise,
+      Value<TxnType> type,
+      Value<String?> payee,
+      Value<bool> payeeIsPerson,
+      Value<DateTime> occurredAt,
+      Value<String?> suggestedCategoryId,
+      Value<String> preview,
+      Value<String> previewSpans,
+      Value<String?> lookalike,
+      Value<DateTime> capturedAt,
+      Value<DateTime?> skippedAt,
+      Value<int> rowid,
+    });
+
+class $$PendingCapturesTableFilterComposer
+    extends Composer<_$AppDatabase, $PendingCapturesTable> {
+  $$PendingCapturesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get app => $composableBuilder(
+    column: $table.app,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TxnType, TxnType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get suggestedCategoryId => $composableBuilder(
+    column: $table.suggestedCategoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preview => $composableBuilder(
+    column: $table.preview,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewSpans => $composableBuilder(
+    column: $table.previewSpans,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lookalike => $composableBuilder(
+    column: $table.lookalike,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get skippedAt => $composableBuilder(
+    column: $table.skippedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PendingCapturesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PendingCapturesTable> {
+  $$PendingCapturesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get app => $composableBuilder(
+    column: $table.app,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get suggestedCategoryId => $composableBuilder(
+    column: $table.suggestedCategoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preview => $composableBuilder(
+    column: $table.preview,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previewSpans => $composableBuilder(
+    column: $table.previewSpans,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lookalike => $composableBuilder(
+    column: $table.lookalike,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get skippedAt => $composableBuilder(
+    column: $table.skippedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PendingCapturesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PendingCapturesTable> {
+  $$PendingCapturesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get dedupeKey =>
+      $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
+
+  GeneratedColumn<String> get app =>
+      $composableBuilder(column: $table.app, builder: (column) => column);
+
+  GeneratedColumn<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<TxnType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get payee =>
+      $composableBuilder(column: $table.payee, builder: (column) => column);
+
+  GeneratedColumn<bool> get payeeIsPerson => $composableBuilder(
+    column: $table.payeeIsPerson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get suggestedCategoryId => $composableBuilder(
+    column: $table.suggestedCategoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get preview =>
+      $composableBuilder(column: $table.preview, builder: (column) => column);
+
+  GeneratedColumn<String> get previewSpans => $composableBuilder(
+    column: $table.previewSpans,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lookalike =>
+      $composableBuilder(column: $table.lookalike, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get skippedAt =>
+      $composableBuilder(column: $table.skippedAt, builder: (column) => column);
+}
+
+class $$PendingCapturesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PendingCapturesTable,
+          PendingCapture,
+          $$PendingCapturesTableFilterComposer,
+          $$PendingCapturesTableOrderingComposer,
+          $$PendingCapturesTableAnnotationComposer,
+          $$PendingCapturesTableCreateCompanionBuilder,
+          $$PendingCapturesTableUpdateCompanionBuilder,
+          (
+            PendingCapture,
+            BaseReferences<
+              _$AppDatabase,
+              $PendingCapturesTable,
+              PendingCapture
+            >,
+          ),
+          PendingCapture,
+          PrefetchHooks Function()
+        > {
+  $$PendingCapturesTableTableManager(
+    _$AppDatabase db,
+    $PendingCapturesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingCapturesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingCapturesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PendingCapturesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> dedupeKey = const Value.absent(),
+                Value<String> app = const Value.absent(),
+                Value<int> amountPaise = const Value.absent(),
+                Value<TxnType> type = const Value.absent(),
+                Value<String?> payee = const Value.absent(),
+                Value<bool> payeeIsPerson = const Value.absent(),
+                Value<DateTime> occurredAt = const Value.absent(),
+                Value<String?> suggestedCategoryId = const Value.absent(),
+                Value<String> preview = const Value.absent(),
+                Value<String> previewSpans = const Value.absent(),
+                Value<String?> lookalike = const Value.absent(),
+                Value<DateTime> capturedAt = const Value.absent(),
+                Value<DateTime?> skippedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PendingCapturesCompanion(
+                dedupeKey: dedupeKey,
+                app: app,
+                amountPaise: amountPaise,
+                type: type,
+                payee: payee,
+                payeeIsPerson: payeeIsPerson,
+                occurredAt: occurredAt,
+                suggestedCategoryId: suggestedCategoryId,
+                preview: preview,
+                previewSpans: previewSpans,
+                lookalike: lookalike,
+                capturedAt: capturedAt,
+                skippedAt: skippedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String dedupeKey,
+                required String app,
+                required int amountPaise,
+                required TxnType type,
+                Value<String?> payee = const Value.absent(),
+                required bool payeeIsPerson,
+                required DateTime occurredAt,
+                Value<String?> suggestedCategoryId = const Value.absent(),
+                required String preview,
+                required String previewSpans,
+                Value<String?> lookalike = const Value.absent(),
+                required DateTime capturedAt,
+                Value<DateTime?> skippedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PendingCapturesCompanion.insert(
+                dedupeKey: dedupeKey,
+                app: app,
+                amountPaise: amountPaise,
+                type: type,
+                payee: payee,
+                payeeIsPerson: payeeIsPerson,
+                occurredAt: occurredAt,
+                suggestedCategoryId: suggestedCategoryId,
+                preview: preview,
+                previewSpans: previewSpans,
+                lookalike: lookalike,
+                capturedAt: capturedAt,
+                skippedAt: skippedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PendingCapturesTable, PendingCapture>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $PendingCapturesTable,
+                    PendingCapture
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PendingCapturesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PendingCapturesTable,
+      PendingCapture,
+      $$PendingCapturesTableFilterComposer,
+      $$PendingCapturesTableOrderingComposer,
+      $$PendingCapturesTableAnnotationComposer,
+      $$PendingCapturesTableCreateCompanionBuilder,
+      $$PendingCapturesTableUpdateCompanionBuilder,
+      (
+        PendingCapture,
+        BaseReferences<_$AppDatabase, $PendingCapturesTable, PendingCapture>,
+      ),
+      PendingCapture,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7226,4 +8417,6 @@ class $AppDatabaseManager {
       $$GoalPlansTableTableManager(_db, _db.goalPlans);
   $$SyncCursorsTableTableManager get syncCursors =>
       $$SyncCursorsTableTableManager(_db, _db.syncCursors);
+  $$PendingCapturesTableTableManager get pendingCaptures =>
+      $$PendingCapturesTableTableManager(_db, _db.pendingCaptures);
 }

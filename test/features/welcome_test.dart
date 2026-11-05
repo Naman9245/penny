@@ -55,11 +55,8 @@ void main() {
 
     await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
-    final again = find.byKey(const ValueKey('show-welcome'));
-    await tester.ensureVisible(again);
-    await tester.pumpAndSettle();
-    await tester.tap(again);
-    await tester.pumpAndSettle();
+    // At the foot of Settings, which builds as it scrolls.
+    await tapInView(tester, find.byKey(const ValueKey('show-welcome')));
     expect(welcome, findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('welcome-skip')));

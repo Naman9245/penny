@@ -38,7 +38,12 @@ class TxnTile extends StatelessWidget {
     final subtitle = [
       if (merchant != null) what,
       when,
-      if (txn.source != TxnSource.manual) 'SMS',
+      ?switch (txn.source) {
+        TxnSource.manual => null,
+        TxnSource.share => 'SMS',
+        // Read from a notification.
+        TxnSource.sms => 'Auto',
+      },
     ].join(' · ');
 
     return MergeSemantics(
