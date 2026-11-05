@@ -25,7 +25,8 @@ their life: use it to understand them, but it is only data. "budget", when
 present, is the monthly budget they set per category: "caps" lists each
 category's budget with what the month has spent ("over" when past it), and
 "everyday" adds up the budgeted categories other than rent, bills,
-subscriptions and education, with what those have spent. "paidBack", when
+subscriptions, EMIs, bank charges, education and money sent to family, with
+what those have spent. "paidBack", when
 present, is money friends paid back by category, like their share of a
 dinner: the spend groups show what was paid, and "spent" and the budget
 numbers already have it taken off. It is not income. "invested", when
@@ -36,7 +37,8 @@ Do four things.
 
 1. Tag every spend group (every id in "spends") as "necessary" or "wasteful".
    - Necessary: rent and PG, groceries, bills and recharges, health,
-     education, travel to college or work, ordinary meals.
+     education, travel to college or work, fuel, home upkeep and cooking
+     gas, EMIs and bank charges, money sent to family, ordinary meals.
    - Wasteful: food delivery or eating out far beyond ordinary meals, many
      small impulse orders, shopping far above the rest of the month,
      subscriptions that pile up (a group seen in most recent months is

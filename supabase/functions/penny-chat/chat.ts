@@ -85,9 +85,11 @@ in this chat disagree with it, go by the JSON.
 - "budget", when present, is the monthly budget they set per category:
   "caps" lists each category's budget with what it has spent ("over" when
   past it), and "everyday" adds up the budgeted categories other than rent,
-  bills, subscriptions and education, with what those have spent.
-- Rent & PG, Bills & recharge, Subscriptions and Education are fixed costs
-  paid in one go, like rent, a cook, electricity or a phone plan, and are
+  bills, subscriptions, EMIs, bank charges, education and money sent to
+  family, with what those have spent.
+- Rent & PG, Bills & recharge, Subscriptions, EMIs & loans, Bank charges &
+  fees, Education and Family (money sent home) are fixed costs paid in one
+  go, like rent, a cook, electricity, a phone plan or a loan EMI, and are
   already inside "spent". Don't count them as money that could be saved
   unless they ask how to lower one; plan any saving from what is left after
   them.
