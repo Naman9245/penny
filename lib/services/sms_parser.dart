@@ -100,6 +100,24 @@ class SmsTxn extends SmsParse {
     dedupeKey: key,
     preview: preview,
   );
+
+  /// The same money, coming back for the payment to [payee] in
+  /// [categoryId]: it goes in that category, as money back.
+  SmsTxn backFor({
+    required String? payee,
+    required String categoryId,
+    required bool payeeIsPerson,
+  }) => SmsTxn(
+    amountPaise: amountPaise,
+    type: type,
+    payee: payee,
+    payeeIsPerson: payeeIsPerson,
+    occurredAt: occurredAt,
+    hasTime: hasTime,
+    suggestedCategoryId: categoryId,
+    dedupeKey: dedupeKey,
+    preview: preview,
+  );
 }
 
 class SmsIgnored extends SmsParse {
@@ -196,6 +214,7 @@ final _accountRef = _rx(
   r'\b(?:a/?c|acct|account|card)(?:\s*no\.?)?(?:\s*ending(?:\s*with)?)?[\s:.]*([xX*•.]*\d[\dxX*•]*\d)',
 );
 final _vpa = _rx(r'\b([\w.\-]{2,})@([a-z][a-z.]*)\b');
+final _maskedVpa = _rx(r'\bvpa\s+[*xX•]+[\w.\-]*@[a-z]');
 // The account or card tail in a bank's "SMS BLOCK DC 7712 to …" footer.
 final _blockRef = _rx(r'\bblock\s*(?:dc|cc|upi)?\s+(\d{3,6})\b');
 final _longDigits = RegExp(r'\d{6,}');
@@ -225,7 +244,7 @@ final _balanceAfter = _rx(
 const _honorific = r'(?:(?:mr|mrs|ms|miss|shri|smt|dr)\.?\s+)?';
 const _name = r"([a-z][a-z0-9&'* ]{0,40}?)";
 const _end =
-    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account)\b|\s+-)';
+    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account|debited|credited|deducted)\b|\s+-)';
 final _upiPath = _rx(r'\bupi/(?:p2[am]/)?\d+/([a-z][^/\n.]{1,40})');
 final _debitPayees = [
   _rx(
@@ -425,7 +444,10 @@ SmsParse parseSms(String raw, {DateTime? now}) {
     amountPaise: amount.paise,
     type: type,
     payee: payee?.name,
-    payeeIsPerson: payee != null && payee.isPerson && category == null,
+    // A UPI ID shown only in part ("from VPA *amit@okhdfcbank") is a person's.
+    payeeIsPerson:
+        category == null &&
+        (payee != null ? payee.isPerson : _maskedVpa.hasMatch(text)),
     occurredAt: date?.at,
     hasTime: date?.hasTime ?? false,
     suggestedCategoryId: category,
@@ -581,10 +603,27 @@ _Amount? _amount(String text) {
   }
   final bare = _bareAmount.firstMatch(text);
   final paise = bare == null ? null : _toPaise(bare.group(1)!);
-  if (bare == null || paise == null || paise <= 0) return null;
-  final start = bare.start + bare.group(0)!.lastIndexOf(bare.group(1)!);
-  return (paise: paise, start: start, end: start + bare.group(1)!.length);
+  if (bare != null && paise != null && paise > 0) {
+    final start = bare.start + bare.group(0)!.lastIndexOf(bare.group(1)!);
+    return (paise: paise, start: start, end: start + bare.group(1)!.length);
+  }
+  // No ₹, Rs or INR at all, as in "Your UPI transaction of 641.00 has been
+  // reversed": the first amount with paise that isn't a balance or a limit.
+  for (final match in _plainAmount.allMatches(text)) {
+    final before = text.substring(math.max(0, match.start - 25), match.start);
+    if (_amountIsBalance.hasMatch(before)) continue;
+    if (_balanceAfter.hasMatch(text.substring(match.end))) continue;
+    final plain = _toPaise(match.group(0)!);
+    if (plain != null && plain > 0) {
+      return (paise: plain, start: match.start, end: match.end);
+    }
+  }
+  return null;
 }
+
+// "641.00", "1,200.00": an amount with paise, standing on its own, so a
+// date like "06.11.26" isn't one.
+final _plainAmount = RegExp(r'(?<![\d.,])\d[\d,]*\.\d{2}(?![\d.])');
 
 int? _toPaise(String number) {
   final cleaned = number.replaceAll(',', '');

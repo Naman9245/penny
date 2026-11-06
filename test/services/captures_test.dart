@@ -7,6 +7,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/captures.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:penny/services/sms_parser.dart';
@@ -789,6 +790,86 @@ void main() {
       expect((await take(ai)).single.what, 'no payment in it');
       expect(ai.smsRead, isEmpty);
       expect(await prefs.unread(), isEmpty);
+    });
+  });
+
+  group('money back for a payment', () {
+    late AppDatabase db;
+    late TxnRepository txns;
+    late CaptureRepository captures;
+    late FakeSource source;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+      txns = TxnRepository(db, clock: () => at);
+      captures = CaptureRepository(db, clock: () => at);
+      source = FakeSource();
+    });
+    tearDown(() => db.close());
+
+    // All made up, in the shape HDFC sends.
+    const reversal =
+        'HDFC Bank : Your UPI transaction of 641.00 has been reversed in your '
+        'account due to technical problem (UPI Ref no. 667600000001)';
+
+    Future<List<CaptureRead>> take(CaptureMode mode) => takeCaptures(
+      source: source,
+      db: db,
+      txns: txns,
+      captures: captures,
+      mode: mode,
+      now: at,
+    );
+
+    Future<void> paid({
+      int paise = 64100,
+      Duration ago = const Duration(hours: 2),
+    }) => txns.add(
+      amountPaise: paise,
+      type: TxnType.debit,
+      categoryId: 'food',
+      occurredAt: at.subtract(ago),
+      merchant: 'Swiggy',
+    );
+
+    test('cancels the payment it gives back, so Spent goes back down', () async {
+      await paid();
+      source.waiting.add(sms('HDFC Bank', reversal));
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.outcome, CaptureOutcome.saved);
+      expect(read.what, '+₹641 · Swiggy (money back)');
+      expect(read.categoryId, 'food');
+      final entry = (await txns.findById(read.entryId!))!;
+      expect(entry.type, TxnType.credit);
+      expect(entry.merchant, 'Swiggy');
+      expect(MoneyKind.of(entry.type, entry.categoryId), MoneyKind.paidBack);
+      final totals = MoneyTotals.of(await db.select(db.txns).get());
+      expect(totals.spentPaise, 0);
+      expect(totals.gotPaise, 0);
+    });
+
+    test('with no payment it gives back, it is a refund', () async {
+      source.waiting.add(sms('HDFC Bank', reversal));
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.categoryId, 'refund');
+      expect(read.what, '+₹641 · Got');
+    });
+
+    test('a payment of another amount, or over a week old, is not it', () async {
+      await paid(paise: 50000);
+      await paid(ago: const Duration(days: 8));
+      source.waiting.add(sms('HDFC Bank', reversal));
+      expect((await take(CaptureMode.save)).single.categoryId, 'refund');
+    });
+
+    test('waiting to be checked, it waits as money back for that payment', () async {
+      await paid();
+      source.waiting.add(sms('HDFC Bank', reversal));
+      await take(CaptureMode.check);
+      final held = (await captures.watchWaiting().first).single;
+      expect(held.suggestedCategoryId, 'food');
+      expect(held.payee, 'Swiggy');
+      expect(held.type, TxnType.credit);
     });
   });
 }

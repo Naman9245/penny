@@ -82,7 +82,7 @@ class PaymentNotificationListener : NotificationListenerService() {
             ?.toString().orEmpty()
         var kept = false
         for ((text, at) in textsOf(extras, sbn.postTime)) {
-            if (!MONEY.containsMatchIn("$title $text")) continue
+            if (!MoneyFilter.looksLikeMoney("$title $text")) continue
             val added = CaptureQueue.add(
                 this,
                 JSONObject()
@@ -170,10 +170,5 @@ class PaymentNotificationListener : NotificationListenerService() {
             "com.samsung.android.messaging",
         )
 
-        /** ₹, Rs or INR next to a number, either way round. */
-        private val MONEY = Regex(
-            """(?:₹|\brs\.?|\binr)\s*\d|\d\s*(?:₹|rs\b|inr\b)""",
-            RegexOption.IGNORE_CASE,
-        )
     }
 }

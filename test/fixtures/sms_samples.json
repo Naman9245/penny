@@ -232,5 +232,13 @@
   {"bank": "Axis", "case": "UPI self transfer", "sms": "Rs.5,000.00 debited from A/c XX4821 on 05-11-26 for UPI self transfer to A/c XX9911. -Axis Bank",
    "ignored": "ownTransfer"},
   {"bank": "Any", "case": "a shop's thanks for your payment", "sms": "We have received your payment of Rs.250.00 for order 4521. Thank you for ordering with Swiggy.",
-   "ignored": "receipt"}
+   "ignored": "receipt"},
+  {"bank": "HDFC", "case": "UPI reversal with no currency", "sms": "HDFC Bank : Your UPI transaction of 641.00 has been reversed in your account due to technical problem (UPI Ref no. 667600000001)",
+   "expect": {"type": "credit", "paise": 64100, "payee": null, "date": null, "category": "refund"}},
+  {"bank": "HDFC", "case": "credit alert from a UPI ID shown in part", "sms": "Credit Alert!\nRs.3000.00 credited to HDFC Bank A/c XX4821 on 06-11-26 from VPA *amit@okhdfcbank (UPI 132400000002)",
+   "expect": {"type": "credit", "paise": 300000, "payee": null, "date": "2026-11-06", "category": null, "person": true}},
+  {"bank": "Any", "case": "debit with no currency", "sms": "Amount of 1,200.00 debited from your A/c XX4821 for UPI to SWIGGY. Avl bal 5,000.00",
+   "expect": {"type": "debit", "paise": 120000, "payee": "Swiggy", "date": null, "category": "food"}},
+  {"bank": "Any", "case": "no currency, a dotted date and a balance first", "sms": "Avl bal 5,000.00. Txn of 450.00 on 06.11.26 at DMART debited from A/c XX4821",
+   "expect": {"type": "debit", "paise": 45000, "payee": "Dmart", "date": "2026-11-06", "category": "groceries"}}
 ]

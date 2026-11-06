@@ -329,6 +329,39 @@ Future<({String what, String? entryId})?> repeatOf(
   return null;
 }
 
+/// Words that say money came back for a payment.
+final _moneyBack = RegExp(
+  r'\b(?:reversed|reversal|refund|refunded|credited\s+back|returned)\b',
+  caseSensitive: false,
+);
+
+/// How long after a payment money for it can still come back.
+const _backWithin = Duration(days: 7);
+
+/// The payment [sms] gives back, when it's money coming back ("reversed",
+/// "refunded"): one paid out in a spend category in the 7 days before [at],
+/// for the same amount, the newest such. Null when there's none.
+Future<Txn?> reversedPaymentOf(
+  AppDatabase db,
+  SmsTxn sms,
+  DateTime at,
+  String text,
+) async {
+  if (sms.type != TxnType.credit || !_moneyBack.hasMatch(text)) return null;
+  final rows =
+      await (db.select(db.txns)
+            ..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.type.equalsValue(TxnType.debit) &
+                  t.amountPaise.equals(sms.amountPaise) &
+                  t.occurredAt.isBetweenValues(at.subtract(_backWithin), at),
+            )
+            ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]))
+          .get();
+  return rows.where((t) => isSpendCategory(t.categoryId)).firstOrNull;
+}
+
 /// An entry typed by hand on [at]'s day for the same amount the same way,
 /// in words like "₹250 · Lunch", or null when there's none.
 Future<String?> typedLookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async {
@@ -460,6 +493,18 @@ Future<List<CaptureRead>> takeCaptures({
     }
     if (await captures.isKnown(payment.dedupeKey)) continue;
     final at = occurredAtOf(payment, capture.at);
+    // Money back for a payment cancels it: it goes in that payment's
+    // category, under its name.
+    var back = '';
+    if (await reversedPaymentOf(db, payment, at, _textOf(capture))
+        case final paid?) {
+      payment = payment.backFor(
+        payee: paid.merchant,
+        categoryId: paid.categoryId,
+        payeeIsPerson: paid.payeeIsPerson ?? false,
+      );
+      back = ' (money back)';
+    }
     if (mode == CaptureMode.save) {
       final repeat = await repeatOf(
         db,
@@ -513,7 +558,7 @@ Future<List<CaptureRead>> takeCaptures({
       reads.add(
         read(
           CaptureOutcome.saved,
-          whatOf(payment),
+          '${whatOf(payment)}$back',
           key: payment.dedupeKey,
           at: at,
           sms: payment,
@@ -534,7 +579,7 @@ Future<List<CaptureRead>> takeCaptures({
     reads.add(
       read(
         CaptureOutcome.waiting,
-        whatOf(payment),
+        '${whatOf(payment)}$back',
         key: payment.dedupeKey,
         at: at,
         sms: payment,
