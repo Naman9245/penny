@@ -53,7 +53,8 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
     if (state == AppLifecycleState.resumed) {
       ref
         ..invalidate(notificationAccessProvider)
-        ..invalidate(pennyNotifiesProvider);
+        ..invalidate(pennyNotifiesProvider)
+        ..invalidate(smsAccessProvider);
     }
   }
 
@@ -63,6 +64,11 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
     final inbox = ref.read(notificationInboxProvider);
     await inbox.askToNotify(orSettings: false);
     await inbox.openSettings();
+  }
+
+  Future<void> _allowSms() async {
+    await ref.read(notificationInboxProvider).askSms();
+    ref.invalidate(smsAccessProvider);
   }
 
   Future<void> _allowNotifications() async {
@@ -75,6 +81,7 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
     final allowed = ref.watch(notificationAccessProvider).value ?? false;
     // Taken as yes until Android says, so the card doesn't flicker.
     final notifies = ref.watch(pennyNotifiesProvider).value ?? true;
+    final readsSms = ref.watch(smsAccessProvider).value ?? false;
     final log = ref.watch(captureLogProvider).value ?? const [];
     final today = ref.watch(todayProvider);
     final mode = ref.watch(captureModeProvider);
@@ -153,6 +160,34 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
               style: AppText.small,
             ),
           ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Read bank SMS too', style: AppText.label),
+              ),
+              if (readsSms)
+                const BrutalPill(
+                  key: ValueKey('sms-status'),
+                  label: 'On',
+                  color: AppColors.white,
+                )
+              else
+                BrutalChip(
+                  key: const ValueKey('sms-allow'),
+                  label: 'Allow',
+                  icon: Icons.sms_outlined,
+                  onTap: _allowSms,
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "So a bank SMS is read even when its notification is missed. Only "
+            'money messages from banks, wallets and investments are kept; '
+            'every other SMS is passed over.',
+            style: AppText.small,
+          ),
           const SizedBox(height: 14),
           const Text('When Penny reads a payment', style: AppText.label),
           const SizedBox(height: 8),

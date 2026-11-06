@@ -57,6 +57,8 @@ object BackgroundReader {
         }
         starting = true
         app = context
+        // Any SMS whose notification was missed, while it's here.
+        SmsInbox.lookAgain(context)
         Log.i(TAG, "Starting a hidden copy of Penny to read them")
         try {
             val loader = FlutterInjector.instance().flutterLoader()

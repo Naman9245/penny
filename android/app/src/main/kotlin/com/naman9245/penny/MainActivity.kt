@@ -55,7 +55,11 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "peek" -> result.success(CaptureQueue.take(this@MainActivity, reader))
-                    "catchUp" -> result.success(PaymentNotificationListener.catchUpNow())
+                    "catchUp" -> result.success(
+                        PaymentNotificationListener.catchUpNow() + SmsInbox.lookAgain(this@MainActivity),
+                    )
+                    "smsAllowed" -> result.success(SmsInbox.allowed(this@MainActivity))
+                    "askSms" -> askSms(result)
                     "drop" -> {
                         val count = (call.arguments as? Number)?.toInt() ?: 0
                         CaptureQueue.drop(this@MainActivity, reader, count)
@@ -148,15 +152,52 @@ class MainActivity : FlutterActivity() {
         result.success(false)
     }
 
+    // Waits for the answer to Android's "Allow Penny to read SMS?"
+    private var smsAnswer: MethodChannel.Result? = null
+
+    /**
+     * Asks whether Penny may receive and read SMS: with Android's own
+     * question, the first time and once more after a no, or else on Penny's
+     * app settings. Once allowed, she looks at the last two days' SMS.
+     * Answers whether she may now.
+     */
+    private fun askSms(result: MethodChannel.Result) {
+        if (SmsInbox.allowed(this)) return result.success(true)
+        val permissions = arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+        val asked = getSharedPreferences("penny_android", MODE_PRIVATE)
+        val canAsk = !asked.getBoolean("asked_sms", false) ||
+            permissions.any { shouldShowRequestPermissionRationale(it) }
+        if (canAsk && smsAnswer == null) {
+            asked.edit().putBoolean("asked_sms", true).apply()
+            smsAnswer = result
+            requestPermissions(permissions, ASK_SMS)
+            return
+        }
+        startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.fromParts("package", packageName, null)),
+        )
+        result.success(false)
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != ASK_TO_NOTIFY) return
-        notifyAnswer?.success(PennyNotifier.allowed(this))
-        notifyAnswer = null
+        when (requestCode) {
+            ASK_TO_NOTIFY -> {
+                notifyAnswer?.success(PennyNotifier.allowed(this))
+                notifyAnswer = null
+            }
+            ASK_SMS -> {
+                val allowed = SmsInbox.allowed(this)
+                smsAnswer?.success(allowed)
+                smsAnswer = null
+                if (allowed && SmsInbox.lookAgain(this) > 0) capturesArrived()
+            }
+        }
     }
 
     /** Penny's notification settings, or her app info where there are none. */
@@ -193,6 +234,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val ASK_TO_NOTIFY = 7
+        private const val ASK_SMS = 8
 
         /** On the intent of Penny's notification: open Home. */
         const val OPEN_HOME = "com.naman9245.penny.OPEN_HOME"

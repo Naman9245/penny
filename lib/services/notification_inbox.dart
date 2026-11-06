@@ -108,8 +108,16 @@ class NotificationInbox implements CaptureSource {
   @override
   Future<void> drop(int count) => _call<void>('drop', count);
 
+  /// Whether Penny may receive and read SMS.
+  Future<bool> smsAllowed() async => await _call<bool>('smsAllowed') ?? false;
+
+  /// Asks Android whether Penny may receive and read SMS, or opens her app
+  /// settings once it won't ask again. Whether she may now.
+  Future<bool> askSms() async => await _call<bool>('askSms') ?? false;
+
   /// Has Android's listener queue the payment notifications still showing,
-  /// in case it missed one while it was stopped. How many were new.
+  /// and any bank SMS that came since the last look, in case one was missed
+  /// while it was stopped. How many were new.
   Future<int> catchUp() async => await _call<int>('catchUp') ?? 0;
 
   Future<T?> _call<T>(String method, [Object? arguments]) async {
@@ -150,6 +158,12 @@ final notificationInboxProvider = Provider<NotificationInbox>((ref) {
 /// from Android's page.
 final notificationAccessProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(notificationInboxProvider).isAllowed(),
+);
+
+/// Whether Penny may read bank SMS. Ask again when the user comes back
+/// from Android's settings.
+final smsAccessProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(notificationInboxProvider).smsAllowed(),
 );
 
 /// Whether Penny may post her own notifications. Ask again when the user

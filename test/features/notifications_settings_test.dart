@@ -16,6 +16,7 @@ void main() {
     WidgetTester tester, {
     required bool allowed,
     bool notifies = true,
+    bool sms = false,
     List<Object?>? asked,
   }) {
     final calls = <String>[];
@@ -27,6 +28,7 @@ void main() {
       return switch (call.method) {
         'isEnabled' => allowed,
         'canNotify' => notifies,
+        'smsAllowed' => sms,
         'askToNotify' => false,
         'peek' => '[]',
         _ => null,
@@ -171,6 +173,26 @@ void main() {
     final none = find.byKey(const ValueKey('read-none'));
     await tapInView(tester, none);
     expect(none, findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('reading bank SMS: Allow asks Android', (tester) async {
+    final calls = fakeAndroid(tester, allowed: true);
+    final db = await pumpApp(tester);
+    await openSettings(tester);
+    await tapInView(tester, find.byKey(const ValueKey('sms-allow')));
+    expect(calls, contains('askSms'));
+    await closeApp(tester, db);
+  });
+
+  testWidgets('reading bank SMS: On once allowed', (tester) async {
+    fakeAndroid(tester, allowed: true, sms: true);
+    final db = await pumpApp(tester);
+    await openSettings(tester);
+    final on = find.byKey(const ValueKey('sms-status'));
+    await tapInView(tester, on);
+    expect(on, findsOneWidget);
+    expect(find.byKey(const ValueKey('sms-allow')), findsNothing);
     await closeApp(tester, db);
   });
 }

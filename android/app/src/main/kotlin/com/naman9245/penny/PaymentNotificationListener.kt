@@ -59,7 +59,7 @@ class PaymentNotificationListener : NotificationListenerService() {
         } catch (e: RuntimeException) {
             null
         } ?: return 0
-        val kept = showing.count { keep(it) != null }
+        val kept = showing.count { keep(it) != null } + SmsInbox.lookAgain(this)
         if (kept > 0) {
             Log.i(TAG, "Caught up on $kept notification(s) still showing")
             BackgroundReader.wake(this)

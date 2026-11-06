@@ -5,6 +5,12 @@
     <!-- Penny's own notification when she reads a payment. Android 13 and
          later ask the user first. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Bank SMS read straight from the phone, so one whose notification was
+         missed is still read. Only money messages from banks, wallets and
+         investments are kept; every other SMS is passed over. Penny never
+         sends SMS. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
     <application
         android:label="Penny"
         android:name="${applicationName}"
@@ -42,6 +48,14 @@
              Android's Notification access page. Nothing else is kept. Only
              a payment Penny's rules can't read leaves the phone, to her AI,
              with every name and long number hidden. -->
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".PaymentNotificationListener"
             android:label="Penny"
