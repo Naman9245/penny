@@ -209,8 +209,9 @@ class _Intro extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Penny sends this month's totals per shop. Never your SMS, and "
-            'never the names of people you pay.',
+            "Penny sends this month's totals per shop and your months "
+            'before as totals. Never your SMS, and never the names of people '
+            'you pay.',
             style: AppText.small,
           ),
           if (blocker != null) ...[

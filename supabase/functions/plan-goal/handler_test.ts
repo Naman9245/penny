@@ -87,7 +87,7 @@ Deno.test("bad or oversized requests cost nothing", async () => {
 
   assert.equal((await call(f, post(noSpends))).status, 400);
   assert.equal((await call(f, post(noGoal))).status, 400);
-  assert.equal((await call(f, post("x".repeat(48 * 1024)))).status, 413);
+  assert.equal((await call(f, post("x".repeat(64 * 1024)))).status, 413);
   assert.equal(
     (await call(f, new Request("http://localhost/plan-goal"))).status,
     405,

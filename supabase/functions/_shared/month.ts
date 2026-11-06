@@ -124,6 +124,20 @@ const PaidBack = z.strictObject({
   total: someRupees,
 });
 
+/** One month before the one asked about, as totals only. */
+const HistoryMonth = z.strictObject({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  spent: rupees,
+  got: rupees,
+  invested: rupees,
+  categories: z
+    .array(z.strictObject({ category: z.enum(SPEND_IDS), spent: someRupees }))
+    .max(SPEND_IDS.length),
+});
+
+/** How many months before the one asked about a request may carry. */
+export const MAX_HISTORY = 11;
+
 const Budget = z
   .strictObject({
     /** What the person means to spend a month on everyday things. */
@@ -162,6 +176,8 @@ export const MonthRequest = z
     paidBack: z.array(PaidBack).max(SPEND_IDS.length).optional(),
     /** Put away this month, like a SIP: not in "spent", never a spend group. */
     invested: someRupees.optional(),
+    /** The months before this one, oldest first. */
+    history: z.array(HistoryMonth).max(MAX_HISTORY).optional(),
   })
   // Zod runs these even when the fields above failed, so they can't trust
   // them.
@@ -177,7 +193,13 @@ export const MonthRequest = z
     const back: unknown[] = Array.isArray(r.paidBack) ? r.paidBack : [];
     const ids = back.map((item) => (item as { category?: unknown })?.category);
     return new Set(ids).size === ids.length;
-  }, "one payback total per category");
+  }, "one payback total per category")
+  .refine((r) => {
+    const months: unknown[] = Array.isArray(r.history) ? r.history : [];
+    const keys = months.map((m) => (m as { month?: unknown })?.month);
+    return new Set(keys).size === keys.length &&
+      keys.every((key) => typeof key !== "string" || key < String(r.month));
+  }, "history is earlier months, once each");
 
 export type MonthRequest = z.infer<typeof MonthRequest>;
 
@@ -263,8 +285,31 @@ export function modelInput(request: MonthRequest) {
       }
       : {}),
     ...(request.invested ? { invested: request.invested } : {}),
+    ...(request.history?.length
+      ? {
+        history: request.history.map((m) => ({
+          month: m.month,
+          spent: m.spent,
+          got: m.got,
+          invested: m.invested,
+          left: m.got - m.spent - m.invested,
+          byCategory: m.categories.map(({ category, spent }) => ({
+            category: LABELS[category],
+            spent,
+          })),
+        })),
+      }
+      : {}),
   };
 }
+
+/** What the prompts say about "history". */
+export const HISTORY_PROMPT = `
+"history", when present, is their months before this one, oldest first:
+each month's "spent", "got", "invested", "left" and what each category
+spent ("byCategory"). Use it to see what is usual for them and what changed,
+like a category that grew or a month that went better.
+`.trim();
 
 /** [request]'s month as Gemini sees it, with each spend group's tag. */
 export function taggedInput(

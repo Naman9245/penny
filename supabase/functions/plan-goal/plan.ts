@@ -4,6 +4,7 @@ import { z } from "npm:zod@4.6.7";
 import { thinkingFor } from "../_shared/gemini.ts";
 import {
   cleanGoalTitle,
+  HISTORY_PROMPT,
   cleanText,
   type Cut,
   CUTS,
@@ -15,7 +16,7 @@ import {
 } from "../_shared/month.ts";
 
 /** Requests bigger than this are refused before they are parsed. */
-export const MAX_PLAN_BYTES = 40 * 1024;
+export const MAX_PLAN_BYTES = 56 * 1024;
 
 const MAX_CUTS = 4;
 
@@ -56,6 +57,8 @@ towards their future, never a cut. People they paid appear only as
 saving for: the target, what they have put aside, the weeks left, and what
 they still need to put aside each week and each month ("perWeek",
 "perMonth").
+${HISTORY_PROMPT} Prefer cuts in what grew lately, and keep them realistic
+for what they usually spend.
 
 Plan where that money can come from.
 

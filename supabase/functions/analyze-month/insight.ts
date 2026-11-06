@@ -6,6 +6,7 @@ import {
   cleanText,
   type Cut,
   CUTS,
+  HISTORY_PROMPT,
   isCut,
   modelInput,
   type MonthRequest,
@@ -14,7 +15,10 @@ import {
 } from "../_shared/month.ts";
 
 /** Requests bigger than this are refused before they are parsed. */
-export const MAX_BODY_BYTES = 32 * 1024;
+export const MAX_BODY_BYTES = 48 * 1024;
+
+/** Money to a person in these categories can be wasteful; elsewhere never. */
+const PERSON_WASTEFUL_OK = ["fun", "shopping"];
 
 export const SYSTEM_PROMPT = `
 You are Penny, a cheerful coin who helps young people in India understand
@@ -32,8 +36,9 @@ dinner: the spend groups show what was paid, and "spent" and the budget
 numbers already have it taken off. It is not income. "invested", when
 present, is what they put away, like a SIP: saving, not spending. Never call
 it wasteful or a habit to cut; it's fine to cheer it on.
+${HISTORY_PROMPT}
 
-Do four things.
+Do five things.
 
 1. Tag every spend group (every id in "spends") as "necessary" or "wasteful".
    - Necessary: rent and PG, groceries, bills and recharges, health,
@@ -49,7 +54,13 @@ Do four things.
    - A group with yourTag set was already decided by the person: use that tag.
    - name null means those payments had no shop name; judge by category.
 
-2. Pick up to four wasteful habits worth cutting, biggest first. Each habit
+2. For every group you tag wasteful, write a reason in "reasons": one short
+   sentence, under twenty words, on why it is wasteful for this person. Be
+   specific: what it is (delivery orders, a subscription, impulse shopping),
+   how it compares with their other spending or their earlier months, or
+   whether it pushes them over a cap. Kind, never preachy.
+
+3. Pick up to four wasteful habits worth cutting, biggest first. Each habit
    lists the ids of its wasteful groups, how much to cut and one tip.
    - cut is "stop", "three_quarters", "half" or "quarter". Choose what a real
      person could keep up; prefer "half" or "quarter" for food and fun.
@@ -61,14 +72,16 @@ Do four things.
    - Prefer habits in categories at or over their cap.
    - If nothing looks wasteful, return no habits.
 
-3. Write "summary": one or two warm sentences about the month in Penny's
-   voice, playful and supportive, never judgemental. If monthComplete is
+4. Write "summary": two or three warm sentences about the month in Penny's
+   voice, playful and supportive, never judgemental: where most of the money
+   went, and, when there is history, how this month compares with the ones
+   before. If monthComplete is
    false the month is still going, so talk about it as "so far". If they are
    over their budget or a cap, say so gently and stay hopeful. Write
    "incomeNote": one sentence on how steady the income sources look, based on
    each source's steadiness. Use an empty string when there is no income.
 
-4. Write "earnIdeas": two or three ideas, one short sentence each, for earning
+5. Write "earnIdeas": two or three ideas, one short sentence each, for earning
    a little extra that fit this person, such as tutoring juniors, freelancing
    a skill they have, or a campus job. Nothing risky, no get-rich schemes, no
    amounts.
@@ -111,11 +124,23 @@ export const ANSWER_SCHEMA = {
         required: ["title", "groups", "cut", "tip"],
       },
     },
+    reasons: {
+      type: "array",
+      description: "One item for every group tagged wasteful.",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          reason: { type: "string" },
+        },
+        required: ["id", "reason"],
+      },
+    },
     summary: { type: "string" },
     incomeNote: { type: "string" },
     earnIdeas: { type: "array", maxItems: 3, items: { type: "string" } },
   },
-  required: ["tags", "habits", "summary", "incomeNote", "earnIdeas"],
+  required: ["tags", "reasons", "habits", "summary", "incomeNote", "earnIdeas"],
 };
 
 /** The generateContent request body for [model]. */
@@ -150,6 +175,10 @@ const RawAnswer = z.object({
   summary: z.string(),
   incomeNote: z.string(),
   earnIdeas: z.array(z.string()).max(10).optional(),
+  reasons: z
+    .array(z.object({ id: z.string(), reason: z.string() }))
+    .max(200)
+    .optional(),
 });
 type RawAnswer = z.infer<typeof RawAnswer>;
 
@@ -177,6 +206,8 @@ export interface Insight {
   summary: string;
   incomeNote: string;
   earnIdeas: string[];
+  /** Why each wasteful group is, by id. */
+  reasons: Record<string, string>;
 }
 
 const MAX_HABITS = 4;
@@ -188,6 +219,16 @@ export function cleanAnswer(raw: RawAnswer, request: MonthRequest): Insight {
   const tags: Record<string, Tag> = {};
   for (const { id, tag } of raw.tags) {
     if (spendIds.has(id) && !(id in tags) && isTag(tag)) tags[id] = tag;
+  }
+  // Money to a person is a split bill or paying someone back, unless it's
+  // for fun or shopping.
+  for (const group of request.spends) {
+    if (
+      group.person && tags[group.id] === "wasteful" &&
+      !PERSON_WASTEFUL_OK.includes(group.category)
+    ) {
+      tags[group.id] = "necessary";
+    }
   }
   // The person's own tags always win.
   for (const group of request.spends) {
@@ -212,10 +253,18 @@ export function cleanAnswer(raw: RawAnswer, request: MonthRequest): Insight {
     });
   }
 
+  const reasons: Record<string, string> = {};
+  for (const { id, reason } of raw.reasons ?? []) {
+    if (tags[id] !== "wasteful" || id in reasons) continue;
+    const text = cleanText(reason, 160);
+    if (text.length > 0) reasons[id] = text;
+  }
+
   return {
     tags,
     habits,
-    summary: cleanText(raw.summary, 280),
+    reasons,
+    summary: cleanText(raw.summary, 360),
     incomeNote: request.income.length > 0 ? cleanText(raw.incomeNote, 200) : "",
     earnIdeas: (raw.earnIdeas ?? [])
       .map((idea) => cleanText(idea, 140))

@@ -138,3 +138,50 @@ Deno.test("the income note is empty when there's no income", () => {
   request.income = [];
   assert.equal(cleanAnswer(sampleAnswer(), parsed(request)).incomeNote, "");
 });
+
+Deno.test("money to a person is necessary unless it's for fun or shopping", () => {
+  const answer = {
+    ...sampleAnswer(),
+    tags: [...sampleAnswer().tags.filter((t) => t.id !== "s2"), {
+      id: "s2",
+      tag: "wasteful",
+    }],
+  };
+  assert.equal(cleanAnswer(answer, parsed()).tags.s2, "necessary");
+
+  const request = sampleRequest();
+  request.spends[1].category = "fun";
+  assert.equal(cleanAnswer(answer, parsed(request)).tags.s2, "wasteful");
+
+  // Their own tag still wins.
+  request.spends[1].category = "other";
+  request.spends[1].yourTag = "wasteful";
+  assert.equal(cleanAnswer(answer, parsed(request)).tags.s2, "wasteful");
+});
+
+Deno.test("reasons: wasteful groups only, plain, no numbers", () => {
+  const insight = cleanAnswer({
+    ...sampleAnswer(),
+    reasons: [
+      { id: "s1", reason: "**Delivery** most nights, well past ordinary meals." },
+      { id: "s1", reason: "A second reason for the same group." },
+      { id: "s3", reason: "Seen for 3 months. You rarely open it." },
+      // Necessary, by the person's own tag.
+      { id: "s4", reason: "Rent is high." },
+      { id: "s2", reason: "Transfers." },
+      { id: "s9", reason: "Not a group." },
+    ],
+  }, parsed());
+  assert.deepEqual(insight.reasons, {
+    s1: "Delivery most nights, well past ordinary meals.",
+    s3: "You rarely open it.",
+  });
+  // Answers without reasons still read.
+  assert.deepEqual(cleanAnswer(sampleAnswer(), parsed()).reasons, {});
+});
+
+Deno.test("the prompt asks for reasons and explains history", () => {
+  assert.match(SYSTEM_PROMPT, /"reasons"/);
+  assert.match(SYSTEM_PROMPT, /"history", when present/);
+  assert.ok(ANSWER_SCHEMA.required.includes("reasons"));
+});

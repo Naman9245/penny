@@ -41,6 +41,39 @@ export interface RequestJson {
   };
   paidBack?: { category: string; total: number }[];
   invested?: number;
+  history?: {
+    month: string;
+    spent: number;
+    got: number;
+    invested: number;
+    categories: { category: string; spent: number }[];
+  }[];
+}
+
+/** Two months before October, as the app sends them. */
+export function sampleHistory(): NonNullable<RequestJson["history"]> {
+  return [
+    {
+      month: "2026-08",
+      spent: 7000,
+      got: 15000,
+      invested: 0,
+      categories: [{ category: "food", spent: 2000 }, {
+        category: "rent",
+        spent: 3851,
+      }],
+    },
+    {
+      month: "2026-09",
+      spent: 8200,
+      got: 15000,
+      invested: 1000,
+      categories: [{ category: "food", spent: 2900 }, {
+        category: "rent",
+        spent: 3851,
+      }],
+    },
+  ];
 }
 
 export function sampleRequest(): RequestJson {

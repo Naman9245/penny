@@ -423,6 +423,52 @@ void main() {
       txn(100, DateTime(2026, 10, 31, 23, 59), merchant: 'Swiggy'),
     ]);
     expect(request.spends.single['entries'], 1);
-    expect(insightHistoryStart(october), DateTime(2026, 5));
+    expect(insightHistoryStart(october), DateTime(2025, 11));
+  });
+
+  test('the eleven months before go as totals, oldest first', () {
+    final request = build([
+      txn(500, DateTime(2025, 10, 31), merchant: 'Swiggy'), // Too old.
+      txn(300, DateTime(2026, 2, 3), merchant: 'Swiggy'),
+      txn(8000, DateTime(2026, 2, 1), categoryId: 'rent'),
+      txn(15000, DateTime(2026, 2, 1), type: TxnType.credit,
+          categoryId: 'salary'),
+      txn(40, DateTime(2026, 2, 4), type: TxnType.credit, merchant: 'Swiggy'),
+      txn(1000, DateTime(2026, 2, 5), categoryId: 'invest'),
+      txn(
+        200,
+        DateTime(2026, 9, 9),
+        merchant: 'Asha Rao',
+        categoryId: 'other',
+        payeeIsPerson: true,
+      ),
+      txn(100, DateTime(2026, 10, 4), merchant: 'Swiggy'),
+    ]);
+    expect(request.body['history'], [
+      {
+        'month': '2026-02',
+        'spent': 8260,
+        'got': 15000,
+        'invested': 1000,
+        'categories': [
+          {'category': 'food', 'spent': 260},
+          {'category': 'rent', 'spent': 8000},
+        ],
+      },
+      {
+        'month': '2026-09',
+        'spent': 200,
+        'got': 0,
+        'invested': 0,
+        'categories': [
+          {'category': 'other', 'spent': 200},
+        ],
+      },
+    ]);
+    // Totals only: never a shop's or a person's name.
+    expect(jsonEncode(request.body['history']), isNot(contains('Asha')));
+    expect(jsonEncode(request.body['history']), isNot(contains('Swiggy')));
+    // A month with nothing before it sends none.
+    expect(build([txn(100, DateTime(2026, 10, 4))]).body, isNot(contains('history')));
   });
 }

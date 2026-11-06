@@ -50,7 +50,8 @@ class _SentSheet extends StatelessWidget {
           const Text('What Penny sends', style: AppText.h2),
           const SizedBox(height: 4),
           Text(
-            "${DateFormat('MMMM').format(request.month)} as totals per shop. "
+            "${DateFormat('MMMM').format(request.month)} as totals per shop, "
+            'and the months before as totals. '
             "People's names stay on your phone.",
             style: AppText.bodyMuted,
           ),
@@ -164,6 +165,32 @@ class _SentSheet extends StatelessWidget {
                       title: '${categoryById(id).label} budget',
                       detail: 'A month',
                       rupees: rupees,
+                    ),
+              ],
+            ),
+          ],
+          if (request.body['history'] case final List history
+              when history.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('Your months before', style: AppText.label),
+            const SizedBox(height: 8),
+            _Rows(
+              rows: [
+                for (final month in history.reversed)
+                  if (month case {
+                    'month': final String key,
+                    'spent': final int spent,
+                    'categories': final List categories,
+                  })
+                    (
+                      key: 'sent-history-$key',
+                      title: DateFormat(
+                        'MMMM yyyy',
+                      ).format(DateTime.parse('$key-01')),
+                      detail:
+                          'Spent, got, invested, and '
+                          '${categories.length == 1 ? '1 category' : '${categories.length} categories'}',
+                      rupees: spent,
                     ),
               ],
             ),

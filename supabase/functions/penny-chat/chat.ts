@@ -5,6 +5,7 @@ import { thinkingFor } from "../_shared/gemini.ts";
 import {
   cleanGoalTitle,
   cutAtWord,
+  HISTORY_PROMPT,
   leftOf,
   maskLongNumbers,
   MonthRequest,
@@ -14,7 +15,7 @@ import {
 } from "../_shared/month.ts";
 
 /** Requests bigger than this are refused before they are parsed. */
-export const MAX_CHAT_BYTES = 48 * 1024;
+export const MAX_CHAT_BYTES = 64 * 1024;
 
 const MAX_REPLY = 1500;
 
@@ -103,6 +104,8 @@ in this chat disagree with it, go by the JSON.
   subscription or income, suggest adding it as an entry, so their month in
   the app stays complete.
 - "note", when present, is what they wrote about themselves.
+- ${HISTORY_PROMPT} When they ask how they did against an earlier month,
+  answer from it with its numbers.
 
 How to answer:
 - Be warm, practical and brief: usually under 120 words, with a few "•"

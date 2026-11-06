@@ -8,7 +8,11 @@ import {
   MonthRequest,
   parseWith,
 } from "./month.ts";
-import { type RequestJson, sampleRequest } from "./test_data.ts";
+import {
+  type RequestJson,
+  sampleHistory,
+  sampleRequest,
+} from "./test_data.ts";
 
 function parsed(request: unknown = sampleRequest()): MonthRequest {
   const result = parseWith(MonthRequest, JSON.stringify(request));
@@ -221,4 +225,50 @@ Deno.test("report text is plain, cut at a word, and has no numbers", () => {
     "Cook at home more…",
   );
   assert.equal(cleanText("You did 2 things. That's it.", 100), "That's it.");
+});
+
+Deno.test("the months before go along as totals, with labels", () => {
+  const request = parsed({ ...sampleRequest(), history: sampleHistory() });
+  assert.equal(request.history?.length, 2);
+  const input = modelInput(request);
+  assert.deepEqual(input.history?.[1], {
+    month: "2026-09",
+    spent: 8200,
+    got: 15000,
+    invested: 1000,
+    left: 5800,
+    byCategory: [
+      { category: "Food", spent: 2900 },
+      { category: "Rent & PG", spent: 3851 },
+    ],
+  });
+  // Older apps send none.
+  assert.equal(modelInput(parsed()).history, undefined);
+});
+
+Deno.test("history is earlier months, once each, in known categories", () => {
+  const bad: Record<string, NonNullable<RequestJson["history"]>> = {
+    "the month itself": [{ ...sampleHistory()[0], month: "2026-10" }],
+    "a later month": [{ ...sampleHistory()[0], month: "2026-11" }],
+    "a month twice": [sampleHistory()[0], sampleHistory()[0]],
+    "an unknown category": [{
+      ...sampleHistory()[0],
+      categories: [{ category: "crypto", spent: 10 }],
+    }],
+    "a name": [{ ...sampleHistory()[0], shop: "Asha Rao" } as never],
+    "too many months": Array.from({ length: 12 }, (_, i) => ({
+      ...sampleHistory()[0],
+      month: `2025-${String(i + 1).padStart(2, "0")}`,
+    })),
+  };
+  for (const [what, history] of Object.entries(bad)) {
+    assert.equal(
+      parseWith(
+        MonthRequest,
+        JSON.stringify({ ...sampleRequest(), history }),
+      ),
+      null,
+      what,
+    );
+  }
 });

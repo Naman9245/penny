@@ -14,11 +14,17 @@ import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/payee_names.dart';
 
 // What Penny sends for a look at one month: month totals per shop, people
-// only as "Person 1, 2…", income by category only. Never a single entry, an
-// SMS or a person's name. The server checks all of this again.
+// only as "Person 1, 2…", income by category only, and the months before as
+// totals. Never a single entry, an SMS or a person's name. The server checks
+// all of this again.
 
-/// Months a request reads: the month itself and the five before it.
+/// Months the groups' trends and the income's steadiness go by: the month
+/// itself and the five before it.
 const insightHistoryMonths = 6;
+
+/// Months a request reads: the month itself and the eleven before it, which
+/// go as month totals.
+const insightRequestMonths = 12;
 
 /// Penny needs a few spends before there is anything to look at.
 const minSpendsToAsk = 3;
@@ -30,7 +36,7 @@ const _maxShopGroups = 28;
 /// The first day a request for [month] reads from.
 DateTime insightHistoryStart(DateTime month) {
   final start = monthStart(month);
-  return DateTime(start.year, start.month - (insightHistoryMonths - 1));
+  return DateTime(start.year, start.month - (insightRequestMonths - 1));
 }
 
 /// Which group an entry belongs to: one shop in one category, or the
@@ -132,12 +138,15 @@ InsightRequest buildInsightRequest({
   final activeMonths = <int>{};
   final thisMonthTxns = <Txn>[];
   final lastMonthTxns = <Txn>[];
+  final earlierTxns = <int, List<Txn>>{};
 
   // Groups are spends and income only. What came back and what was put away
   // count in the month's totals.
   for (final txn in txns) {
     final i = indexOf(txn.occurredAt);
-    if (i > 0 || i <= -insightHistoryMonths) continue;
+    if (i > 0 || i <= -insightRequestMonths) continue;
+    if (i < 0) (earlierTxns[i] ??= []).add(txn);
+    if (i <= -insightHistoryMonths) continue;
     activeMonths.add(i);
     if (i == 0) thisMonthTxns.add(txn);
     if (i == -1) lastMonthTxns.add(txn);
@@ -230,6 +239,17 @@ InsightRequest buildInsightRequest({
         {'category': category.id, 'total': _someRupees(paise)},
   ];
 
+  // The months before, oldest first, as totals: what the month spent, got
+  // and put away, and what each spend category spent.
+  final history = [
+    for (var i = 1 - insightRequestMonths; i < 0; i++)
+      if (earlierTxns[i] case final monthTxns?)
+        _historyMonth(
+          DateTime(start.year, start.month + i),
+          MoneyTotals.of(monthTxns),
+        ),
+  ];
+
   final end = nextMonth(start);
   final complete = !now.isBefore(end);
   final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
@@ -268,6 +288,7 @@ InsightRequest buildInsightRequest({
     if (paidBack.isNotEmpty) 'paidBack': paidBack,
     if (thisMonth.investedPaise > 0)
       'invested': _someRupees(thisMonth.investedPaise),
+    if (history.isNotEmpty) 'history': history,
   };
 
   return InsightRequest(
@@ -306,6 +327,18 @@ String _fingerprint(Map<String, Object?> body) {
 }
 
 int _rupees(int paise) => (paise / 100).round();
+
+Map<String, Object?> _historyMonth(DateTime month, MoneyTotals totals) => {
+  'month': monthKey(month),
+  'spent': _rupees(totals.spentPaise),
+  'got': _rupees(totals.gotPaise),
+  'invested': _rupees(totals.investedPaise),
+  'categories': [
+    for (final category in spendCategories)
+      if (totals.spentIn(category.id) case final paise when paise > 0)
+        {'category': category.id, 'spent': _someRupees(paise)},
+  ],
+};
 
 /// Whole rupees, at least one: a budget of a few paise is still a budget.
 int _someRupees(int paise) => math.max(1, _rupees(paise));

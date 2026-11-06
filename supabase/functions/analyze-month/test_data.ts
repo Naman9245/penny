@@ -6,6 +6,7 @@ export interface AnswerJson {
   summary: string;
   incomeNote: string;
   earnIdeas?: string[];
+  reasons?: { id: string; reason: string }[];
 }
 
 export function sampleAnswer(): AnswerJson {
