@@ -55,6 +55,7 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "peek" -> result.success(CaptureQueue.take(this@MainActivity, reader))
+                    "catchUp" -> result.success(PaymentNotificationListener.catchUpNow())
                     "drop" -> {
                         val count = (call.arguments as? Number)?.toInt() ?: 0
                         CaptureQueue.drop(this@MainActivity, reader, count)

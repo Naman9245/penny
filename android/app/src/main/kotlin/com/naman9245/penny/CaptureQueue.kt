@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * Notifications waiting for Penny to read them, one JSON object a line, in
@@ -18,6 +19,11 @@ object CaptureQueue {
     private const val NAME = "captures.jsonl"
     private const val MAX = 300
 
+    // Fingerprints of what was queued lately, read or not, so a
+    // notification still showing isn't queued again each time Penny looks.
+    private const val SEEN = "captures_seen.txt"
+    private const val SEEN_MAX = 500
+
     /** A reader that never drops what it took lets go after this long. */
     private const val HOLD_MS = 60_000L
 
@@ -26,16 +32,32 @@ object CaptureQueue {
 
     private fun file(context: Context) = File(context.filesDir, NAME)
 
+    /**
+     * Queues [capture], unless it was queued lately: a conversation's
+     * notification repeats its earlier messages, and a notification still
+     * showing is looked at again. Whether it was new.
+     */
     @Synchronized
-    fun add(context: Context, capture: JSONObject) {
+    fun add(context: Context, capture: JSONObject): Boolean {
+        val line = capture.toString()
+        val seenFile = File(context.filesDir, SEEN)
+        val seen = read(seenFile)
+        val print = fingerprint(line)
+        if (print in seen) return false
         val file = file(context)
         val lines = read(file)
-        val line = capture.toString()
-        // A conversation's notification repeats its earlier messages.
-        if (line in lines) return
+        if (line in lines) return false
         lines.add(line)
         write(file, lines.takeLast(MAX))
+        seen.add(print)
+        write(seenFile, seen.takeLast(SEEN_MAX))
+        return true
     }
+
+    private fun fingerprint(line: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(line.toByteArray())
+            .joinToString("") { "%02x".format(it) }
 
     /**
      * Everything waiting, oldest first, as a JSON array, for [reader] to

@@ -86,6 +86,8 @@ class _PennyAppState extends ConsumerState<PennyApp> {
   Future<void> _takeCaptures() async {
     final List<CaptureRead> reads;
     try {
+      // Any the listener missed while it was stopped, still showing.
+      await ref.read(notificationInboxProvider).catchUp();
       reads = await ref.read(captureIntakeProvider).take();
     } on Exception {
       // They stay waiting for next time.

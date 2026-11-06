@@ -108,6 +108,10 @@ class NotificationInbox implements CaptureSource {
   @override
   Future<void> drop(int count) => _call<void>('drop', count);
 
+  /// Has Android's listener queue the payment notifications still showing,
+  /// in case it missed one while it was stopped. How many were new.
+  Future<int> catchUp() async => await _call<int>('catchUp') ?? 0;
+
   Future<T?> _call<T>(String method, [Object? arguments]) async {
     try {
       return await _channel.invokeMethod<T>(method, arguments);

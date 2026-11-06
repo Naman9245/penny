@@ -103,8 +103,8 @@ void main() {
 
   testWidgets('Skip hides it, and Undo brings it back', (tester) async {
     final db = await pumpApp(tester, seedDb: twoWaiting);
-    await tester.tap(key('capture-skip-1'));
-    await tester.pumpAndSettle();
+    // The second row can sit under the nav bar on a phone-sized screen.
+    await tapInView(tester, key('capture-skip-1'));
     expect(find.text('Skipped ₹500'), findsOneWidget);
     expect(find.text('1 payment to check'), findsOneWidget);
 
@@ -118,8 +118,8 @@ void main() {
     final db = await pumpApp(tester, seedDb: twoWaiting);
     expect(find.textContaining('Pick a category'), findsOneWidget);
 
-    await tester.tap(key('capture-add-1'));
-    await tester.pumpAndSettle();
+    // The second row can sit under the nav bar on a phone-sized screen.
+    await tapInView(tester, key('capture-add-1'));
     expect(find.text('Where did it come from?'), findsOneWidget);
     // Below what Penny read, on a phone-sized screen.
     await tester.ensureVisible(find.text('Pocket money'));
@@ -168,6 +168,8 @@ void main() {
     // On screen, so a message at the bottom says so.
     expect(find.text('Penny read −₹250 · Swiggy'), findsOneWidget);
     expect(calls, contains('drop'));
+    // Any the listener missed are looked for first.
+    expect(calls.indexOf('catchUp'), lessThan(calls.indexOf('peek')));
     expect(calls, isNot(contains('notify')));
     await closeApp(tester, db);
   });
