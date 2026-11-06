@@ -862,6 +862,34 @@ void main() {
       expect((await take(CaptureMode.save)).single.categoryId, 'refund');
     });
 
+    test('read before its payment, it still cancels it', () async {
+      source.waiting.addAll([
+        sms('HDFC Bank', reversal, when: at.subtract(const Duration(minutes: 4))),
+        sms(
+          'AX-HDFCBK',
+          'Rs.641.00 debited from A/c XX4821 to SWIGGY. UPI Ref 630500000003.',
+        ),
+      ]);
+      await take(CaptureMode.save);
+      final all = await db.select(db.txns).get();
+      expect(all, hasLength(2));
+      expect({for (final t in all) t.categoryId}, {'food'});
+      final totals = MoneyTotals.of(all);
+      expect(totals.spentPaise, 0);
+      expect(totals.gotPaise, 0);
+    });
+
+    test('money from someone is pay only when the message says so', () async {
+      source.waiting.add(
+        sms(
+          'JM-HDFCBK',
+          'Credit Alert!\nRs.3000.00 credited to HDFC Bank A/c XX4821 on 05-11-26 '
+              'from VPA *amit@okhdfcbank (UPI 132400000002)',
+        ),
+      );
+      expect((await take(CaptureMode.save)).single.categoryId, 'from_people');
+    });
+
     test('waiting to be checked, it waits as money back for that payment', () async {
       await paid();
       source.waiting.add(sms('HDFC Bank', reversal));

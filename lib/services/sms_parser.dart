@@ -504,7 +504,9 @@ SmsTxn? paymentFrom(
     payee: found?.name,
     // A name that reads like a person's is kept from the AI, whatever it's
     // for.
-    payeeIsPerson: found != null && found.isPerson,
+    payeeIsPerson: found != null
+        ? found.isPerson
+        : _maskedVpa.hasMatch(text),
     occurredAt: date?.at,
     hasTime: date?.hasTime ?? false,
     suggestedCategoryId: categoryId,

@@ -14,6 +14,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/merchant_categories.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
 import 'package:penny/services/penny_ai.dart';
@@ -141,7 +142,11 @@ Future<({SmsTxn? payment, String? letGo})> readWithAi(
   }
   final id = read.categoryId;
   final categoryId =
-      id != null && categoryById(id).id == id && categoryById(id).type == type
+      id != null &&
+          categoryById(id).id == id &&
+          categoryById(id).type == type &&
+          // Pay only when the message says so.
+          (id != 'salary' || looksLikeSalary(text))
       ? id
       : null;
   final payment = paymentFrom(
@@ -362,6 +367,48 @@ Future<Txn?> reversedPaymentOf(
   return rows.where((t) => isSpendCategory(t.categoryId)).firstOrNull;
 }
 
+/// How long before its payment money back for it can already be read: a
+/// bank's reversal can come in before the payment's own message.
+const _backBefore = Duration(hours: 1);
+
+/// Money back read just before [payment] (saved in [categoryId] at [at])
+/// that went in Refund/cashback for want of the payment, moved into the
+/// payment's category as money back, so the two cancel.
+Future<void> _cancelEarlierBack(
+  AppDatabase db,
+  TxnRepository txns,
+  SmsTxn payment,
+  DateTime at,
+  String categoryId,
+) async {
+  if (payment.type != TxnType.debit || !isSpendCategory(categoryId)) return;
+  final back =
+      await (db.select(db.txns)
+            ..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.type.equalsValue(TxnType.credit) &
+                  t.source.equalsValue(TxnSource.sms) &
+                  t.categoryId.equals('refund') &
+                  t.amountPaise.equals(payment.amountPaise) &
+                  t.occurredAt.isBetweenValues(at.subtract(_backBefore), at),
+            )
+            ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)])
+            ..limit(1))
+          .getSingleOrNull();
+  if (back == null) return;
+  await txns.update(
+    back.id,
+    amountPaise: back.amountPaise,
+    type: back.type,
+    categoryId: categoryId,
+    occurredAt: back.occurredAt,
+    merchant: back.merchant ?? payment.payee,
+    tag: null,
+    payeeIsPerson: back.payeeIsPerson ?? payment.payeeIsPerson,
+  );
+}
+
 /// An entry typed by hand on [at]'s day for the same amount the same way,
 /// in words like "₹250 · Lunch", or null when there's none.
 Future<String?> typedLookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async {
@@ -548,6 +595,7 @@ Future<List<CaptureRead>> takeCaptures({
         dedupeKey: payment.dedupeKey,
         payeeIsPerson: payment.payeeIsPerson,
       );
+      await _cancelEarlierBack(db, txns, payment, at, categoryId);
       await captures.recordSaved(
         payment,
         app: capture.app,

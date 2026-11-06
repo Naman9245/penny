@@ -334,6 +334,12 @@ final _company = RegExp(
   caseSensitive: false,
 );
 final _bankTransfer = RegExp(r'\b(?:neft|imps|rtgs)\b', caseSensitive: false);
+
+/// Whether money in described by [text], from [payee], is pay: it says
+/// salary, stipend or payroll, or a company sent it by bank transfer.
+bool looksLikeSalary(String text, {String? payee}) =>
+    _salary.hasMatch(text) ||
+    (_bankTransfer.hasMatch(text) && _company.hasMatch(payee ?? text));
 final _refund = RegExp(
   r'\b(?:refund|refunded|reversal|reversed|cashback)\b',
   caseSensitive: false,
