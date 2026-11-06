@@ -4,6 +4,7 @@ import android.app.Notification
 import android.os.Bundle
 import android.provider.Telephony
 import android.service.notification.NotificationListenerService
+import android.util.Log
 import android.service.notification.StatusBarNotification
 import org.json.JSONObject
 
@@ -19,6 +20,11 @@ import org.json.JSONObject
  * access page.
  */
 class PaymentNotificationListener : NotificationListenerService() {
+
+    // What's logged says what happened, never what a notification said.
+    override fun onListenerConnected() {
+        Log.i(TAG, "Listening for payment notifications")
+    }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val notification = sbn.notification ?: return
@@ -42,7 +48,10 @@ class PaymentNotificationListener : NotificationListenerService() {
             )
             kept = true
         }
-        if (kept) BackgroundReader.wake(this)
+        if (kept) {
+            Log.i(TAG, "Kept a notification from $app")
+            BackgroundReader.wake(this)
+        }
     }
 
     /** Which of the apps Penny reads [pkg] is, or null for any other. */
@@ -79,6 +88,7 @@ class PaymentNotificationListener : NotificationListenerService() {
     }
 
     companion object {
+        private const val TAG = "Penny"
         private const val GPAY = "com.google.android.apps.nbu.paisa.user"
         private const val PHONEPE = "com.phonepe.app"
         private const val PAYTM = "net.one97.paytm"

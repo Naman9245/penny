@@ -26,6 +26,24 @@ void main() {
     expect(masked.text, '[w1] paid you. [w1] [w2]');
   });
 
+  test('plain lowercase words go as they are, so the AI can read them', () {
+    final masked = maskForAi('PayZapp: Rs.2.00 moved to AMIT SHARMA for order 4521.');
+    expect(masked.text, 'PayZapp: Rs.2.00 moved to [w1] [w2] for order 4521.');
+  });
+
+  test("a name where a payee's goes is hidden, whatever its case", () {
+    final masked = maskForAi('Payment of Rs 100 received from rahul kumar');
+    expect(masked.text, 'Payment of Rs 100 received from [w1] [w2]');
+    expect(maskForAi('paid to amit at koramangala').text, 'paid to [w1] at [w2]');
+  });
+
+  test('a web address goes as tags', () {
+    expect(
+      maskForAi('Not you? Report at hdfcbank.com/report').text,
+      'Not you? Report at [w1].[w2]/[w3]',
+    );
+  });
+
   test("a UPI ID's name goes as tags too", () {
     final masked = maskForAi('Rs.300 sent to rohit.k@ptyes');
     expect(masked.text, 'Rs.300 sent to [w1].[w2]@[w3]');

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -440,7 +441,14 @@ Future<List<CaptureRead>> takeCaptures({
         _moneyMoved.hasMatch(_textOf(capture))) {
       try {
         (:payment, :letGo) = await readWithAi(asking, capture);
-      } on AiException {
+        // What's logged says what happened, never what was read.
+        debugPrint(
+          payment != null
+              ? 'Penny: her AI read a payment'
+              : 'Penny: her AI found no payment',
+        );
+      } on AiException catch (error) {
+        debugPrint("Penny: her AI couldn't answer (${error.failure.name})");
         stillUnread[_letGoKey(capture)] = capture;
         reads.add(read(CaptureOutcome.unread, 'Penny will try again'));
         continue;

@@ -1,9 +1,12 @@
 import 'package:penny/services/merchant_categories.dart';
 
 // Getting a notification ready for Penny's AI, when her own rules couldn't
-// read it. Only money words, numbers and the names of shops and money
-// brands go; every other word, which could be a person's or a place's
-// name, is swapped for a tag like [w3] and stays on the phone.
+// read it. Every word that could be a name stays on the phone, swapped for
+// a tag like [w3]: a capitalised word that isn't a money word or a shop or
+// brand Penny knows, any word of a UPI ID, an email or a web address, and
+// the words where a payee's name goes, right after "to", "from", "paid" and
+// the like, whatever their case. Plain lowercase words, like "moved", go as
+// they are, so the AI can still tell what happened.
 
 /// The most of a notification that's sent.
 const maxAiText = 600;
@@ -77,30 +80,68 @@ final _word = RegExp(r'\p{L}+', unicode: true);
 final _longDigits = RegExp(r'\d{9,}');
 // "XX4821", "*4821", "91XXXX8888": an account or card number.
 final _maskedNumber = RegExp(r'[\dxX*]*[xX*][\dxX*]*\d[\dxX*]*|\d+[xX*]+');
+// A UPI ID or an email, or a web address: a name can hide in any of them.
+final _idLike = RegExp(
+  r'[\w.\-]+@[\w.\-]+'
+  r'|https?://\S+'
+  r'|\b[\w\-]+(?:\.[\w\-]+)*\.(?:com|in|io|co|net|org|bank|me|app)\b(?:/\S*)?',
+  caseSensitive: false,
+);
 
-/// [text] as Penny's AI may see it: every word that isn't a plain money
-/// word, or a shop or brand Penny knows, swapped for a tag like [w1] (the
-/// same word, the same tag), and account, card and long reference numbers
-/// as •••. A UPI ID's name goes as tags too: "rahul.k@okaxis" is
-/// "[w1].[w2]@[w3]". [tags] says what each tag stands for, to put back
-/// what the AI answers. At most [maxAiText] characters.
+/// Words after which a payee's name comes: "to Amit", "from rahul".
+const _payeeMarkers = {
+  'to', 'from', 'by', 'at', 'towards', 'paid', 'sent', 'received', 'frm',
+  'trf',
+};
+
+/// How many words after one of [_payeeMarkers] may be a name.
+const _payeeLength = 3;
+
+/// [text] as Penny's AI may see it: every word that could be a name
+/// swapped for a tag like [w1] (the same word, the same tag), and account,
+/// card and long reference numbers as •••. A word that could be a name is
+/// one that isn't a plain money word or a shop or brand Penny knows, and is
+/// capitalised, or in a UPI ID, an email or a web address, or among the
+/// words right after one of [_payeeMarkers]. "rahul.k@okaxis" is
+/// "[w1].[w2]@[w3]". [tags] says what each tag stands for, to put back what
+/// the AI answers. At most [maxAiText] characters.
 ({String text, Map<String, String> tags}) maskForAi(String text) {
   final tags = <String, String>{};
   final byWord = <String, String>{};
+  String tag(String word) => byWord.putIfAbsent(word.toLowerCase(), () {
+    final tag = '[w${byWord.length + 1}]';
+    tags[tag] = word;
+    return tag;
+  });
+
   final numbersHidden = text
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim()
       .replaceAll(_maskedNumber, '•••')
       .replaceAll(_longDigits, '•••');
+  final ids = [
+    for (final match in _idLike.allMatches(numbersHidden))
+      (start: match.start, end: match.end),
+  ];
+  bool inId(int at) => ids.any((id) => at >= id.start && at < id.end);
+
+  var payeeWords = 0;
   final masked = numbersHidden.replaceAllMapped(_word, (m) {
     final word = m.group(0)!;
     final lower = word.toLowerCase();
-    if (_plainWords.contains(lower) || _shopWords.contains(lower)) return word;
-    return byWord.putIfAbsent(lower, () {
-      final tag = '[w${byWord.length + 1}]';
-      tags[tag] = word;
-      return tag;
-    });
+    final known = _plainWords.contains(lower) || _shopWords.contains(lower);
+    final inPayeeSpot = payeeWords > 0;
+    if (_payeeMarkers.contains(lower)) {
+      payeeWords = _payeeLength;
+    } else if (known) {
+      payeeWords = 0;
+    } else if (payeeWords > 0) {
+      payeeWords--;
+    }
+    if (inId(m.start)) return tag(word);
+    if (known) return word;
+    if (inPayeeSpot || word != lower) return tag(word);
+    return word;
   });
   return (
     text: masked.length > maxAiText ? masked.substring(0, maxAiText) : masked,

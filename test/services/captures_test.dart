@@ -711,7 +711,7 @@ void main() {
     );
 
     test('reads it with names hidden, and puts them back', () async {
-      final ai = FakeAiClient(read: (_) => paid(100, payee: '[w2] [w3]'));
+      final ai = FakeAiClient(read: (_) => paid(100, payee: '[w1] [w2]'));
       source.waiting.add(sms('JM-HDFCBK', odd));
       final read = (await take(ai)).single;
       expect(read.outcome, CaptureOutcome.saved);
@@ -721,7 +721,7 @@ void main() {
       expect(entry.merchant, 'Amit Sharma');
       expect(entry.payeeIsPerson, isTrue);
       // What went: no name.
-      expect(ai.smsRead.single, 'PayZapp: ₹1.00 [w1] to [w2] [w3] for order 4521.');
+      expect(ai.smsRead.single, 'PayZapp: ₹1.00 moved to [w1] [w2] for order 4521.');
     });
 
     test("one it says only moved your own money is let go", () async {
@@ -749,7 +749,7 @@ void main() {
 
     test('a category only of the right kind', () async {
       final ai = FakeAiClient(
-        read: (_) => paid(100, payee: '[w2] [w3]', category: 'salary'),
+        read: (_) => paid(100, payee: '[w1] [w2]', category: 'salary'),
       );
       source.waiting.add(sms('JM-HDFCBK', odd));
       expect((await take(ai)).single.categoryId, 'people');
@@ -765,7 +765,7 @@ void main() {
 
       ai
         ..failure = null
-        ..read = (_) => paid(100, payee: '[w2] [w3]');
+        ..read = (_) => paid(100, payee: '[w1] [w2]');
       final second = (await take(ai)).single;
       expect(second.outcome, CaptureOutcome.saved);
       expect(await prefs.unread(), isEmpty);

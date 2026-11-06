@@ -3,6 +3,7 @@ package com.naman9245.penny
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
@@ -19,6 +20,9 @@ import io.flutter.plugin.common.MethodChannel
 object BackgroundReader {
     private const val READER = "background"
 
+    // What's logged says what happened, never what was read.
+    private const val TAG = "Penny"
+
     /** If Dart never says it's done, it's closed anyway after this long. */
     private const val LIMIT_MS = 60_000L
 
@@ -30,11 +34,20 @@ object BackgroundReader {
     private var again = false
 
     private var app: Context? = null
-    private val giveUp = Runnable { finish() }
+    private val giveUp = Runnable {
+        Log.w(TAG, "The hidden copy took too long, so it was closed")
+        finish()
+    }
 
     /** Payments are waiting: Penny reads them if she's open, or else a hidden copy does. */
     fun wake(context: Context) {
-        main.post { if (!MainActivity.capturesArrived()) start(context.applicationContext) }
+        main.post {
+            if (MainActivity.capturesArrived()) {
+                Log.i(TAG, "Penny is open: she reads them herself")
+            } else {
+                start(context.applicationContext)
+            }
+        }
     }
 
     private fun start(context: Context) {
@@ -44,13 +57,24 @@ object BackgroundReader {
         }
         starting = true
         app = context
-        val loader = FlutterInjector.instance().flutterLoader()
-        loader.startInitialization(context)
-        loader.ensureInitializationCompleteAsync(context, null, main) {
+        Log.i(TAG, "Starting a hidden copy of Penny to read them")
+        try {
+            val loader = FlutterInjector.instance().flutterLoader()
+            loader.startInitialization(context)
+            loader.ensureInitializationCompleteAsync(context, null, main) {
+                starting = false
+                // Penny opened meanwhile: she reads them herself.
+                if (MainActivity.capturesArrived()) return@ensureInitializationCompleteAsync
+                try {
+                    run(context, loader.findAppBundlePath())
+                } catch (e: Exception) {
+                    Log.e(TAG, "The hidden copy couldn't start", e)
+                    finish()
+                }
+            }
+        } catch (e: Exception) {
             starting = false
-            // Penny opened meanwhile: she reads them herself.
-            if (MainActivity.capturesArrived()) return@ensureInitializationCompleteAsync
-            run(context, loader.findAppBundlePath())
+            Log.e(TAG, "The hidden copy couldn't start", e)
         }
     }
 
@@ -82,6 +106,7 @@ object BackgroundReader {
                     }
                     "done" -> {
                         result.success(null)
+                        Log.i(TAG, "The hidden copy is done")
                         main.post { finish() }
                     }
                     else -> result.notImplemented()
@@ -91,6 +116,7 @@ object BackgroundReader {
         flutter.dartExecutor.executeDartEntrypoint(
             DartExecutor.DartEntrypoint(bundle, "readInBackground"),
         )
+        Log.i(TAG, "The hidden copy is reading")
     }
 
     private fun finish() {
