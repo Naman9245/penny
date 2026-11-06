@@ -165,7 +165,7 @@ void main() {
     // Back on Analysis, the split now has Penny's tags.
     await tester.tap(find.bySemanticsLabel('Back'));
     await tester.pumpAndSettle();
-    expect(find.text('Wasteful report'), findsOneWidget);
+    expect(find.text('Money report'), findsOneWidget);
     expect(find.text('₹1,149'), findsOneWidget); // Wasteful.
     expect(find.text('₹8,500'), findsOneWidget); // Necessary.
     await closeApp(tester, db);
@@ -199,6 +199,110 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text('Late-night delivery'), findsOneWidget);
+    expect(heroAmount('₹899'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  /// Scrolls the report until [key] is built and on screen.
+  Future<void> reveal(WidgetTester tester, String key) async {
+    await tester.scrollUntilVisible(
+      find.byKey(ValueKey(key)),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Finder within(String key, String text) => find.descendant(
+    of: find.byKey(ValueKey(key)),
+    matching: find.text(text),
+  );
+
+  testWidgets('where every rupee went, the history and patterns, without AI', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester, seed: seedMonth, ai: FakeAiClient());
+    await openReport(tester);
+
+    expect(find.text('Money report'), findsOneWidget);
+    expect(within('facts-totals', '+₹15,000'), findsOneWidget);
+    expect(within('facts-totals', '−₹9,649'), findsOneWidget);
+    expect(within('facts-totals', '₹5,351'), findsOneWidget);
+
+    await reveal(tester, 'facts-categories');
+    // Rent is 83% of spending; food is Swiggy's two orders.
+    expect(within('facts-category-rent', '83% · 1 entry'), findsOneWidget);
+    expect(
+      within('facts-category-food', '5% · 2 entries · mostly Swiggy'),
+      findsOneWidget,
+    );
+    // On the phone, people show by name.
+    expect(within('facts-shops', 'Asha Rao'), findsOneWidget);
+    expect(within('facts-shops', 'Person · once'), findsOneWidget);
+    expect(within('facts-biggest', '₹8,000'), findsOneWidget);
+
+    await reveal(tester, 'facts-history');
+    expect(
+      find.text('Your first month with Penny. Each month adds to this.'),
+      findsOneWidget,
+    );
+    expect(within('facts-saved', '₹5,351'), findsOneWidget);
+
+    await reveal(tester, 'facts-patterns');
+    expect(within('facts-patterns', 'Late night'), findsOneWidget);
+    expect(within('facts-patterns', 'Morning'), findsOneWidget);
+    expect(find.byKey(const ValueKey('facts-weekday')), findsOneWidget);
+    expect(find.byKey(const ValueKey('facts-weekend')), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('every wasteful item, with Penny\'s reason, and "I need this"', (
+    tester,
+  ) async {
+    MonthInsight withReasons(InsightRequest request) {
+      final answer = pennyAnswer(request);
+      return MonthInsight(
+        tags: answer.tags,
+        habits: answer.habits,
+        summary: answer.summary,
+        incomeNote: answer.incomeNote,
+        reasons: {
+          groupId(request, shop: 'Swiggy'): 'Two delivery orders in an hour.',
+        },
+      );
+    }
+
+    final db = await pumpApp(
+      tester,
+      seed: seedMonth,
+      ai: FakeAiClient(answer: withReasons),
+    );
+    await openReport(tester);
+    await tester.tap(find.byKey(const ValueKey('ask-penny')));
+    await tester.pumpAndSettle();
+
+    await reveal(tester, 'wasteful-item-0');
+    expect(within('wasteful-item-0', 'Netflix'), findsOneWidget);
+    expect(within('wasteful-item-0', 'once'), findsOneWidget);
+    expect(within('wasteful-item-1', 'Swiggy'), findsOneWidget);
+    expect(within('wasteful-item-1', '₹500'), findsOneWidget);
+    expect(within('wasteful-item-1', '2 times · about ₹250 each'), findsOneWidget);
+    expect(
+      within('wasteful-item-1', 'Two delivery orders in an hour.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('wasteful-keep-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Swiggy is necessary now'), findsOneWidget);
+    // My needs remembers Swiggy, so only Netflix is left.
+    expect(find.byKey(const ValueKey('wasteful-item-1')), findsNothing);
+    expect(find.text('Late-night delivery'), findsNothing);
+    expect(heroAmount('₹649'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('wasteful-item-1')), findsOneWidget);
     expect(heroAmount('₹899'), findsOneWidget);
     await closeApp(tester, db);
   });
@@ -287,11 +391,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('see-what-penny-sends')));
     await tester.pumpAndSettle();
 
-    expect(find.text('What Penny sends'), findsOneWidget);
-    expect(find.text('Person 1'), findsOneWidget);
-    expect(find.text('Swiggy'), findsOneWidget);
-    expect(find.text('Asha Rao'), findsNothing);
-    expect(find.text('Pocket money'), findsOneWidget);
+    Finder sent(String text) => find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.text(text),
+    );
+    expect(sent('What Penny sends'), findsOneWidget);
+    expect(sent('Person 1'), findsOneWidget);
+    expect(sent('Swiggy'), findsOneWidget);
+    expect(sent('Asha Rao'), findsNothing);
+    expect(sent('Pocket money'), findsOneWidget);
     await closeApp(tester, db);
   });
 

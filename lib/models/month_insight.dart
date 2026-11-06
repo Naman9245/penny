@@ -114,6 +114,7 @@ class MonthInsight {
     required this.summary,
     required this.incomeNote,
     this.earnIdeas = const [],
+    this.reasons = const {},
   });
 
   final Map<String, TxnTag> tags;
@@ -124,6 +125,10 @@ class MonthInsight {
   /// Up to three ways to earn a little extra. Reports from before Penny gave
   /// these have none.
   final List<String> earnIdeas;
+
+  /// Why each wasteful group is wasteful, in a sentence, by group id.
+  /// Reports from before Penny gave these have none.
+  final Map<String, String> reasons;
 
   /// Reads an answer, keeping only what makes sense: tags and habits for
   /// [groupIds] when given, known tags and cuts, and text. Null when [json]
@@ -151,6 +156,12 @@ class MonthInsight {
           for (final idea in ideas.take(3))
             if (_text(idea).isNotEmpty) _text(idea),
       ],
+      reasons: {
+        if (json['reasons'] case final Map raw)
+          for (final MapEntry(:key, :value) in raw.entries)
+            if (known(key) && _text(value).isNotEmpty)
+              key as String: _text(value),
+      },
     );
   }
 
@@ -162,6 +173,7 @@ class MonthInsight {
     'summary': summary,
     'incomeNote': incomeNote,
     'earnIdeas': earnIdeas,
+    if (reasons.isNotEmpty) 'reasons': reasons,
   };
 }
 

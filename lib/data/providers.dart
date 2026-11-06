@@ -21,6 +21,7 @@ import 'package:penny/models/month_insight.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/your_rules.dart';
+import 'package:penny/services/report_math.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -265,6 +266,23 @@ final insightRequestProvider = StreamProvider.autoDispose
               note: note,
               budget: budget,
             ),
+          );
+    });
+
+/// The Money report's numbers for that month, from its entries and the 11
+/// months before it.
+final moneyReportProvider = StreamProvider.autoDispose
+    .family<MoneyReport, DateTime>((ref, month) {
+      final start = monthStart(month);
+      return ref
+          .watch(txnRepositoryProvider)
+          .watchBetween(
+            DateTime(start.year, start.month - (historyMonths - 1)),
+            nextMonth(start),
+          )
+          .map(
+            (txns) =>
+                MoneyReport.of(month: start, txns: txns, now: DateTime.now()),
           );
     });
 

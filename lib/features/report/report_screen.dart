@@ -8,6 +8,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/report/money_facts.dart';
 import 'package:penny/features/report/report_controller.dart';
 import 'package:penny/features/report/sent_sheet.dart';
 import 'package:penny/models/category.dart';
@@ -31,10 +32,11 @@ import 'package:penny/widgets/tag_split_bar.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 import 'package:penny/widgets/waiting_bar.dart';
 
-/// Penny's look at one month: habits worth cutting and what cutting them
-/// would have saved, the necessary-or-wasteful split, and how steady the
-/// income is. Penny sorts and explains; every number here is worked out on
-/// the phone from the entries as they are now.
+/// The Money report for one month: where every rupee went, the months
+/// before, when the money goes, and Penny's look at it: what's wasteful and
+/// why, habits worth cutting and what cutting them would have saved, and
+/// how steady the income is. Penny sorts and explains; every number here is
+/// worked out on the phone from the entries as they are now.
 class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({super.key, required this.month});
 
@@ -56,6 +58,17 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     final ask = ref.watch(askPennyProvider(month));
     final setUp = ref.watch(aiClientProvider).isSetUp;
     final report = saved.value;
+    final facts = ref.watch(moneyReportProvider(month)).value;
+    final everyday = ref.watch(budgetProvider).value?.everydayPaise ?? 0;
+    final where = facts == null
+        ? null
+        : WhereMoneyWent(report: facts, month: month, everydayPaise: everyday);
+    final later = <Widget>[
+      if (facts != null) ...[
+        MoneyHistory(report: facts),
+        SpendingPatterns(report: facts),
+      ],
+    ];
 
     void askPenny() {
       if (request != null) {
@@ -99,6 +112,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 const SizedBox(height: 16),
                 _Problem(failure: failure, onRetry: askPenny),
               ],
+              ?where,
+              ...later,
             ] else
               _Report(
                 month: month,
@@ -107,6 +122,8 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 ask: ask,
                 canAsk: setUp && request.canAsk,
                 onRefresh: askPenny,
+                where: where,
+                later: later,
               ),
           ],
         ),
@@ -134,7 +151,7 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Wasteful report', style: AppText.h2),
+              const Text('Money report', style: AppText.h2),
               Text(monthLabel(month), style: AppText.bodyMuted),
             ],
           ),
@@ -185,8 +202,9 @@ class _Intro extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            "She'll sort the month's spends into necessary and wasteful, and "
-            'spot habits worth cutting.',
+            "She'll sort the month's spends into necessary and wasteful, say "
+            'why each wasteful one is, and spot habits worth cutting. '
+            'Everything below works without her.',
             style: AppText.body,
           ),
           const SizedBox(height: 8),
@@ -295,6 +313,8 @@ class _Report extends ConsumerWidget {
     required this.ask,
     required this.canAsk,
     required this.onRefresh,
+    required this.where,
+    required this.later,
   });
 
   final DateTime month;
@@ -304,11 +324,18 @@ class _Report extends ConsumerWidget {
   final bool canAsk;
   final VoidCallback onRefresh;
 
+  /// Where every rupee went, under Penny's summary.
+  final Widget? where;
+
+  /// The history and patterns, after the wasteful part.
+  final List<Widget> later;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final txns = ref.watch(monthTxnsProvider(month)).value ?? const <Txn>[];
     final rules = ref.watch(yourRulesProvider).value ?? YourRules.none;
     final habits = habitViews(txns, report, rules: rules);
+    final items = wastefulItems(txns, report, rules: rules);
     final split = splitByTag(txns, report, rules: rules);
     final stale = report.inputHash != request.inputHash;
     final failure = ask.asking ? null : ask.failure;
@@ -325,6 +352,50 @@ class _Report extends ConsumerWidget {
         context,
         message: '${habit.title} moved to necessary',
         onUndo: () => repo.setTags(before),
+      );
+    }
+
+    // My needs remembers it: its shops (or its category, for entries with
+    // no shop) are necessary from now on.
+    Future<void> keepItem(WastefulItem item) async {
+      final needs = ref.read(rulesRepositoryProvider);
+      final repo = ref.read(txnRepositoryProvider);
+      final shops = <String>{};
+      final categories = <String>{};
+      for (final txn in item.wasteful) {
+        if (shopKey(txn.merchant) case final shop?) {
+          shops.add(shop);
+        } else {
+          categories.add(txn.categoryId);
+        }
+      }
+      // Entries the user tagged wasteful themselves would win over a rule.
+      final tagged = <String, TxnTag?>{
+        for (final txn in item.wasteful)
+          if (txn.tag == TxnTag.wasteful) txn.id: txn.tag,
+      };
+      for (final shop in shops) {
+        await needs.set(RuleKind.shop, shop, TxnTag.necessary);
+      }
+      for (final id in categories) {
+        await needs.set(RuleKind.category, id, TxnTag.necessary);
+      }
+      if (tagged.isNotEmpty) {
+        await repo.setTags({for (final id in tagged.keys) id: null});
+      }
+      if (!context.mounted) return;
+      showUndoSnackBar(
+        context,
+        message: '${item.names.join(' & ')} is necessary now',
+        onUndo: () async {
+          for (final shop in shops) {
+            await needs.set(RuleKind.shop, shop, rules.shops[shop]);
+          }
+          for (final id in categories) {
+            await needs.set(RuleKind.category, id, rules.categories[id]);
+          }
+          if (tagged.isNotEmpty) await repo.setTags(tagged);
+        },
       );
     }
 
@@ -347,12 +418,29 @@ class _Report extends ConsumerWidget {
           const SizedBox(height: 16),
           _PennySays(text: insight.summary),
         ],
+        ?where,
         if (habits.isNotEmpty) ...[
           const SizedBox(height: 28),
           const Text('Habits to cut', style: AppText.h2),
           for (final habit in habits) ...[
             const SizedBox(height: 12),
             _HabitCard(habit: habit, onKeep: () => keep(habit)),
+          ],
+        ],
+        if (items.isNotEmpty) ...[
+          ReportSection(
+            'Every wasteful item',
+            subtitle:
+                '${formatPaise(items.fold(0, (sum, i) => sum + i.spentPaise))}'
+                ' in all. Tap "I need this" on anything you do need.',
+          ),
+          for (final (i, item) in items.indexed) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _WastefulItemCard(
+              index: i,
+              item: item,
+              onKeep: () => keepItem(item),
+            ),
           ],
         ],
         // The chat knows this month only.
@@ -388,6 +476,7 @@ class _Report extends ConsumerWidget {
             onTap: () => context.push('/needs'),
           ),
         ),
+        ...later,
         if (request.income.isNotEmpty) ...[
           const SizedBox(height: 28),
           const Text('Where your money came from', style: AppText.h2),
@@ -580,6 +669,70 @@ class _HabitCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: BrutalChip(
+              label: 'I need this',
+              icon: Icons.check_rounded,
+              onTap: onKeep,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One wasteful item: what it came to, how often, and Penny's reason.
+class _WastefulItemCard extends StatelessWidget {
+  const _WastefulItemCard({
+    required this.index,
+    required this.item,
+    required this.onKeep,
+  });
+
+  final int index;
+  final WastefulItem item;
+  final VoidCallback onKeep;
+
+  @override
+  Widget build(BuildContext context) {
+    final times = item.count == 1 ? 'once' : '${item.count} times';
+    return BrutalCard(
+      key: ValueKey('wasteful-item-$index'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(item.names.join(' · '), style: AppText.h3),
+              ),
+              const SizedBox(width: 8),
+              MoneyText(item.spentPaise, style: AppText.h3),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item.count == 1
+                ? times
+                : '$times · about ${formatPaise(item.averagePaise)} each',
+            style: AppText.small.copyWith(color: AppColors.ink),
+          ),
+          if (item.reason.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PennyMascot(size: 30, bob: false),
+                const SizedBox(width: 8),
+                Expanded(child: Text(item.reason, style: AppText.body)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: BrutalChip(
+              key: ValueKey('wasteful-keep-$index'),
               label: 'I need this',
               icon: Icons.check_rounded,
               onTap: onKeep,

@@ -62,7 +62,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: split, matching: find.text('Ask Penny')),
+      find.descendant(of: split, matching: find.text('Money report')),
       findsOneWidget,
     );
 

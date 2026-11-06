@@ -87,6 +87,21 @@ void main() {
     );
   });
 
+  test('reasons: for known groups only, kept through a round trip', () {
+    final insight = MonthInsight.fromJson({
+      'reasons': {
+        's1': '  Late-night orders, most nights.  ',
+        's2': '',
+        's9': 'Not a group Penny was sent.',
+        's3': 5,
+      },
+    }, groupIds: {'s1', 's2', 's3'})!;
+    expect(insight.reasons, {'s1': 'Late-night orders, most nights.'});
+    final back = MonthInsight.fromJson(insight.toJson())!;
+    expect(back.reasons, insight.reasons);
+    expect(MonthInsight.fromJson(const <String, Object?>{})!.reasons, isEmpty);
+  });
+
   test('cuts save whole quarters', () {
     expect(Cut.values.map((c) => c.quarters), [4, 3, 2, 1]);
     expect(Cut.fromWire('three_quarters'), Cut.threeQuarters);

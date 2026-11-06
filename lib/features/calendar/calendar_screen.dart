@@ -81,12 +81,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           const SizedBox(height: 16),
           if (share == null)
             const _SetBudget()
-          else
+          else ...[
             Text(
               'Your share each day: ${formatPaise(share)}',
               style: AppText.bodyStrong,
               textAlign: TextAlign.center,
             ),
+            Text(
+              shareExplained(everyday, _month),
+              key: const ValueKey('share-explained'),
+              style: AppText.small,
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 14),
           _MonthGrid(month: _month, moods: moods, today: today, onDay: openDay),
           const SizedBox(height: 14),

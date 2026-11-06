@@ -135,6 +135,66 @@ List<HabitView> habitViews(
   return views;
 }
 
+/// One thing that counts as wasteful this month: a group Penny looked at,
+/// or a shop (or category) tagged wasteful since, with its entries that
+/// still count as wasteful.
+@immutable
+class WastefulItem {
+  const WastefulItem({
+    required this.id,
+    required this.names,
+    required this.wasteful,
+    required this.reason,
+  });
+
+  /// Penny's group id, or the entries' own group when she didn't see it.
+  final String id;
+
+  /// The shops (or categories) in it, as the user knows them.
+  final List<String> names;
+  final List<Txn> wasteful;
+
+  /// Penny's sentence on why; empty when she gave none.
+  final String reason;
+
+  int get spentPaise => wasteful.fold(0, (sum, txn) => sum + txn.amountPaise);
+
+  int get count => wasteful.length;
+
+  int get averagePaise => count == 0 ? 0 : spentPaise ~/ count;
+}
+
+/// Everything that counts as wasteful in [monthTxns], biggest first: by
+/// the user's own tag, a My needs rule, or Penny's pick in [saved].
+List<WastefulItem> wastefulItems(
+  Iterable<Txn> monthTxns,
+  SavedInsight? saved, {
+  YourRules rules = YourRules.none,
+}) {
+  final penny = PennyTags(saved);
+  final idOfKey = {
+    if (saved != null)
+      for (final MapEntry(key: id, value: keys) in saved.groupKeys.entries)
+        for (final key in keys) key: id,
+  };
+  final byId = <String, List<Txn>>{};
+  for (final txn in monthTxns) {
+    if (effectiveTag(txn, penny, rules) != TxnTag.wasteful) continue;
+    final key = groupKeyOf(txn);
+    (byId[idOfKey[key] ?? key] ??= []).add(txn);
+  }
+  final items = [
+    for (final MapEntry(key: id, value: txns) in byId.entries)
+      WastefulItem(
+        id: id,
+        names: namesOf(txns),
+        wasteful: txns,
+        reason: saved?.insight.reasons[id] ?? '',
+      ),
+  ];
+  return items..sort((a, b) => b.spentPaise.compareTo(a.spentPaise));
+}
+
 /// What every habit together would have saved.
 int totalSavingPaise(Iterable<HabitView> habits) =>
     habits.fold(0, (sum, habit) => sum + habit.savePaise);

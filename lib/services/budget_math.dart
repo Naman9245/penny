@@ -199,6 +199,13 @@ BudgetStatus budgetStatus({
 int dailySharePaise(int everydayPaise, DateTime month) =>
     _share(everydayPaise, DateTime(month.year, month.month + 1, 0).day);
 
+/// How the daily share of [month] is worked out, in words.
+String shareExplained(int everydayPaise, DateTime month) {
+  final days = DateTime(month.year, month.month + 1, 0).day;
+  return 'Your everyday budget, ${formatPaise(everydayPaise)}, ÷ $days days. '
+      'Rent, EMIs and other one-go costs stay out of it.';
+}
+
 /// One day of a month as Penny sees it, each as an index into [_levels]:
 /// how its spending in the budgeted everyday categories stands against its
 /// share, and how the month so far stands, with what decided that.

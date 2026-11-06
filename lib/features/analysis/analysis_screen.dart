@@ -214,7 +214,7 @@ class _SplitCard extends ConsumerWidget {
           const SizedBox(height: 14),
           BrutalButton(
             key: const ValueKey('open-report'),
-            label: hasReport ? 'Wasteful report' : 'Ask Penny',
+            label: 'Money report',
             icon: hasReport
                 ? Icons.receipt_long_rounded
                 : Icons.auto_awesome_rounded,
