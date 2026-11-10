@@ -14,6 +14,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/merchant_categories.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
@@ -347,26 +348,77 @@ const _backWithin = Duration(days: 7);
 
 /// The payment [sms] gives back, when it's money coming back ("reversed",
 /// "refunded"): one paid out in a spend category in the 7 days before [at],
-/// for the same amount, the newest such. Null when there's none.
+/// for the same amount, that hasn't had its money back already. Of those,
+/// the one paid to the same payee, then the one read from the same bank as
+/// [from] (where the money back was read, as [_sourceOf] says), then the
+/// newest. Null when there's none.
 Future<Txn?> reversedPaymentOf(
   AppDatabase db,
   SmsTxn sms,
   DateTime at,
-  String text,
-) async {
+  String text, {
+  String? from,
+}) async {
   if (sms.type != TxnType.credit || !_moneyBack.hasMatch(text)) return null;
+  final since = at.subtract(_backWithin);
   final rows =
       await (db.select(db.txns)
             ..where(
               (t) =>
                   t.deletedAt.isNull() &
-                  t.type.equalsValue(TxnType.debit) &
                   t.amountPaise.equals(sms.amountPaise) &
-                  t.occurredAt.isBetweenValues(at.subtract(_backWithin), at),
+                  t.occurredAt.isBetweenValues(
+                    since.subtract(_backBefore),
+                    at.add(_backBefore),
+                  ),
             )
-            ..orderBy([(t) => OrderingTerm.desc(t.occurredAt)]))
+            ..orderBy([(t) => OrderingTerm.asc(t.occurredAt)]))
           .get();
-  return rows.where((t) => isSpendCategory(t.categoryId)).firstOrNull;
+  final open = [
+    for (final t in rows)
+      if (t.type == TxnType.debit &&
+          isSpendCategory(t.categoryId) &&
+          !t.occurredAt.isBefore(since) &&
+          !t.occurredAt.isAfter(at))
+        t,
+  ];
+  // Money already back for one of them, oldest first, takes the newest
+  // payment in its category it can be for: paid before it, or within the
+  // hour after, as a reversal can come first.
+  for (final back in rows) {
+    if (back.type != TxnType.credit || !isSpendCategory(back.categoryId)) {
+      continue;
+    }
+    final match = open
+        .where(
+          (paid) =>
+              paid.categoryId == back.categoryId &&
+              !paid.occurredAt.isAfter(back.occurredAt.add(_backBefore)),
+        )
+        .lastOrNull;
+    if (match != null) open.remove(match);
+  }
+  if (open.isEmpty) return null;
+
+  final payee = shopKey(sms.payee);
+  final bankOf = <String, String>{};
+  if (from != null) {
+    final reads = await (db.select(
+      db.pendingCaptures,
+    )..where((p) => p.savedAs.isIn([for (final paid in open) paid.id]))).get();
+    for (final read in reads) {
+      bankOf[read.savedAs!] = _sourceOf(read.app, read.sender);
+    }
+  }
+  int score(Txn paid) =>
+      (payee != null && shopKey(paid.merchant) == payee ? 2 : 0) +
+      (from != null && bankOf[paid.id] == from ? 1 : 0);
+  return open.reduce((best, paid) {
+    final (a, b) = (score(best), score(paid));
+    if (a != b) return b > a ? paid : best;
+    // Oldest first, so a tie goes to the newer.
+    return paid;
+  });
 }
 
 /// How long before its payment money back for it can already be read: a
@@ -555,7 +607,13 @@ Future<List<CaptureRead>> takeCaptures({
     // Money back for a payment cancels it: it goes in that payment's
     // category, under its name.
     var back = '';
-    if (await reversedPaymentOf(db, payment, at, _textOf(capture))
+    if (await reversedPaymentOf(
+          db,
+          payment,
+          at,
+          _textOf(capture),
+          from: _sourceOf(capture.app, sender),
+        )
         case final paid?) {
       payment = payment.backFor(
         payee: paid.merchant,

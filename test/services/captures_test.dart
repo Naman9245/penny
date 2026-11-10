@@ -967,6 +967,55 @@ void main() {
       },
     );
 
+    test('a payment already given back is never cancelled twice', () async {
+      await paid();
+      source.waiting.add(sms('HDFC Bank', reversal));
+      expect((await take(CaptureMode.save)).single.categoryId, 'food');
+
+      // Another reversal of the same amount, for no payment left.
+      source.waiting.add(
+        sms(
+          'HDFC Bank',
+          reversal.replaceFirst('667600000001', '667600000002'),
+          when: at.add(const Duration(minutes: 2)),
+        ),
+      );
+      expect((await take(CaptureMode.save)).single.categoryId, 'refund');
+    });
+
+    test(
+      'two payments of the amount: the same payee wins over the newer',
+      () async {
+        await paid(ago: const Duration(hours: 3));
+        await txns.add(
+          amountPaise: 64100,
+          type: TxnType.debit,
+          categoryId: 'shopping',
+          occurredAt: at.subtract(const Duration(hours: 1)),
+          merchant: 'Myntra',
+        );
+        source.waiting.add(
+          sms(
+            'AX-HDFCBK',
+            'Rs.641.00 refunded to A/c XX4821 by SWIGGY. UPI Ref 667600000009.',
+          ),
+        );
+        final read = (await take(CaptureMode.save)).single;
+        expect(read.categoryId, 'food');
+        expect(read.what, '+₹641 · Swiggy (money back)');
+
+        // With no payee to go by, the newer one.
+        source.waiting.add(
+          sms(
+            'HDFC Bank',
+            reversal.replaceFirst('667600000001', '667600000003'),
+            when: at.add(const Duration(minutes: 1)),
+          ),
+        );
+        expect((await take(CaptureMode.save)).single.categoryId, 'shopping');
+      },
+    );
+
     test('with no payment it gives back, it is a refund', () async {
       source.waiting.add(sms('HDFC Bank', reversal));
       final read = (await take(CaptureMode.save)).single;
