@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -824,15 +825,18 @@ class CaptureIntake {
   final Ref _ref;
   var _busy = false;
   var _again = false;
+  Completer<void>? _running;
 
   /// What Penny did with each. A call while one is running makes it go
-  /// round once more instead.
+  /// round once more instead, and waits for it.
   Future<List<CaptureRead>> take() async {
     if (_busy) {
       _again = true;
+      await _running?.future;
       return const [];
     }
     _busy = true;
+    final running = _running = Completer<void>();
     final reads = <CaptureRead>[];
     try {
       do {
@@ -853,9 +857,34 @@ class CaptureIntake {
       } while (_again);
     } finally {
       _busy = false;
+      running.complete();
     }
     return reads;
   }
+}
+
+/// How far back the look at older SMS goes.
+const lookBackDays = 90;
+
+/// Reads the bank SMS of the last [days] days with the same rules as new
+/// ones, a batch at a time, each read before the next is asked for so the
+/// waiting file never overflows. How many money SMS Penny found that she
+/// hadn't read before.
+Future<int> lookBackAtSms({
+  required NotificationInbox inbox,
+  required CaptureIntake intake,
+  int days = lookBackDays,
+}) async {
+  var found = 0;
+  DateTime? after;
+  for (var round = 0; round < 50; round++) {
+    final batch = await inbox.lookBack(days: days, after: after);
+    found += batch.kept;
+    if (batch.kept > 0) await intake.take();
+    if (batch.done || batch.until == null) break;
+    after = batch.until;
+  }
+  return found;
 }
 
 final captureIntakeProvider = Provider<CaptureIntake>(CaptureIntake.new);

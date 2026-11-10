@@ -59,6 +59,17 @@ class MainActivity : FlutterActivity() {
                         PaymentNotificationListener.catchUpNow() + SmsInbox.lookAgain(this@MainActivity),
                     )
                     "smsAllowed" -> result.success(SmsInbox.allowed(this@MainActivity))
+                    "lookBack" -> {
+                        val days = call.argument<Number>("days")?.toInt() ?: 90
+                        val after = call.argument<Number>("after")?.toLong()
+                        val most = call.argument<Number>("most")?.toInt() ?: 100
+                        // Reading months of SMS takes a moment: not on the
+                        // main thread.
+                        Thread {
+                            val batch = SmsInbox.lookBack(this@MainActivity, days, after, most)
+                            runOnUiThread { result.success(batch) }
+                        }.start()
+                    }
                     "askSms" -> askSms(result)
                     "drop" -> {
                         val count = (call.arguments as? Number)?.toInt() ?: 0

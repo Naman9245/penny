@@ -35,6 +35,10 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
 
   var _showAll = false;
 
+  /// While Penny reads the last three months of SMS, and what she found.
+  var _lookingBack = false;
+  int? _lookedBack;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +73,19 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
   Future<void> _allowSms() async {
     await ref.read(notificationInboxProvider).askSms();
     ref.invalidate(smsAccessProvider);
+  }
+
+  Future<void> _lookBack() async {
+    setState(() => _lookingBack = true);
+    final found = await lookBackAtSms(
+      inbox: ref.read(notificationInboxProvider),
+      intake: ref.read(captureIntakeProvider),
+    );
+    if (!mounted) return;
+    setState(() {
+      _lookingBack = false;
+      _lookedBack = found;
+    });
   }
 
   Future<void> _allowNotifications() async {
@@ -188,6 +205,31 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
             'every other SMS is passed over.',
             style: AppText.small,
           ),
+          if (readsSms) ...[
+            const SizedBox(height: 8),
+            BrutalChip(
+              key: const ValueKey('sms-look-back'),
+              label: _lookingBack ? 'Reading…' : 'Read the last 3 months',
+              icon: Icons.history_rounded,
+              onTap: _lookingBack ? null : _lookBack,
+            ),
+            if (_lookedBack case final found?) ...[
+              const SizedBox(height: 4),
+              Text(
+                switch (found) {
+                  0 => 'Nothing new in the last 3 months.',
+                  1 =>
+                    'Penny found 1 payment message from the last 3 '
+                        "months. It's on Home.",
+                  _ =>
+                    'Penny found $found payment messages from the last 3 '
+                        "months. They're on Home.",
+                },
+                key: const ValueKey('sms-looked-back'),
+                style: AppText.small.copyWith(color: AppColors.ink),
+              ),
+            ],
+          ],
           const SizedBox(height: 14),
           const Text('When Penny reads a payment', style: AppText.label),
           const SizedBox(height: 8),
@@ -245,7 +287,9 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
                     textStyle: AppText.label,
                   ),
                   onPressed: () => setState(() => _showAll = !_showAll),
-                  child: Text(_showAll ? 'Show fewer' : 'Show all ${log.length}'),
+                  child: Text(
+                    _showAll ? 'Show fewer' : 'Show all ${log.length}',
+                  ),
                 ),
             ],
           ],

@@ -18,7 +18,9 @@ void main() {
     bool notifies = true,
     bool sms = false,
     List<Object?>? asked,
+    List<Map<String, Object?>> lookBack = const [],
   }) {
+    var batch = 0;
     final calls = <String>[];
     const channel = MethodChannel('penny/notifications');
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -31,6 +33,10 @@ void main() {
         'smsAllowed' => sms,
         'askToNotify' => false,
         'peek' => '[]',
+        'lookBack' =>
+          batch < lookBack.length
+              ? lookBack[batch++]
+              : {'kept': 0, 'until': null, 'done': true},
         _ => null,
       };
     });
@@ -193,6 +199,33 @@ void main() {
     await tapInView(tester, on);
     expect(on, findsOneWidget);
     expect(find.byKey(const ValueKey('sms-allow')), findsNothing);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('reading bank SMS: the last 3 months, a batch at a time', (
+    tester,
+  ) async {
+    final calls = fakeAndroid(
+      tester,
+      allowed: true,
+      sms: true,
+      lookBack: [
+        {'kept': 100, 'until': 1762000000000, 'done': false},
+        {'kept': 3, 'until': 1762900000000, 'done': true},
+      ],
+    );
+    final db = await pumpApp(tester);
+    await openSettings(tester);
+    await tapInView(tester, find.byKey(const ValueKey('sms-look-back')));
+    await tester.pumpAndSettle();
+    expect(calls.where((c) => c == 'lookBack'), hasLength(2));
+    expect(
+      find.text(
+        "Penny found 103 payment messages from the last 3 months. They're "
+        'on Home.',
+      ),
+      findsOneWidget,
+    );
     await closeApp(tester, db);
   });
 }

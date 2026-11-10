@@ -10,6 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// PaymentNotificationListener.kt).
 typedef Capture = ({String app, String title, String text, DateTime at});
 
+/// A batch of a look back at older SMS: how many money ones were queued,
+/// when the last one looked at came, and whether that was all of them.
+typedef SmsLookBack = ({int kept, DateTime? until, bool done});
+
 /// What Penny's own notification says: a title, a line, and one line each
 /// when it's about several payments.
 typedef PennyNotice = ({String title, String text, List<String> lines});
@@ -119,6 +123,30 @@ class NotificationInbox implements CaptureSource {
   /// and any bank SMS that came since the last look, in case one was missed
   /// while it was stopped. How many were new.
   Future<int> catchUp() async => await _call<int>('catchUp') ?? 0;
+
+  /// Has Android queue the money SMS of the last [days] days, after [after]
+  /// when given, oldest first, up to [most] of them: how many were queued,
+  /// the time of the last SMS looked at, and whether there are no more.
+  Future<SmsLookBack> lookBack({
+    required int days,
+    DateTime? after,
+    int most = 100,
+  }) async {
+    final reply = await _call<Map<Object?, Object?>>('lookBack', {
+      'days': days,
+      'after': ?after?.millisecondsSinceEpoch,
+      'most': most,
+    });
+    if (reply == null) return (kept: 0, until: null, done: true);
+    return (
+      kept: (reply['kept'] as num?)?.toInt() ?? 0,
+      until: switch (reply['until']) {
+        final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
+        _ => null,
+      },
+      done: reply['done'] != false,
+    );
+  }
 
   Future<T?> _call<T>(String method, [Object? arguments]) async {
     try {
