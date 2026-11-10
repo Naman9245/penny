@@ -55,21 +55,22 @@ class SupabaseSyncRemote implements SyncRemote {
   /// Rows asked for by key at a time, keeping the address short.
   static const _keysPerFetch = 100;
 
+  /// The column that names a row of [table] within its account: the note's
+  /// name, or everything else's id. A second account on the same phone
+  /// sends the same ids, so the copy keys rows by account and this. The
+  /// account isn't sent; the server fills it in before looking for a clash.
+  static String _keyOf(String table) => table == 'prefs' ? 'name' : 'id';
+
   @override
   Future<List<Map<String, Object?>>> push(
     String table,
     List<Map<String, Object?>> rows,
   ) => _guard(() async {
     final client = await _connect();
-    // The note is one per account; everything else has its id.
-    final key = table == 'prefs' ? 'name' : 'id';
+    final key = _keyOf(table);
     final kept = await client
         .from(table)
-        .upsert(
-          rows,
-          onConflict: table == 'prefs' ? 'user_id,name' : 'id',
-          defaultToNull: false,
-        )
+        .upsert(rows, onConflict: 'user_id,$key', defaultToNull: false)
         .select(key);
     // The copy's trigger drops an edit no newer than its own, and only the
     // rows it wrote come back.
