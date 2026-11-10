@@ -89,8 +89,32 @@ final _everydayPatterns = {
     },
 };
 
-/// The shops Penny knows first, then everyday words.
+// Typed, a few words mean the everyday thing before any shop or brand: a
+// student's "fees" are for studies, and "apple" is fruit.
+final _appleService = RegExp(
+  r'\b(?:apple\s+(?:music|tv|one|arcade)|icloud|itunes)\b',
+  caseSensitive: false,
+);
+final _fruit = RegExp(r'^\s*(?:apples?|fruits?)\s*$', caseSensitive: false);
+final _fees = RegExp(r'\bfees?\b', caseSensitive: false);
+final _bankFee = RegExp(
+  r'\b(?:bank|late|annual|processing|convenience|joining|renewal|card|atm|platform|delivery|service|penalty)\b',
+  caseSensitive: false,
+);
+
+String? _typedMeaning(String place) {
+  if (_appleService.hasMatch(place)) return 'subscriptions';
+  if (_fruit.hasMatch(place)) return 'groceries';
+  if (_fees.hasMatch(place) && !_bankFee.hasMatch(place)) return 'education';
+  return null;
+}
+
+/// What a few words mean typed, then the shops Penny knows, then everyday
+/// words.
 String? _guessCategory(String place, TxnType type) {
+  if (type == TxnType.debit) {
+    if (_typedMeaning(place) case final meaning?) return meaning;
+  }
   final shop = suggestCategory(type: type, text: place, payee: place);
   if (shop != null) return shop;
   for (final MapEntry(key: category, value: pattern)

@@ -37,6 +37,28 @@ void main() {
         place: 'Mrs Kumar',
         categoryId: null,
       ),
+      // Typed, a fee is for studies and an apple is fruit.
+      'fees 5000': (
+        amountPaise: 500000,
+        place: 'fees',
+        categoryId: 'education',
+      ),
+      'school fees 12000': (
+        amountPaise: 1200000,
+        place: 'school fees',
+        categoryId: 'education',
+      ),
+      'late fee 500': (
+        amountPaise: 50000,
+        place: 'late fee',
+        categoryId: 'charges',
+      ),
+      'apple 60': (amountPaise: 6000, place: 'apple', categoryId: 'groceries'),
+      'apple music 99': (
+        amountPaise: 9900,
+        place: 'apple music',
+        categoryId: 'subscriptions',
+      ),
       // No amount, so it's just a place.
       'Swiggy': null,
       '': null,
