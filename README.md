@@ -52,6 +52,7 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 - Gemini sorts, picks and explains; every rupee in the report and in a plan is computed on the phone, and the server drops any sentence from Gemini that contains a number. In the chat Penny may use numbers from your month, saying "about" for estimates.
 - On Gemini's free tier, Google may use what's sent to improve its products. The chat screen says so.
 - The Gemini key lives only in Supabase's secrets. Its logs hold timings and token counts, never messages. Reports and the chat are stored on the phone; Clear chat deletes it.
+- Android's own backup is off for Penny, so her data never goes to Google Drive or another phone by itself; after a reinstall it comes back only through her backup.
 - Until you sign in for backup, the server keeps nothing about your money, only a count of AI calls per day. With backup on, your entries (payees included), budgets, goals and their money, My needs rules and note are stored in Supabase (Mumbai) under your account. Row-level security lets only that signed-in account read or write them through the app; the project's owner can see them in the Supabase dashboard. SMS text and fingerprints, the chat, and Penny's reports and plans never leave the phone. Delete account removes the account and its copy.
 
 ## Stack
