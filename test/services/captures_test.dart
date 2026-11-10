@@ -366,6 +366,41 @@ void main() {
     );
 
     test(
+      'the same amount paid with GPay and with PhonePe is two payments',
+      () async {
+        source.waiting.addAll([
+          app('gpay', '₹250 paid to Swiggy', 'Payment successful'),
+          app(
+            'phonepe',
+            'Paid ₹250 to Swiggy',
+            'Debited from HDFC Bank',
+            when: at.add(const Duration(minutes: 10)),
+          ),
+        ]);
+        final reads = await take(CaptureMode.save);
+        expect(
+          [for (final r in reads) r.outcome],
+          [CaptureOutcome.saved, CaptureOutcome.saved],
+        );
+        expect(await entries(), hasLength(2));
+
+        // The bank's SMS for one of them still joins it.
+        source.waiting.add(
+          sms(
+            'AX-HDFCBK',
+            bankSwiggy,
+            when: at.add(const Duration(minutes: 11)),
+          ),
+        );
+        expect(
+          (await take(CaptureMode.save)).single.what,
+          startsWith('already'),
+        );
+        expect(await entries(), hasLength(2));
+      },
+    );
+
+    test(
       'two payments of one amount from one place are two payments',
       () async {
         String sent(String ref) =>

@@ -272,12 +272,13 @@ final _senderCode = RegExp(
   caseSensitive: false,
 );
 
-/// The same payment, read already: from another app (the bank's SMS, then
-/// GPay's notice) for the same amount the same way, within half an hour.
-/// For investing, also another sender's SMS within three days: the bank's
-/// debit, then the fund's confirmation. Two payments from one place are two
-/// payments, and one already matched with a copy from this place isn't
-/// matched again. Says where it was read, in words for "What Penny read"
+/// The same payment, read already: the bank's SMS and a payment app's
+/// notice (GPay, PhonePe…) for the same amount the same way, within half an
+/// hour. Two apps' notices are two payments, as one payment never shows in
+/// two apps, and so are two SMS. For investing, any other place within
+/// three days counts: the bank's debit, then the fund's confirmation. Two
+/// payments from one place are two payments, and one already matched with
+/// a copy from this place isn't matched again. Says where it was read, in words for "What Penny read"
 /// like "already saved from SMS", and the entry it was saved as, if it was.
 Future<({String what, String? entryId})?> repeatOf(
   AppDatabase db,
@@ -306,8 +307,9 @@ Future<({String what, String? entryId})?> repeatOf(
     if (row.app == 'sms' && row.sender == null) continue;
     final from = _sourceOf(row.app, row.sender);
     if (from == source) continue;
-    // Two SMS are one payment only as an investment and its confirmation.
-    if (row.app == app && !investing) continue;
+    // One payment is an SMS and an app's notice, never two of either; an
+    // investment and its confirmation can be any two places.
+    if (!investing && (row.app == 'sms') == (app == 'sms')) continue;
     final entryId = row.savedAs;
     if (entryId != null) {
       final copies =
