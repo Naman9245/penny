@@ -77,7 +77,9 @@ final _shopWords = {
 };
 
 final _word = RegExp(r'\p{L}+', unicode: true);
-final _longDigits = RegExp(r'\d{9,}');
+// Nine or more digits, spaces or dashes allowed between them: phone,
+// account, card and reference numbers. Amounts with commas stay.
+final _longDigits = RegExp(r'\d(?:[\s-]?\d){8,}');
 // "XX4821", "*4821", "91XXXX8888": an account or card number.
 final _maskedNumber = RegExp(r'[\dxX*]*[xX*][\dxX*]*\d[\dxX*]*|\d+[xX*]+');
 // A UPI ID or an email, or a web address: a name can hide in any of them.

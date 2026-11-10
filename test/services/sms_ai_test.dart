@@ -64,4 +64,17 @@ void main() {
     expect(unmask('', tags), isNull);
     expect(unmask(null, tags), isNull);
   });
+
+  test('long numbers go as ••• however they are spaced', () {
+    expect(
+      maskForAi('Ref 1234 5678 9012 and card 4111-1111-1111-1111').text,
+      'Ref ••• and card •••',
+    );
+    expect(maskForAi('Call 98765 43210 now').text, 'Call ••• now');
+    // An amount with commas, and a date, stay.
+    expect(
+      maskForAi('Rs.1,20,000.00 debited on 05-11-26').text,
+      'Rs.1,20,000.00 debited on 05-11-26',
+    );
+  });
 }
