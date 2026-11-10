@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:penny/features/lock/lock_gate.dart';
 import 'package:penny/core/router/app_router.dart';
 import 'package:penny/core/theme/app_theme.dart';
 import 'package:penny/core/utils/money.dart';
@@ -186,6 +187,8 @@ class _PennyAppState extends ConsumerState<PennyApp> {
       themeMode: ThemeMode.light,
       scaffoldMessengerKey: _messenger,
       routerConfig: ref.watch(routerProvider),
+      // Penny's own lock, when it's on, covers everything.
+      builder: (context, child) => LockGate(child: child!),
     );
   }
 }

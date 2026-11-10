@@ -47,3 +47,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // AppCompat themes, which Android's fingerprint prompt for Penny's lock
+    // needs on Android 8 and earlier.
+    implementation("androidx.appcompat:appcompat:1.7.0")
+}

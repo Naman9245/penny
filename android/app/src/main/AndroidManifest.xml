@@ -11,6 +11,9 @@
          sends SMS. -->
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
+    <!-- Penny's own lock, when you turn it on: your fingerprint or the
+         phone's screen lock. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- Android's own backup is off: Penny's money reaches the cloud only
          through her own backup, when you sign in for it. -->
     <application
