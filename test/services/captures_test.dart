@@ -194,10 +194,19 @@ void main() {
       }
     });
 
-    test('a message naming a wallet or UPI Lite counts from any sender', () {
+    test('from a phone number, only with a masked account or card number', () {
+      expect(
+        explainCapture(
+          sms(
+            '+91 98765 43210',
+            'Paid Rs.20.00 via UPI Lite to RAMESH TEA STALL on 05-11-26.',
+          ),
+        ).letGo,
+        'not from a bank',
+      );
       final capture = sms(
         '+91 98765 43210',
-        'Paid Rs.20.00 via UPI Lite to RAMESH TEA STALL on 05-11-26.',
+        'Rs.20.00 debited from A/c XX4821 via UPI Lite to RAMESH TEA STALL.',
       );
       expect(explainCapture(capture).payment!.amountPaise, 2000);
     });
@@ -844,6 +853,39 @@ void main() {
       expect(reads.single.outcome, CaptureOutcome.unread);
       expect(await prefs.unread(), hasLength(2));
       expect(later.smsRead, hasLength(1), reason: 'only the new one');
+    });
+
+    test(
+      "a friend's text that names an account or a wallet isn't taken",
+      () async {
+        final ai = FakeAiClient(read: (_) => paid(100));
+        source.waiting.addAll([
+          sms('Rahul', 'Sent Rs 500 to your account, check it'),
+          sms('+919876543210', 'Added Rs.500.00 to my wallet for the trip'),
+          sms('Rahul', 'Paid Rs 300 by card for dinner'),
+        ]);
+        final reads = await take(ai);
+        expect(
+          [for (final r in reads) r.what],
+          ['not from a bank', 'not from a bank', 'not from a bank'],
+        );
+        expect(ai.smsRead, isEmpty);
+      },
+    );
+
+    test("a bank's SMS saved under any contact name is still read", () async {
+      source.waiting.addAll([
+        sms('Alerts', 'Rs.250.00 debited from A/c XX4821 to SWIGGY.'),
+        sms(
+          'My bank',
+          'INR 1,200.00 spent on card ending 4455 at AMAZON on 05-11-26.',
+        ),
+      ]);
+      final reads = await take(FakeAiClient());
+      expect(
+        [for (final r in reads) r.outcome],
+        [CaptureOutcome.saved, CaptureOutcome.saved],
+      );
     });
 
     test("never asked about an OTP, a friend's text, or one with no money "

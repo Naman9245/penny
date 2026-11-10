@@ -31,18 +31,39 @@ object MoneyFilter {
     /** A bank's sender code, with or without its route: "JM-HDFCBK-S", "HDFCBK". */
     private val SENDER_CODE = Regex("""^(?:[A-Z]{2}-)?[A-Z0-9]{5,9}(?:-[A-Z])?$""")
 
-    /** An account, card, wallet or UPI Lite named in the message. */
-    private val MONEY_PLACE = Regex(
-        """\b(?:a/?c|acct|account|card|wallet|upi\s*lite|folio|demat)\b""",
+    /**
+     * A money brand's name, as the Messages app may show a bank's sender
+     * saved as a contact. Must match _moneyBrand in
+     * lib/services/sms_parser.dart.
+     */
+    private val MONEY_BRAND = Regex(
+        """\b(?:bank|wallet|cards?|payments?|pay|upi|mf|amc|mutual\s*funds?|securities|broking|finserv|finance|capital""" +
+            """|sbi|hdfc|icici|axis|kotak|indusind|idfc|idbi|baroda|bob|pnb|canara|federal|rbl|equitas|ujjivan|bandhan|dbs|hsbc|citi|amex""" +
+            """|payzapp|paytm|phonepe|gpay|mobikwik|freecharge|cred|bhim|onecard|slice|groww|zerodha|upstox|kuvera|indmoney|cams|kfintech|nsdl|cdsl""" +
+            """|super\.money|angel\s*one|jio\s*money|airtel\s*money|et\s*money)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * An account or card number shown masked, as only a bank's own message
+     * does: "A/c XX4821", "card *4455", "card ending 4455". Must match
+     * _maskedAccount in lib/services/sms_parser.dart.
+     */
+    private val MASKED_ACCOUNT = Regex(
+        """\b(?:a/?c|acct|account|card)(?:\s*no\.?)?[\s:.]*(?:[x*•.]+\d{2,}|ending(?:\s*with)?[\s:.]*[x*•]*\d{3,})""",
         RegexOption.IGNORE_CASE,
     )
 
     /**
      * Whether an SMS from [sender] saying [body] may be a bank's, a wallet's
-     * or an investment's: a sender code, not a phone number, or a message
-     * naming an account, card or wallet. A friend's SMS isn't kept.
+     * or an investment's: from a sender code (not a phone number) or a money
+     * brand's name, or showing a masked account or card number. A friend's
+     * SMS isn't kept, even one that says "account" or "wallet".
      */
-    fun fromMoneySender(sender: String, body: String): Boolean =
-        SENDER_CODE.matches(sender.trim().uppercase()) && sender.any { it.isLetter() } ||
-            MONEY_PLACE.containsMatchIn(body)
+    fun fromMoneySender(sender: String, body: String): Boolean {
+        val name = sender.trim()
+        return SENDER_CODE.matches(name.uppercase()) && name.any { it.isLetter() } ||
+            MONEY_BRAND.containsMatchIn(name) ||
+            MASKED_ACCOUNT.containsMatchIn(body)
+    }
 }

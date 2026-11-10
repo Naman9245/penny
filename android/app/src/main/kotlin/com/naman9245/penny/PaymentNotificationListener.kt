@@ -83,6 +83,9 @@ class PaymentNotificationListener : NotificationListenerService() {
         var kept = false
         for ((text, at) in textsOf(extras, sbn.postTime)) {
             if (!MoneyFilter.looksLikeMoney("$title $text")) continue
+            // From the Messages app, only a bank's, a wallet's or an
+            // investment's SMS: a friend's text is passed over unkept.
+            if (app == "sms" && !MoneyFilter.fromMoneySender(title, text)) continue
             val added = CaptureQueue.add(
                 this,
                 JSONObject()

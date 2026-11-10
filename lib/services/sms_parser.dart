@@ -247,9 +247,7 @@ const _end =
     r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account|debited|credited|deducted)\b|\s+-)';
 final _upiPath = _rx(r'\bupi/(?:p2[am]/)?\d+/([a-z][^/\n.]{1,40})');
 final _debitPayees = [
-  _rx(
-    r'\b(?:invested|allotted|sip)\b[^\n]{0,40}?\bin\s+' + _name + _end,
-  ),
+  _rx(r'\b(?:invested|allotted|sip)\b[^\n]{0,40}?\bin\s+' + _name + _end),
   _rx(
     r'\bto\s+(?:vpa\s+)?'
     r'([\w.\-]{2,}@[a-z][a-z.]*)\b',
@@ -363,9 +361,11 @@ final _moneyBrand = _rx(
   r'|payzapp|paytm|phonepe|gpay|mobikwik|freecharge|cred|bhim|onecard|slice|groww|zerodha|upstox|kuvera|indmoney|cams|kfintech|nsdl|cdsl'
   r'|super\.money|angel\s*one|jio\s*money|airtel\s*money|et\s*money)\b',
 );
-// Where else a payment can come from than an account or card.
-final _moneyPlace = _rx(
-  r'\b(?:wallet|upi\s*lite|pay\s+balance|folio|demat|trading\s+account|pran)\b',
+// An account or card number shown masked, as only a bank's own message
+// does: "A/c XX4821", "card *4455", "card ending 4455". Must match
+// MASKED_ACCOUNT in MoneyFilter.kt.
+final _maskedAccount = _rx(
+  r'\b(?:a/?c|acct|account|card)(?:\s*no\.?)?[\s:.]*(?:[x*•.]+\d{2,}|ending(?:\s*with)?[\s:.]*[x*•]*\d{3,})',
 );
 
 /// Whether an SMS from [sender], as the Messages app names it, can be from a
@@ -378,11 +378,11 @@ bool isMoneySender(String sender) {
       _moneyBrand.hasMatch(name);
 }
 
-/// Whether [text] names where its money is, as only a bank's, a wallet's or
-/// an investment's message does: an account or card, a wallet, UPI Lite, a
-/// folio.
-bool mentionsMoneyPlace(String text) =>
-    mentionsAccount(text) || _moneyPlace.hasMatch(_normalise(text));
+/// Whether [text] shows a masked account or card number, as only a bank's
+/// own message does: "A/c XX4821", "card ending 4455". A friend's text that
+/// just says "account" or "wallet" doesn't.
+bool mentionsMaskedAccount(String text) =>
+    _maskedAccount.hasMatch(_normalise(text));
 
 /// Whether [text] names an account or card, as a bank's message does: "A/c
 /// XX4821", "card ending 4455".
@@ -504,9 +504,7 @@ SmsTxn? paymentFrom(
     payee: found?.name,
     // A name that reads like a person's is kept from the AI, whatever it's
     // for.
-    payeeIsPerson: found != null
-        ? found.isPerson
-        : _maskedVpa.hasMatch(text),
+    payeeIsPerson: found != null ? found.isPerson : _maskedVpa.hasMatch(text),
     occurredAt: date?.at,
     hasTime: date?.hasTime ?? false,
     suggestedCategoryId: categoryId,

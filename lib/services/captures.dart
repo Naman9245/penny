@@ -62,13 +62,13 @@ const _letGo = {
 /// [capture] read the way a shared SMS is: the payment in it, or why it was
 /// let go. From the SMS app it counts only when it's from a bank, a wallet
 /// or an investment: a sender code or a money brand's name, or a message
-/// naming an account, card or wallet. So a friend's text about money isn't
-/// taken.
+/// showing a masked account or card number. So a friend's text about money
+/// isn't taken, even one that says "account" or "wallet".
 ({SmsTxn? payment, String? letGo}) explainCapture(Capture capture) {
   final fromSms = capture.app == 'sms';
   if (fromSms &&
       !isMoneySender(capture.title) &&
-      !mentionsMoneyPlace(capture.text)) {
+      !mentionsMaskedAccount(capture.text)) {
     return (payment: null, letGo: 'not from a bank');
   }
   // A payment app puts half of it in the title: "₹250 paid to Swiggy".
