@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/goal_repository.dart';
+import 'package:penny/data/upcoming_repository.dart';
 import 'package:penny/features/goals/goal_editor_screen.dart';
 import 'package:penny/features/goals/goal_screen.dart';
 import 'package:penny/services/budget_math.dart';
@@ -149,6 +150,41 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('home-add-goal')));
     await tester.pumpAndSettle();
     expect(find.byType(GoalEditorScreen), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('Coming up shows what messages said is due, until taken off', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final due = DateTime(now.year, now.month, now.day + 2);
+    final db = await pumpApp(
+      tester,
+      seedDb: (db) => UpcomingRepository(db).keep((
+        amountPaise: 149900,
+        dueOn: due,
+        payee: 'Netflix',
+        categoryId: 'subscriptions',
+        dedupeKey: 'netflix-due',
+      )),
+    );
+    final card = find.byKey(const ValueKey('coming-up'));
+    await tester.scrollUntilVisible(
+      card,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    Finder inCard(String text) =>
+        find.descendant(of: card, matching: find.text(text));
+    expect(inCard('Coming up'), findsOneWidget);
+    expect(inCard('Netflix'), findsOneWidget);
+    expect(inCard(DateFormat('d MMM').format(due)), findsOneWidget);
+    expect(inCard('₹1,499'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('coming-up-dismiss-0')));
+    await tester.pumpAndSettle();
+    expect(card, findsNothing);
     await closeApp(tester, db);
   });
 }

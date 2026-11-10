@@ -274,3 +274,24 @@ class PendingCaptures extends Table {
   @override
   Set<Column<Object>> get primaryKey => {dedupeKey};
 }
+
+/// Payments a message said are coming, like an autopay or an EMI, for
+/// Home's Coming up card. Never synced: they stay on this phone.
+@DataClassName('UpcomingPayment')
+class UpcomingPayments extends Table {
+  /// The message's fingerprint, so one read twice is kept once.
+  TextColumn get dedupeKey => text()();
+  IntColumn get amountPaise => integer()();
+  TextColumn get payee => text().nullable()();
+  TextColumn get categoryId => text().nullable()();
+
+  /// The day it's due.
+  DateTimeColumn get dueOn => dateTime()();
+  DateTimeColumn get readAt => dateTime()();
+
+  /// When it was taken off the card.
+  DateTimeColumn get dismissedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {dedupeKey};
+}

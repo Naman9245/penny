@@ -9,6 +9,7 @@ import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/goals/goal_widgets.dart';
+import 'package:penny/features/home/coming_up_card.dart';
 import 'package:penny/features/home/fixed_bills_card.dart';
 import 'package:penny/features/home/to_check_card.dart';
 import 'package:penny/features/settings/settings_sheet.dart';
@@ -46,17 +47,19 @@ class HomeScreen extends ConsumerWidget {
         );
     final recent = ref.watch(recentTxnsProvider);
     final demo = ref.watch(demoModeProvider);
-    final goals = ref.watch(goalProgressProvider).value ?? const [];
+    final goals = inListOrder(
+      ref.watch(goalProgressProvider).value ?? const [],
+      today,
+    );
     final reached = [
       for (final goal in goals)
         if (goal.reached) goal,
-    ]..sort((a, b) => b.reachedOn!.compareTo(a.reachedOn!));
+    ];
 
     return SafeArea(
       bottom: false,
       child: ListView(
-        // Room at the bottom so the Add button never hides the last row.
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,6 +126,8 @@ class HomeScreen extends ConsumerWidget {
           ],
           // Payments read from notifications, waiting to be checked.
           const ToCheckCard(),
+          // Payments messages said are coming, like an autopay or an EMI.
+          const ComingUpCard(),
           // Last month's rent and bills, in a month's first week.
           const FixedBillsCard(),
           const SizedBox(height: 16),
@@ -271,10 +276,7 @@ class _PennyCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   celebrated == null
-                      ? homeLine(
-                          mood,
-                          todaySpentPaise: status.todaySpentPaise,
-                        )
+                      ? homeLine(mood, todaySpentPaise: status.todaySpentPaise)
                       : celebrationLine(celebrated),
                   style: AppText.h3,
                 ),
@@ -526,6 +528,16 @@ class _GoalRow extends StatelessWidget {
                 Text(
                   goalNeedLine(progress, today),
                   style: AppText.small.copyWith(color: AppColors.ink),
+                )
+              else if (progress.isMissed(today))
+                Row(
+                  children: [
+                    Expanded(
+                      child: GoalProgressBar(progress: progress.progress),
+                    ),
+                    const SizedBox(width: 8),
+                    const DatePassedPill(),
+                  ],
                 )
               else
                 GoalProgressBar(progress: progress.progress),

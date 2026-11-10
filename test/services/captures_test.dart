@@ -259,6 +259,23 @@ void main() {
 
     Future<List<PendingCapture>> waiting() => captures.watchWaiting().first;
 
+    test('a payment still to come is kept for Coming up, not saved', () async {
+      source.waiting.add(
+        sms(
+          'AX-HDFCBK',
+          'Rs.1,499.00 will be debited from A/c XX4821 on 15-11-26 for '
+              'NETFLIX autopay.',
+        ),
+      );
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.outcome, CaptureOutcome.letGo);
+      expect(read.what, 'coming up on 15 Nov');
+      expect(await db.select(db.txns).get(), isEmpty);
+      final kept = await db.select(db.upcomingPayments).get();
+      expect(kept.single.amountPaise, 149900);
+      expect(kept.single.dueOn, DateTime(2026, 11, 15));
+    });
+
     test('waiting to be checked: each held once, the rest let go', () async {
       source.waiting.addAll([
         sms('AX-HDFCBK', bankSwiggy),

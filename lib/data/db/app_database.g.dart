@@ -5558,6 +5558,489 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   }
 }
 
+class $UpcomingPaymentsTable extends UpcomingPayments
+    with TableInfo<$UpcomingPaymentsTable, UpcomingPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UpcomingPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dedupeKeyMeta = const VerificationMeta(
+    'dedupeKey',
+  );
+  @override
+  late final GeneratedColumn<String> dedupeKey = GeneratedColumn<String>(
+    'dedupe_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountPaiseMeta = const VerificationMeta(
+    'amountPaise',
+  );
+  @override
+  late final GeneratedColumn<int> amountPaise = GeneratedColumn<int>(
+    'amount_paise',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payeeMeta = const VerificationMeta('payee');
+  @override
+  late final GeneratedColumn<String> payee = GeneratedColumn<String>(
+    'payee',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dueOnMeta = const VerificationMeta('dueOn');
+  @override
+  late final GeneratedColumn<DateTime> dueOn = GeneratedColumn<DateTime>(
+    'due_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<DateTime> readAt = GeneratedColumn<DateTime>(
+    'read_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dismissedAtMeta = const VerificationMeta(
+    'dismissedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dismissedAt = GeneratedColumn<DateTime>(
+    'dismissed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    dedupeKey,
+    amountPaise,
+    payee,
+    categoryId,
+    dueOn,
+    readAt,
+    dismissedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'upcoming_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UpcomingPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dedupe_key')) {
+      context.handle(
+        _dedupeKeyMeta,
+        dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dedupeKeyMeta);
+    }
+    if (data.containsKey('amount_paise')) {
+      context.handle(
+        _amountPaiseMeta,
+        amountPaise.isAcceptableOrUnknown(
+          data['amount_paise']!,
+          _amountPaiseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaiseMeta);
+    }
+    if (data.containsKey('payee')) {
+      context.handle(
+        _payeeMeta,
+        payee.isAcceptableOrUnknown(data['payee']!, _payeeMeta),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('due_on')) {
+      context.handle(
+        _dueOnMeta,
+        dueOn.isAcceptableOrUnknown(data['due_on']!, _dueOnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueOnMeta);
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(
+        _readAtMeta,
+        readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_readAtMeta);
+    }
+    if (data.containsKey('dismissed_at')) {
+      context.handle(
+        _dismissedAtMeta,
+        dismissedAt.isAcceptableOrUnknown(
+          data['dismissed_at']!,
+          _dismissedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {dedupeKey};
+  @override
+  UpcomingPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UpcomingPayment(
+      dedupeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dedupe_key'],
+      )!,
+      amountPaise: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_paise'],
+      )!,
+      payee: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payee'],
+      ),
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
+      dueOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_on'],
+      )!,
+      readAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}read_at'],
+      )!,
+      dismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}dismissed_at'],
+      ),
+    );
+  }
+
+  @override
+  $UpcomingPaymentsTable createAlias(String alias) {
+    return $UpcomingPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class UpcomingPayment extends DataClass implements Insertable<UpcomingPayment> {
+  /// The message's fingerprint, so one read twice is kept once.
+  final String dedupeKey;
+  final int amountPaise;
+  final String? payee;
+  final String? categoryId;
+
+  /// The day it's due.
+  final DateTime dueOn;
+  final DateTime readAt;
+
+  /// When it was taken off the card.
+  final DateTime? dismissedAt;
+  const UpcomingPayment({
+    required this.dedupeKey,
+    required this.amountPaise,
+    this.payee,
+    this.categoryId,
+    required this.dueOn,
+    required this.readAt,
+    this.dismissedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dedupe_key'] = Variable<String>(dedupeKey);
+    map['amount_paise'] = Variable<int>(amountPaise);
+    if (!nullToAbsent || payee != null) {
+      map['payee'] = Variable<String>(payee);
+    }
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    map['due_on'] = Variable<DateTime>(dueOn);
+    map['read_at'] = Variable<DateTime>(readAt);
+    if (!nullToAbsent || dismissedAt != null) {
+      map['dismissed_at'] = Variable<DateTime>(dismissedAt);
+    }
+    return map;
+  }
+
+  UpcomingPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return UpcomingPaymentsCompanion(
+      dedupeKey: Value(dedupeKey),
+      amountPaise: Value(amountPaise),
+      payee: payee == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payee),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      dueOn: Value(dueOn),
+      readAt: Value(readAt),
+      dismissedAt: dismissedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dismissedAt),
+    );
+  }
+
+  factory UpcomingPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UpcomingPayment(
+      dedupeKey: serializer.fromJson<String>(json['dedupeKey']),
+      amountPaise: serializer.fromJson<int>(json['amountPaise']),
+      payee: serializer.fromJson<String?>(json['payee']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      dueOn: serializer.fromJson<DateTime>(json['dueOn']),
+      readAt: serializer.fromJson<DateTime>(json['readAt']),
+      dismissedAt: serializer.fromJson<DateTime?>(json['dismissedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dedupeKey': serializer.toJson<String>(dedupeKey),
+      'amountPaise': serializer.toJson<int>(amountPaise),
+      'payee': serializer.toJson<String?>(payee),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'dueOn': serializer.toJson<DateTime>(dueOn),
+      'readAt': serializer.toJson<DateTime>(readAt),
+      'dismissedAt': serializer.toJson<DateTime?>(dismissedAt),
+    };
+  }
+
+  UpcomingPayment copyWith({
+    String? dedupeKey,
+    int? amountPaise,
+    Value<String?> payee = const Value.absent(),
+    Value<String?> categoryId = const Value.absent(),
+    DateTime? dueOn,
+    DateTime? readAt,
+    Value<DateTime?> dismissedAt = const Value.absent(),
+  }) => UpcomingPayment(
+    dedupeKey: dedupeKey ?? this.dedupeKey,
+    amountPaise: amountPaise ?? this.amountPaise,
+    payee: payee.present ? payee.value : this.payee,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    dueOn: dueOn ?? this.dueOn,
+    readAt: readAt ?? this.readAt,
+    dismissedAt: dismissedAt.present ? dismissedAt.value : this.dismissedAt,
+  );
+  UpcomingPayment copyWithCompanion(UpcomingPaymentsCompanion data) {
+    return UpcomingPayment(
+      dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
+      amountPaise: data.amountPaise.present
+          ? data.amountPaise.value
+          : this.amountPaise,
+      payee: data.payee.present ? data.payee.value : this.payee,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      dueOn: data.dueOn.present ? data.dueOn.value : this.dueOn,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+      dismissedAt: data.dismissedAt.present
+          ? data.dismissedAt.value
+          : this.dismissedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UpcomingPayment(')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('payee: $payee, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('dueOn: $dueOn, ')
+          ..write('readAt: $readAt, ')
+          ..write('dismissedAt: $dismissedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    dedupeKey,
+    amountPaise,
+    payee,
+    categoryId,
+    dueOn,
+    readAt,
+    dismissedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UpcomingPayment &&
+          other.dedupeKey == this.dedupeKey &&
+          other.amountPaise == this.amountPaise &&
+          other.payee == this.payee &&
+          other.categoryId == this.categoryId &&
+          other.dueOn == this.dueOn &&
+          other.readAt == this.readAt &&
+          other.dismissedAt == this.dismissedAt);
+}
+
+class UpcomingPaymentsCompanion extends UpdateCompanion<UpcomingPayment> {
+  final Value<String> dedupeKey;
+  final Value<int> amountPaise;
+  final Value<String?> payee;
+  final Value<String?> categoryId;
+  final Value<DateTime> dueOn;
+  final Value<DateTime> readAt;
+  final Value<DateTime?> dismissedAt;
+  final Value<int> rowid;
+  const UpcomingPaymentsCompanion({
+    this.dedupeKey = const Value.absent(),
+    this.amountPaise = const Value.absent(),
+    this.payee = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.dueOn = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.dismissedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UpcomingPaymentsCompanion.insert({
+    required String dedupeKey,
+    required int amountPaise,
+    this.payee = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    required DateTime dueOn,
+    required DateTime readAt,
+    this.dismissedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : dedupeKey = Value(dedupeKey),
+       amountPaise = Value(amountPaise),
+       dueOn = Value(dueOn),
+       readAt = Value(readAt);
+  static Insertable<UpcomingPayment> custom({
+    Expression<String>? dedupeKey,
+    Expression<int>? amountPaise,
+    Expression<String>? payee,
+    Expression<String>? categoryId,
+    Expression<DateTime>? dueOn,
+    Expression<DateTime>? readAt,
+    Expression<DateTime>? dismissedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dedupeKey != null) 'dedupe_key': dedupeKey,
+      if (amountPaise != null) 'amount_paise': amountPaise,
+      if (payee != null) 'payee': payee,
+      if (categoryId != null) 'category_id': categoryId,
+      if (dueOn != null) 'due_on': dueOn,
+      if (readAt != null) 'read_at': readAt,
+      if (dismissedAt != null) 'dismissed_at': dismissedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UpcomingPaymentsCompanion copyWith({
+    Value<String>? dedupeKey,
+    Value<int>? amountPaise,
+    Value<String?>? payee,
+    Value<String?>? categoryId,
+    Value<DateTime>? dueOn,
+    Value<DateTime>? readAt,
+    Value<DateTime?>? dismissedAt,
+    Value<int>? rowid,
+  }) {
+    return UpcomingPaymentsCompanion(
+      dedupeKey: dedupeKey ?? this.dedupeKey,
+      amountPaise: amountPaise ?? this.amountPaise,
+      payee: payee ?? this.payee,
+      categoryId: categoryId ?? this.categoryId,
+      dueOn: dueOn ?? this.dueOn,
+      readAt: readAt ?? this.readAt,
+      dismissedAt: dismissedAt ?? this.dismissedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dedupeKey.present) {
+      map['dedupe_key'] = Variable<String>(dedupeKey.value);
+    }
+    if (amountPaise.present) {
+      map['amount_paise'] = Variable<int>(amountPaise.value);
+    }
+    if (payee.present) {
+      map['payee'] = Variable<String>(payee.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (dueOn.present) {
+      map['due_on'] = Variable<DateTime>(dueOn.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<DateTime>(readAt.value);
+    }
+    if (dismissedAt.present) {
+      map['dismissed_at'] = Variable<DateTime>(dismissedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UpcomingPaymentsCompanion(')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('payee: $payee, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('dueOn: $dueOn, ')
+          ..write('readAt: $readAt, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5596,6 +6079,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalPlansTable goalPlans = $GoalPlansTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   late final $PendingCapturesTable pendingCaptures = $PendingCapturesTable(
+    this,
+  );
+  late final $UpcomingPaymentsTable upcomingPayments = $UpcomingPaymentsTable(
     this,
   );
   late final Index txnsOccurredAt = Index(
@@ -5644,6 +6130,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goalPlans,
     syncCursors,
     pendingCaptures,
+    upcomingPayments,
     txnsOccurredAt,
     txnsDedupeKey,
     tagRulesKindRuleKey,
@@ -8534,6 +9021,265 @@ typedef $$PendingCapturesTableProcessedTableManager =
       PendingCapture,
       PrefetchHooks Function()
     >;
+typedef $$UpcomingPaymentsTableCreateCompanionBuilder =
+    UpcomingPaymentsCompanion Function({
+      required String dedupeKey,
+      required int amountPaise,
+      Value<String?> payee,
+      Value<String?> categoryId,
+      required DateTime dueOn,
+      required DateTime readAt,
+      Value<DateTime?> dismissedAt,
+      Value<int> rowid,
+    });
+typedef $$UpcomingPaymentsTableUpdateCompanionBuilder =
+    UpcomingPaymentsCompanion Function({
+      Value<String> dedupeKey,
+      Value<int> amountPaise,
+      Value<String?> payee,
+      Value<String?> categoryId,
+      Value<DateTime> dueOn,
+      Value<DateTime> readAt,
+      Value<DateTime?> dismissedAt,
+      Value<int> rowid,
+    });
+
+class $$UpcomingPaymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $UpcomingPaymentsTable> {
+  $$UpcomingPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueOn => $composableBuilder(
+    column: $table.dueOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UpcomingPaymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UpcomingPaymentsTable> {
+  $$UpcomingPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payee => $composableBuilder(
+    column: $table.payee,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueOn => $composableBuilder(
+    column: $table.dueOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UpcomingPaymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UpcomingPaymentsTable> {
+  $$UpcomingPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get dedupeKey =>
+      $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
+
+  GeneratedColumn<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payee =>
+      $composableBuilder(column: $table.payee, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get dueOn =>
+      $composableBuilder(column: $table.dueOn, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get readAt =>
+      $composableBuilder(column: $table.readAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$UpcomingPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UpcomingPaymentsTable,
+          UpcomingPayment,
+          $$UpcomingPaymentsTableFilterComposer,
+          $$UpcomingPaymentsTableOrderingComposer,
+          $$UpcomingPaymentsTableAnnotationComposer,
+          $$UpcomingPaymentsTableCreateCompanionBuilder,
+          $$UpcomingPaymentsTableUpdateCompanionBuilder,
+          (
+            UpcomingPayment,
+            BaseReferences<
+              _$AppDatabase,
+              $UpcomingPaymentsTable,
+              UpcomingPayment
+            >,
+          ),
+          UpcomingPayment,
+          PrefetchHooks Function()
+        > {
+  $$UpcomingPaymentsTableTableManager(
+    _$AppDatabase db,
+    $UpcomingPaymentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UpcomingPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UpcomingPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UpcomingPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> dedupeKey = const Value.absent(),
+                Value<int> amountPaise = const Value.absent(),
+                Value<String?> payee = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<DateTime> dueOn = const Value.absent(),
+                Value<DateTime> readAt = const Value.absent(),
+                Value<DateTime?> dismissedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UpcomingPaymentsCompanion(
+                dedupeKey: dedupeKey,
+                amountPaise: amountPaise,
+                payee: payee,
+                categoryId: categoryId,
+                dueOn: dueOn,
+                readAt: readAt,
+                dismissedAt: dismissedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String dedupeKey,
+                required int amountPaise,
+                Value<String?> payee = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                required DateTime dueOn,
+                required DateTime readAt,
+                Value<DateTime?> dismissedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UpcomingPaymentsCompanion.insert(
+                dedupeKey: dedupeKey,
+                amountPaise: amountPaise,
+                payee: payee,
+                categoryId: categoryId,
+                dueOn: dueOn,
+                readAt: readAt,
+                dismissedAt: dismissedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UpcomingPaymentsTable, UpcomingPayment>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $UpcomingPaymentsTable,
+                    UpcomingPayment
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UpcomingPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UpcomingPaymentsTable,
+      UpcomingPayment,
+      $$UpcomingPaymentsTableFilterComposer,
+      $$UpcomingPaymentsTableOrderingComposer,
+      $$UpcomingPaymentsTableAnnotationComposer,
+      $$UpcomingPaymentsTableCreateCompanionBuilder,
+      $$UpcomingPaymentsTableUpdateCompanionBuilder,
+      (
+        UpcomingPayment,
+        BaseReferences<_$AppDatabase, $UpcomingPaymentsTable, UpcomingPayment>,
+      ),
+      UpcomingPayment,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8559,4 +9305,6 @@ class $AppDatabaseManager {
       $$SyncCursorsTableTableManager(_db, _db.syncCursors);
   $$PendingCapturesTableTableManager get pendingCaptures =>
       $$PendingCapturesTableTableManager(_db, _db.pendingCaptures);
+  $$UpcomingPaymentsTableTableManager get upcomingPayments =>
+      $$UpcomingPaymentsTableTableManager(_db, _db.upcomingPayments);
 }

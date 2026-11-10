@@ -522,6 +522,43 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   );
 }
 
+/// A payment a message says is coming, as Home's Coming up card shows it.
+typedef UpcomingRead = ({
+  int amountPaise,
+  DateTime dueOn,
+  String? payee,
+  String? categoryId,
+  String dedupeKey,
+});
+
+/// The payment [raw] says is coming, like "Rs.1,499 will be debited on
+/// 15-11-26 for NETFLIX": how much, the day it's due, and to whom. Null
+/// unless it says how much and a day from [now] to two months on. A mandate
+/// set up with no day is none.
+UpcomingRead? parseUpcoming(String raw, {required DateTime now}) {
+  final text = _normalise(raw);
+  if (text.isEmpty || !_upcoming.hasMatch(text)) return null;
+  if (_otpWord.hasMatch(text.replaceAll(_disclaimer, ' ')) ||
+      _request.hasMatch(text)) {
+    return null;
+  }
+  final amount = _amount(text);
+  final date = _date(text, now, ahead: true);
+  if (amount == null || date == null) return null;
+  final payee = _payee(text, TxnType.debit);
+  return (
+    amountPaise: amount.paise,
+    dueOn: DateTime(date.at.year, date.at.month, date.at.day),
+    payee: payee?.name,
+    categoryId: suggestCategory(
+      type: TxnType.debit,
+      text: text,
+      payee: payee?.name,
+    ),
+    dedupeKey: _fingerprint(text),
+  );
+}
+
 /// [raw] as a payment read some other way, by Penny's AI: [type] and
 /// [amountPaise], paid to [payee] (words of the message), in [categoryId].
 /// Null when [amountPaise] isn't an amount the message gives, so a misread
@@ -822,8 +859,9 @@ String _titleCase(String name) {
 
 typedef _Date = ({DateTime at, bool hasTime, int start, int end});
 
-_Date? _date(String text, DateTime now) {
+_Date? _date(String text, DateTime now, {bool ahead = false}) {
   final candidates = <_Date>[];
+  final today = DateTime(now.year, now.month, now.day);
   void add(RegExpMatch match, int year, int month, int day) {
     final y = year < 100 ? 2000 + year : year;
     if (month < 1 || month > 12 || day < 1 || day > 31) return;
@@ -835,8 +873,14 @@ _Date? _date(String text, DateTime now) {
         ? DateTime(y, month, day, hour, minute, second)
         : DateTime(y, month, day);
     if (at.month != month || at.day != day) return;
-    if (at.isAfter(now.add(const Duration(days: 1)))) return;
-    if (at.isBefore(now.subtract(const Duration(days: 400)))) return;
+    if (ahead) {
+      // A due date: from today to two months on.
+      if (at.isBefore(today)) return;
+      if (at.isAfter(today.add(const Duration(days: 62)))) return;
+    } else {
+      if (at.isAfter(now.add(const Duration(days: 1)))) return;
+      if (at.isBefore(now.subtract(const Duration(days: 400)))) return;
+    }
     candidates.add((
       at: at,
       hasTime: hasTime,

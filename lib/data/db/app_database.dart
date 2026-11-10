@@ -21,6 +21,7 @@ part 'app_database.g.dart';
     GoalPlans,
     SyncCursors,
     PendingCaptures,
+    UpcomingPayments,
   ],
   // Edits here always move a row's stamp forward.
   include: {'stamps.drift'},
@@ -51,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,11 +118,18 @@ class AppDatabase extends _$AppDatabase {
       // v9: who sent each payment read, and what it was saved as, so one
       // payment seen from two apps is kept once.
       from8To9: (m, schema) async {
-        await m.addColumn(schema.pendingCaptures, schema.pendingCaptures.sender);
+        await m.addColumn(
+          schema.pendingCaptures,
+          schema.pendingCaptures.sender,
+        );
         await m.addColumn(
           schema.pendingCaptures,
           schema.pendingCaptures.savedAs,
         );
+      },
+      // v10: payments a message said are coming, for Home's Coming up card.
+      from9To10: (m, schema) async {
+        await m.createTable(schema.upcomingPayments);
       },
     ),
   );

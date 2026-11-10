@@ -12,6 +12,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/data/upcoming_repository.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
@@ -598,6 +599,14 @@ Future<List<CaptureRead>> takeCaptures({
           stillUnread[_letGoKey(capture)] = capture;
           reads.add(read(CaptureOutcome.unread, 'Penny will try again'));
           continue;
+        }
+      }
+      // A payment still to come is kept for Home's Coming up card.
+      if (payment == null && letGo == _letGo[IgnoreReason.upcoming]) {
+        if (parseUpcoming(_textOf(capture), now: capture.at)
+            case final coming?) {
+          await UpcomingRepository(db).keep(coming);
+          letGo = 'coming up on ${DateFormat('d MMM').format(coming.dueOn)}';
         }
       }
       if (payment == null) {

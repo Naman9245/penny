@@ -14,6 +14,7 @@ import 'package:penny/data/insight_repository.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/rules_repository.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/data/upcoming_repository.dart';
 import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/budget.dart';
 import 'package:penny/models/goal_plan.dart';
@@ -22,6 +23,7 @@ import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/report_math.dart';
+import 'package:penny/services/upcoming_math.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/services/insight_builder.dart';
@@ -233,6 +235,37 @@ final monthlyTotalsProvider = StreamProvider.autoDispose
       (ref, month) =>
           ref.watch(txnRepositoryProvider).watchMonthlyTotals(month),
     );
+
+final upcomingRepositoryProvider = Provider<UpcomingRepository>(
+  (ref) => UpcomingRepository(ref.watch(appDatabaseProvider)),
+);
+
+final _upcomingProvider = StreamProvider.autoDispose<List<UpcomingPayment>>(
+  (ref) => ref
+      .watch(upcomingRepositoryProvider)
+      .watchFrom(ref.watch(todayProvider).subtract(upcomingGrace)),
+);
+
+// Paid within a few days of the day: the last six weeks cover it.
+final _recentTxnsProvider = StreamProvider.autoDispose<List<Txn>>((ref) {
+  final today = ref.watch(todayProvider);
+  return ref
+      .watch(txnRepositoryProvider)
+      .watchBetween(
+        today.subtract(const Duration(days: 42)),
+        today.add(const Duration(days: 1)),
+      );
+});
+
+/// What Home's Coming up card shows: payments messages said are coming,
+/// soonest first, less the ones paid already.
+final comingUpProvider = Provider.autoDispose<List<UpcomingPayment>>(
+  (ref) => comingUp(
+    ref.watch(_upcomingProvider).value ?? const [],
+    ref.watch(_recentTxnsProvider).value ?? const [],
+    ref.watch(todayProvider),
+  ),
+);
 
 final insightRepositoryProvider = Provider<InsightRepository>(
   (ref) => InsightRepository(ref.watch(appDatabaseProvider)),
