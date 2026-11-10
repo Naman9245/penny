@@ -7,7 +7,7 @@ import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/widgets/category_avatar.dart';
 
-/// Category tiles, up to four to a row. A tap picks one; ✓ on the keypad
+/// Category tiles, up to five to a row. A tap picks one; ✓ on the keypad
 /// saves.
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({
@@ -23,10 +23,16 @@ class CategoryGrid extends StatelessWidget {
 
   static const _gap = 8.0;
 
-  // "Subscriptions", the longest single word, needs about 80 px at the normal
-  // text size. Columns drop from four to two as text grows or the screen
+  // "Subscriptions", the longest single word, is 78 px wide at the normal
+  // text size. Columns drop from five to two as text grows or the screen
   // narrows, so a label never breaks mid-word.
-  static const _minTileWidth = 86.0;
+  static const _minTileWidth = 80.0;
+
+  /// The tiles' names. Their letter spacing is set here, not left to the
+  /// theme, so the width above holds.
+  static final _labelStyle = AppText.caption.copyWith(letterSpacing: 0);
+
+  static const _maxColumns = 5;
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +43,12 @@ class CategoryGrid extends StatelessWidget {
       builder: (context, constraints) {
         final fits =
             (constraints.maxWidth + _gap) ~/ (_minTileWidth * growth + _gap);
-        final columns = math.max(2, math.min(4, fits));
+        final columns = math.max(2, math.min(_maxColumns, fits));
         final width = ((constraints.maxWidth - _gap * (columns - 1)) / columns)
             .floorToDouble();
         return Wrap(
           spacing: _gap,
-          runSpacing: 16,
+          runSpacing: 14,
           children: [
             for (final category in categories)
               SizedBox(
@@ -95,7 +101,7 @@ class _Tile extends StatelessWidget {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  CategoryAvatar(category: category, size: 54, raised: raised),
+                  CategoryAvatar(category: category, size: 50, raised: raised),
                   if (selected)
                     const Positioned(top: -7, right: -7, child: _PickedBadge()),
                 ],
@@ -104,7 +110,7 @@ class _Tile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               category.label,
-              style: AppText.caption,
+              style: CategoryGrid._labelStyle,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

@@ -5,6 +5,7 @@ import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/add_txn/category_order.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/quick_add.dart';
@@ -12,10 +13,11 @@ import 'package:penny/services/sms_parser.dart';
 
 /// What the Add screen opens with: a fresh entry of [type], [editing] an
 /// existing one, or an [sms] to review before it is saved: one shared, or a
-/// [capture] read from a notification.
+/// [capture] read from a notification. A fresh entry starts on [day], or
+/// today.
 @immutable
 class AddTxnArgs {
-  const AddTxnArgs.create(this.type)
+  const AddTxnArgs.create(this.type, {this.day})
     : editing = null,
       sms = null,
       capture = null;
@@ -24,20 +26,27 @@ class AddTxnArgs {
     : type = txn.type,
       editing = txn,
       sms = null,
-      capture = null;
+      capture = null,
+      day = null;
 
   AddTxnArgs.fromSms(SmsTxn this.sms)
     : type = sms.type,
       editing = null,
-      capture = null;
+      capture = null,
+      day = null;
 
   AddTxnArgs.fromCapture(PendingCapture this.capture)
     : sms = CaptureRepository.toSms(capture),
       type = capture.type,
-      editing = null;
+      editing = null,
+      day = null;
 
   final TxnType type;
   final Txn? editing;
+
+  /// The day a fresh entry starts on, like the 1st of the month the
+  /// Calendar is showing. Today when null.
+  final DateTime? day;
 
   /// An SMS already read and masked on the phone.
   final SmsTxn? sms;
@@ -54,10 +63,11 @@ class AddTxnArgs {
       other is AddTxnArgs &&
       other.type == type &&
       other.editing?.id == editing?.id &&
-      other.sms?.dedupeKey == sms?.dedupeKey;
+      other.sms?.dedupeKey == sms?.dedupeKey &&
+      other.day == day;
 
   @override
-  int get hashCode => Object.hash(type, editing?.id, sms?.dedupeKey);
+  int get hashCode => Object.hash(type, editing?.id, sms?.dedupeKey, day);
 }
 
 /// A bill shared with friends: what it came to, and how many ways.
@@ -143,6 +153,19 @@ final usualEntriesProvider = StreamProvider.autoDispose
           .map((txns) => usualEntries(txns, type));
     });
 
+/// How many entries went to each category in the last 90 days, so the
+/// user's own favourites can come first.
+final categoryUsesProvider = StreamProvider.autoDispose<CategoryUses>((ref) {
+  final today = ref.watch(todayProvider);
+  return ref
+      .watch(txnRepositoryProvider)
+      .watchBetween(
+        DateTime(today.year, today.month, today.day - categoryUseDays),
+        DateTime(today.year, today.month, today.day + 1),
+      )
+      .map(CategoryUses.new);
+});
+
 class AddTxnController extends Notifier<AddTxnState> {
   AddTxnController(this.args);
 
@@ -154,10 +177,13 @@ class AddTxnController extends Notifier<AddTxnState> {
     if (sms != null) return _fromSms(sms);
     final txn = args.editing;
     if (txn == null) {
+      final now = DateTime.now();
+      final day = args.day;
       return AddTxnState(
         type: args.type,
         amountText: '',
-        occurredAt: DateTime.now(),
+        // Another day keeps the time of day, as picking one does.
+        occurredAt: day == null ? now : onDay(day, now),
       );
     }
     return AddTxnState(

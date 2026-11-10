@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:penny/core/router/tab_months.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -28,19 +29,18 @@ class CalendarScreen extends ConsumerStatefulWidget {
 }
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  DateTime _month = monthStart(DateTime.now());
-
   @override
   Widget build(BuildContext context) {
+    final month = ref.watch(calendarMonthProvider);
     final today = ref.watch(todayProvider);
     final budget = ref.watch(budgetProvider).value ?? Budget.none;
-    final txns = ref.watch(monthTxnsProvider(_month)).value ?? const <Txn>[];
+    final txns = ref.watch(monthTxnsProvider(month)).value ?? const <Txn>[];
     final everyday = budget.everydayPaise;
-    final share = everyday == 0 ? null : dailySharePaise(everyday, _month);
+    final share = everyday == 0 ? null : dailySharePaise(everyday, month);
     final moods = dayMoods(
       budget: budget,
       monthTxns: txns,
-      month: _month,
+      month: month,
       now: today,
       firstEntry: ref.watch(firstEntryProvider).value,
       goalDays: ref.watch(goalDaysProvider),
@@ -48,7 +48,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final summary = monthMood(
       budget: budget,
       monthTxns: txns,
-      month: _month,
+      month: month,
       moods: moods,
     );
 
@@ -71,14 +71,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return SafeArea(
       bottom: false,
       child: ListView(
-        // Room at the bottom so the Add button never hides the legend.
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           const Text('Mood calendar', style: AppText.h1),
           const SizedBox(height: 14),
           MonthSwitcher(
-            month: _month,
-            onChanged: (month) => setState(() => _month = month),
+            month: month,
+            onChanged: ref.read(calendarMonthProvider.notifier).show,
           ),
           const SizedBox(height: 16),
           if (share == null)
@@ -90,14 +89,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               textAlign: TextAlign.center,
             ),
             Text(
-              shareExplained(everyday, _month),
+              shareExplained(everyday, month),
               key: const ValueKey('share-explained'),
               style: AppText.small,
               textAlign: TextAlign.center,
             ),
           ],
           const SizedBox(height: 14),
-          _MonthGrid(month: _month, moods: moods, today: today, onDay: openDay),
+          _MonthGrid(month: month, moods: moods, today: today, onDay: openDay),
           const SizedBox(height: 14),
           const _Legend(),
           if ((summary, share) case (final summary?, final share?)) ...[

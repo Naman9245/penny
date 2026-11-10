@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:penny/data/txn_repository.dart';
+import 'package:penny/features/add_txn/category_grid.dart';
+import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 
 import '../helpers/app_harness.dart';
@@ -8,6 +11,21 @@ Future<void> openAdd(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('home-add')));
   await tester.pumpAndSettle();
 }
+
+/// The Add screen's tiles, in order.
+List<Category> tiles(WidgetTester tester) =>
+    tester.widget<CategoryGrid>(find.byType(CategoryGrid)).categories;
+
+List<String> tileIds(WidgetTester tester) => [
+  for (final category in tiles(tester)) category.id,
+];
+
+/// The ids of [categories] in their usual order, with [first] ahead.
+List<String> withFirst(List<Category> categories, List<String> first) => [
+  ...first,
+  for (final category in categories)
+    if (!first.contains(category.id)) category.id,
+];
 
 /// Taps each of [keys] on the keypad.
 Future<void> typeKeys(WidgetTester tester, String keys) async {
@@ -213,6 +231,133 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Edit this entry'), findsOneWidget);
     expect(find.byKey(const ValueKey('again-0')), findsNothing);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('the tiles put what you use most first, from the last 90 days', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final db = await pumpApp(
+      tester,
+      seed: (repo) async {
+        Future<void> add(
+          String categoryId,
+          int daysAgo, {
+          TxnType type = TxnType.debit,
+        }) => repo.add(
+          amountPaise: 10000 + daysAgo,
+          type: type,
+          categoryId: categoryId,
+          occurredAt: now.subtract(Duration(days: daysAgo)),
+        );
+        for (final days in [1, 5, 40]) {
+          await add('fun', days);
+        }
+        await add('education', 80);
+        // Lots, but too long ago to count.
+        for (final days in [100, 120, 150, 200]) {
+          await add('health', days);
+        }
+        for (final days in [2, 9]) {
+          await add('freelance', days, type: TxnType.credit);
+        }
+        // A friend paying back for shopping doesn't lift Shopping.
+        for (final days in [3, 4]) {
+          await add('shopping', days, type: TxnType.credit);
+        }
+      },
+    );
+    await openAdd(tester);
+    expect(
+      tileIds(tester),
+      withFirst(categoriesFor(TxnType.debit), ['fun', 'education']),
+    );
+    // Fun is the first tile, top left.
+    final fun = tester.getTopLeft(find.text('Fun'));
+    final food = tester.getTopLeft(find.text('Food'));
+    expect(fun.dy, food.dy);
+    expect(fun.dx, lessThan(food.dx));
+
+    // Money in: Freelance first, and Paid back stays last.
+    await tester.tap(find.text('Got'));
+    await tester.pumpAndSettle();
+    expect(tileIds(tester), [
+      ...withFirst(incomeCategories, ['freelance']),
+      tiles(tester).last.id,
+    ]);
+    expect(tiles(tester).last.label, 'Paid back');
+    await closeApp(tester, db);
+  });
+
+  testWidgets('Paid back offers what friends pay back for first', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final db = await pumpApp(
+      tester,
+      seed: (repo) async {
+        for (final days in [1, 6]) {
+          await repo.add(
+            amountPaise: 30000 + days,
+            type: TxnType.credit,
+            categoryId: 'travel',
+            occurredAt: now.subtract(Duration(days: days)),
+          );
+        }
+        for (final days in [2, 3, 4]) {
+          await repo.add(
+            amountPaise: 5000 + days,
+            type: TxnType.debit,
+            categoryId: 'fun',
+            occurredAt: now.subtract(Duration(days: days)),
+          );
+        }
+      },
+    );
+    routerOf(tester).push('/add?type=credit');
+    await tester.pumpAndSettle();
+    await tapInView(tester, find.text('Paid back'));
+
+    // Paid back for twice, then spent on most.
+    final sheet = tester.widget<CategoryGrid>(
+      find.byKey(const ValueKey('paid-back-grid')),
+    );
+    expect([
+      for (final category in sheet.categories) category.id,
+    ], withFirst(spendCategories, ['travel', 'fun']));
+    await closeApp(tester, db);
+  });
+
+  testWidgets('no tile moves while the screen is open', (tester) async {
+    final db = await pumpApp(tester);
+    await openAdd(tester);
+    final before = tileIds(tester);
+    expect(before.first, 'food');
+
+    // Saved while the screen is open, as a notification might.
+    final saving = Future.wait([
+      for (var i = 0; i < 2; i++)
+        TxnRepository(db).add(
+          amountPaise: 15000,
+          type: TxnType.debit,
+          categoryId: 'fun',
+          occurredAt: DateTime.now(),
+          merchant: 'PVR',
+        ),
+    ]);
+    await tester.pumpAndSettle();
+    await saving;
+    await tester.pumpAndSettle();
+    // The screen heard: they're offered again. But no tile moved.
+    expect(find.byKey(const ValueKey('again-0')), findsOneWidget);
+    expect(tileIds(tester), before);
+
+    // Next time, Fun comes first.
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+    await openAdd(tester);
+    expect(tileIds(tester).first, 'fun');
     await closeApp(tester, db);
   });
 

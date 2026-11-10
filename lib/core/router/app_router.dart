@@ -74,10 +74,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/add',
-        builder: (context, state) => AddTxnScreen(
-          initialType: state.uri.queryParameters['type'] == 'credit'
-              ? TxnType.credit
-              : TxnType.debit,
+        // Optional ?type=credit, and ?month=2026-10 to start on its 1st.
+        builder: (context, state) => AddTxnView(
+          args: AddTxnArgs.create(
+            state.uri.queryParameters['type'] == 'credit'
+                ? TxnType.credit
+                : TxnType.debit,
+            day: _monthFromQuery(state.uri.queryParameters['month']),
+          ),
         ),
       ),
       // A shared or pasted SMS, already read and masked. It travels as an
@@ -149,6 +153,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// The location of Add, starting on the 1st of [month] when there is one.
+String addLocation({DateTime? month}) => Uri(
+  path: '/add',
+  queryParameters: month == null ? null : {'month': monthKey(month)},
+).toString();
 
 /// The location of [month]'s entries, optionally just one category's.
 String txnsLocation(DateTime month, {String? categoryId}) {

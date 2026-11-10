@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/router/app_router.dart';
+import 'package:penny/core/router/tab_months.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/theme/brutal_theme.dart';
-import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/analysis_totals.dart';
@@ -34,26 +34,25 @@ class AnalysisScreen extends ConsumerStatefulWidget {
 }
 
 class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
-  DateTime _month = monthStart(DateTime.now());
-
   @override
   Widget build(BuildContext context) {
+    final month = ref.watch(analysisMonthProvider);
     final summary = ref
-        .watch(monthSummaryProvider(_month))
+        .watch(monthSummaryProvider(month))
         .when(
           data: (summary) => summary,
           loading: () => MonthSummary.empty,
           error: (error, stackTrace) => MonthSummary.empty,
         );
     final totals = ref
-        .watch(categoryTotalsProvider(_month))
+        .watch(categoryTotalsProvider(month))
         .when(
           data: (totals) => totals,
           loading: () => const <CategoryTotal>[],
           error: (error, stackTrace) => const <CategoryTotal>[],
         );
     final months = ref
-        .watch(monthlyTotalsProvider(_month))
+        .watch(monthlyTotalsProvider(month))
         .when(
           data: (months) => months,
           loading: () => const <MonthTotals>[],
@@ -77,8 +76,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           const Text('Analysis', style: AppText.h1),
           const SizedBox(height: 14),
           MonthSwitcher(
-            month: _month,
-            onChanged: (month) => setState(() => _month = month),
+            month: month,
+            onChanged: ref.read(analysisMonthProvider.notifier).show,
           ),
           const SizedBox(height: 18),
           if (totals.isEmpty)
@@ -87,14 +86,14 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             _Totals(summary: summary),
             if (spent.isNotEmpty) ...[
               const SizedBox(height: 16),
-              _SplitCard(month: _month),
+              _SplitCard(month: month),
               const SizedBox(height: 28),
               const Text('Where it went', style: AppText.h2),
               const SizedBox(height: 12),
               _CategoryCards(
                 totals: spent,
                 outOf: summary.spentPaise,
-                month: _month,
+                month: month,
                 budgets: budgets,
               ),
             ],
@@ -105,7 +104,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               _CategoryCards(
                 totals: got,
                 outOf: summary.gotPaise,
-                month: _month,
+                month: month,
               ),
             ],
             if (invested.isNotEmpty) ...[
@@ -116,7 +115,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               _CategoryCards(
                 totals: invested,
                 outOf: summary.gotPaise,
-                month: _month,
+                month: month,
               ),
             ],
           ],

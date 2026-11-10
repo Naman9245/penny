@@ -12,6 +12,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/features/add_txn/add_txn_controller.dart';
 import 'package:penny/widgets/amount_keypad.dart';
 import 'package:penny/features/add_txn/category_grid.dart';
+import 'package:penny/features/add_txn/category_order.dart';
 import 'package:penny/features/import/sms_card.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
@@ -80,6 +81,9 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
   );
   bool _busy = false;
 
+  /// What the user picks most, counted once when the screen opens.
+  CategoryUses? _uses;
+
   AddTxnController get _controller =>
       ref.read(addTxnControllerProvider(widget.args).notifier);
 
@@ -115,8 +119,10 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
     final picked = await showModalBottomSheet<Category>(
       context: context,
       isScrollControlled: true,
-      builder: (context) =>
-          _PaidBackSheet(selectedId: isSpendCategory(current) ? current : null),
+      builder: (context) => _PaidBackSheet(
+        selectedId: isSpendCategory(current) ? current : null,
+        uses: _uses ?? CategoryUses.none,
+      ),
     );
     if (picked == null || !mounted) return;
     HapticFeedback.selectionClick();
@@ -264,6 +270,9 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
         state.type == TxnType.credit && isSpendCategory(state.categoryId)
         ? categoryById(state.categoryId!)
         : null;
+    // Kept once counted, so an entry saved meanwhile never moves a tile
+    // from under a finger.
+    final uses = _uses ??= ref.watch(categoryUsesProvider).value;
 
     return Scaffold(
       body: SafeArea(
@@ -360,7 +369,12 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                       const SizedBox(height: 24),
                       CategoryGrid(
                             categories: [
-                              ...categoriesFor(state.type),
+                              // The user's most used first. Paid back stays
+                              // last.
+                              ...mostUsedFirst(
+                                categoriesFor(state.type),
+                                uses ?? CategoryUses.none,
+                              ),
                               if (state.type == TxnType.credit)
                                 _paidBackTile(paidBackFor),
                             ],
@@ -409,9 +423,12 @@ Category _paidBackTile(Category? paidBackFor) => Category(
 /// Which spend category money that came back was for. A pick shows before
 /// the sheet closes with it.
 class _PaidBackSheet extends StatefulWidget {
-  const _PaidBackSheet({this.selectedId});
+  const _PaidBackSheet({required this.uses, this.selectedId});
 
   final String? selectedId;
+
+  /// The screen's counts, so the usual ones come first here too.
+  final CategoryUses uses;
 
   @override
   State<_PaidBackSheet> createState() => _PaidBackSheetState();
@@ -451,7 +468,11 @@ class _PaidBackSheetState extends State<_PaidBackSheet> {
             const SizedBox(height: 18),
             CategoryGrid(
               key: const ValueKey('paid-back-grid'),
-              categories: spendCategories,
+              categories: mostUsedFirst(
+                spendCategories,
+                widget.uses,
+                paybacks: true,
+              ),
               selectedId: _selected,
               onTap: _pick,
             ),
