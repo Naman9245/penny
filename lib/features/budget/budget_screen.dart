@@ -150,10 +150,9 @@ class _Total extends StatelessWidget {
             ],
           ],
           const SizedBox(height: 10),
-          const Text(
-            'Rent & PG, Bills & recharge, Subscriptions and Education are paid '
-            'in one go, so Penny\'s mood and the calendar go by everyday '
-            'spending.',
+          Text(
+            oneGoLine,
+            key: const ValueKey('budget-one-go'),
             style: AppText.small,
           ),
         ],

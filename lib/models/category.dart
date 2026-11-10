@@ -285,6 +285,21 @@ final _investIds = {for (final category in investCategories) category.id};
 /// Whether [id] is a kind of investing: money put away, not spent.
 bool isInvestCategory(String? id) => _investIds.contains(id);
 
+/// Which spend categories are paid in one go, in words, for the budget
+/// screen: "Rent & PG, Bills & recharge, … and Family are paid in one go…".
+String get oneGoLine {
+  final labels = [
+    for (final category in spendCategories)
+      if (category.oneGo) category.label,
+  ];
+  final named = labels.length == 1
+      ? labels.single
+      : '${labels.sublist(0, labels.length - 1).join(', ')} and '
+            '${labels.last}';
+  return "$named are paid in one go, so Penny's mood and the calendar go by "
+      'everyday spending.';
+}
+
 /// Whether [id] is one of [spendCategories]: one that budgets, moods and
 /// paybacks go by.
 bool isSpendCategory(String? id) => _spendIds.contains(id);

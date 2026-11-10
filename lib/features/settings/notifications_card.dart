@@ -213,9 +213,9 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
           Text(
             mode == CaptureMode.check
                 ? 'They wait on Home for you to add or skip.'
-                : "They're saved as soon as Penny reads them. Any that may "
-                      'already be logged, or need a category, still wait for '
-                      'you on Home.',
+                : "They're saved as soon as Penny reads them. One like an "
+                      "entry you've typed says so, and you can change any "
+                      'of them.',
             style: AppText.small.copyWith(color: AppColors.ink),
           ),
           if (allowed || log.isNotEmpty) ...[
