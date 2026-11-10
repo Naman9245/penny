@@ -65,24 +65,33 @@ void main() {
     final summary = find.byKey(const ValueKey('month-summary'));
     await tester.scrollUntilVisible(summary, 300);
     await tester.pumpAndSettle();
-    expect(find.text('Mostly happy'), findsOneWidget);
-    expect(find.text('${days - 3} happy · 1 worried · 1 sad'), findsOneWidget);
+    Finder inSummary(String text) =>
+        find.descendant(of: summary, matching: find.text(text));
+    // ₹6,400 of food over the days since the first entry is well within a
+    // ₹1,000 share on average.
+    final share = formatPaise(dailySharePaise(3000000, month));
+    final average = formatPaise((640000 / (days - 1) / 100).round() * 100);
+    expect(inSummary('Happy'), findsOneWidget);
+    expect(
+      inSummary('Average day: $average of your $share share'),
+      findsOneWidget,
+    );
+    expect(inSummary('₹6,400 over ${days - 1} days'), findsOneWidget);
+    expect(inSummary('${days - 3} happy · 1 worried · 1 sad'), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const ValueKey('day-4')), -300);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('day-4')));
     await tester.pumpAndSettle();
-    final share = formatPaise(dailySharePaise(3000000, month));
     // Only what the face goes by is set against the share.
     expect(find.text('₹5,000 of your $share share'), findsOneWidget);
     expect(find.text('Plus ₹700 with no budget'), findsOneWidget);
     expect(find.text('Plus ₹9,000 paid in one go'), findsOneWidget);
-    expect(find.byKey(const ValueKey('day-month-note')), findsNothing);
     expect(find.text('Swiggy'), findsOneWidget);
     await closeApp(tester, db);
   });
 
-  testWidgets('once the month nears its budget, quiet days turn yellow', (
+  testWidgets('as the month nears its budget, quiet days stay happy', (
     tester,
   ) async {
     final db = await pumpApp(
@@ -98,15 +107,23 @@ void main() {
     await openLastMonth(tester);
 
     expect(find.bySemanticsLabel('2 $name, Sad'), findsOneWidget);
-    expect(find.bySemanticsLabel('5 $name, Worried'), findsOneWidget);
+    expect(find.bySemanticsLabel('5 $name, Happy'), findsOneWidget);
+
+    // The month card names food, near its budget.
+    final summary = find.byKey(const ValueKey('month-summary'));
+    await tester.scrollUntilVisible(summary, 300);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: summary, matching: find.text('Food: ₹6,500 of ₹7,000')),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('day-5')), -300);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const ValueKey('day-5')));
     await tester.pumpAndSettle();
     final share = formatPaise(dailySharePaise(700000, month));
     expect(find.text('₹0 of your $share share'), findsOneWidget);
-    expect(
-      find.text('Everyday budget so far: ₹6,500 of ₹7,000'),
-      findsOneWidget,
-    );
     await closeApp(tester, db);
   });
 

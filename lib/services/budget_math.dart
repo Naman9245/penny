@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -206,104 +204,49 @@ String shareExplained(int everydayPaise, DateTime month) {
       'Rent, EMIs and other one-go costs stay out of it.';
 }
 
-/// One day of a month as Penny sees it, each as an index into [_levels]:
-/// how its spending in the budgeted everyday categories stands against its
-/// share, and how the month so far stands, with what decided that.
-typedef _Day = ({int ofShare, int soFar, String? soFarNote});
-
-/// Every day of [month], first to last, from its entries. A day's own
-/// spending is what was paid that day; the month so far has what came back
-/// taken off.
-List<_Day> _walk(Budget budget, Iterable<Txn> monthTxns, DateTime month) {
-  final start = monthStart(month);
-  final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
-  List<Map<String, int>> days() => [
-    for (var day = 0; day <= daysInMonth; day++) <String, int>{},
-  ];
-  final paidByDay = days();
-  final backByDay = days();
-  for (final txn in monthTxns) {
-    final at = txn.occurredAt;
-    if (!_everyday(budget, txn.categoryId) || monthStart(at) != start) {
-      continue;
-    }
-    final into = switch (txn.kind) {
-      MoneyKind.spent => paidByDay[at.day],
-      MoneyKind.paidBack => backByDay[at.day],
-      MoneyKind.got || MoneyKind.invested => null,
-    };
-    if (into == null) continue;
-    into[txn.categoryId] = (into[txn.categoryId] ?? 0) + txn.amountPaise;
-  }
-
-  final everyday = budget.everydayPaise;
-  final paidSoFar = <String, int>{};
-  final backSoFar = <String, int>{};
-  final walked = <_Day>[];
-  for (var day = 1; day <= daysInMonth; day++) {
-    var spent = 0;
-    for (final MapEntry(key: id, value: paise) in paidByDay[day].entries) {
-      paidSoFar[id] = (paidSoFar[id] ?? 0) + paise;
-      spent += paise;
-    }
-    for (final MapEntry(key: id, value: paise) in backByDay[day].entries) {
-      backSoFar[id] = (backSoFar[id] ?? 0) + paise;
-    }
-    final soFar = {
-      for (final MapEntry(key: id, value: paid) in paidSoFar.entries)
-        id: math.max(0, paid - (backSoFar[id] ?? 0)),
-    };
-    // The share is everyday ÷ days in the month; compare without dividing.
-    final scaled = spent * daysInMonth;
-    final standing = _monthSoFar(budget, soFar);
-    walked.add((
-      ofShare: scaled <= everyday
-          ? 0
-          : scaled * 2 <= everyday * 3
-          ? 1
-          : 2,
-      soFar: standing.level,
-      soFarNote: standing.note,
-    ));
-  }
-  return walked;
+/// How [spent] over [days] days stands against the daily share of an
+/// [everyday] budget for a month [daysInMonth] long, as an index into
+/// [_levels]: at or under the share, up to one and a half times it, or
+/// more.
+int _againstShare(int spent, int days, int everyday, int daysInMonth) {
+  // The share is everyday ÷ days in the month; compare without dividing.
+  final scaled = spent * daysInMonth;
+  final allowed = everyday * days;
+  return scaled <= allowed
+      ? 0
+      : scaled * 2 <= allowed * 3
+      ? 1
+      : 2;
 }
 
-/// How the month so far stands, as an index into [_levels], with what
-/// decided it in words: worried at 85% of the everyday budget, sad over it
-/// or once any everyday category is over its own amount. A category only
-/// near its amount is a note on Home instead, or one big buy would tint
-/// the rest of the month.
-({int level, String? note}) _monthSoFar(Budget budget, Map<String, int> spent) {
-  var total = 0;
-  String? categoryOver;
-  for (final MapEntry(key: id, value: amount) in budget.byCategory.entries) {
-    if (categoryById(id).oneGo) continue;
-    final its = spent[id] ?? 0;
-    total += its;
-    if (categoryOver == null && its > amount) {
-      categoryOver =
-          '${categoryById(id).label} so far: ${formatPaise(its)} of '
-          '${formatPaise(amount)}';
+/// Every day of [month], first to last, as an index into [_levels]: what
+/// was paid that day in the budgeted everyday categories, against the
+/// day's share. Nothing else colours a day: not the month so far, nor a
+/// category over its budget, nor money that came back later.
+List<int> _dayLevels(Budget budget, Iterable<Txn> monthTxns, DateTime month) {
+  final start = monthStart(month);
+  final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
+  final paid = List.filled(daysInMonth + 1, 0);
+  for (final txn in monthTxns) {
+    final at = txn.occurredAt;
+    if (txn.isSpend &&
+        _everyday(budget, txn.categoryId) &&
+        monthStart(at) == start) {
+      paid[at.day] += txn.amountPaise;
     }
   }
   final everyday = budget.everydayPaise;
-  final level = everyday == 0 ? 0 : _against(total, everyday);
-  String whole() =>
-      'Everyday budget so far: ${formatPaise(total)} of '
-      '${formatPaise(everyday)}';
-  if (level == 2) return (level: 2, note: whole());
-  if (categoryOver != null) return (level: 2, note: categoryOver);
-  return (level: level, note: level == 1 ? whole() : null);
+  return [
+    for (var day = 1; day <= daysInMonth; day++)
+      _againstShare(paid[day], 1, everyday, daysInMonth),
+  ];
 }
 
 /// Penny's mood on each day of [month] that has one, by day of the month:
-/// the worse of how that day went and where the month stood by its end.
-/// - The day's spending in the budgeted everyday categories against its
-///   share of their budget: happy at or under it, worried up to one and a
-///   half times it, sad above that.
-/// - The month so far: worried at 85% of the everyday budget, sad over it
-///   or once any everyday category is over its own amount.
+/// that day's spending in the budgeted everyday categories against its
+/// share of their budget. Happy at or under it, so a day with nothing spent
+/// is happy; worried up to one and a half times it; sad above that. How the
+/// month is going shows on its own card and on Home, never on a day.
 ///
 /// A day a goal was reached is celebrating. Rent and the rest paid in one
 /// go never count. Days after [now] have none, nor do days before
@@ -322,7 +265,7 @@ Map<int, PennyMood> dayMoods({
   final first = firstEntry == null ? null : dayStart(firstEntry);
   final budgeted = budget.everydayPaise > 0;
   final moods = <int, PennyMood>{};
-  for (final (i, day) in _walk(budget, monthTxns, start).indexed) {
+  for (final (i, level) in _dayLevels(budget, monthTxns, start).indexed) {
     final date = DateTime(start.year, start.month, i + 1);
     if (date.isAfter(today)) break;
     // Days before the first entry have nothing to say, but today always
@@ -331,24 +274,97 @@ Map<int, PennyMood> dayMoods({
     if (goalDays.contains(date)) {
       moods[i + 1] = PennyMood.celebrating;
     } else if (budgeted && (started || date == today)) {
-      moods[i + 1] = _levels[math.max(day.ofShare, day.soFar)];
+      moods[i + 1] = _levels[level];
     }
   }
   return moods;
 }
 
-/// Why [date] is worse than its own spending, when the month so far made
-/// it so: like "Food so far: ₹2,100 of ₹2,000". Null when the day's own
-/// spending decided its mood.
-String? monthNoteOn({
+/// How a month went, for the card under the mood calendar.
+typedef MonthMood = ({
+  /// Happy, worried or sad, by the average day.
+  PennyMood mood,
+
+  /// Everyday spending on the days that have a face, as Home counts it.
+  int spentPaise,
+
+  /// The days that have a face.
+  int days,
+
+  /// [spentPaise] ÷ [days], to the rupee.
+  int averagePaise,
+
+  /// How many days had each face.
+  Map<PennyMood, int> counts,
+
+  /// Each everyday category over its budget, then each near it, like
+  /// "Groceries: ₹2,174 of ₹2,000".
+  List<String> categoryNotes,
+});
+
+/// [month]'s mood from its days' faces in [moods]: the everyday spending of
+/// the days that have one, with what came back taken off as on Home, ÷
+/// those days, against the daily share, by the same rule as a single day.
+/// Null without an everyday budget, or before any day has a face.
+MonthMood? monthMood({
   required Budget budget,
   required Iterable<Txn> monthTxns,
-  required DateTime date,
+  required DateTime month,
+  required Map<int, PennyMood> moods,
 }) {
-  if (budget.everydayPaise == 0) return null;
-  final day = _walk(budget, monthTxns, date)[date.day - 1];
-  return day.soFar > day.ofShare ? day.soFarNote : null;
+  final everyday = budget.everydayPaise;
+  if (everyday == 0 || moods.isEmpty) return null;
+  final start = monthStart(month);
+  final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
+  final inMonth = [
+    for (final txn in monthTxns)
+      if (monthStart(txn.occurredAt) == start) txn,
+  ];
+  final spent = MoneyTotals.of([
+    for (final txn in inMonth)
+      if (moods.containsKey(txn.occurredAt.day)) txn,
+  ]).spentByCategory.entries
+      .where((entry) => _everyday(budget, entry.key))
+      .fold(0, (sum, entry) => sum + entry.value);
+  final days = moods.length;
+
+  final counts = <PennyMood, int>{};
+  for (final mood in moods.values) {
+    counts[mood] = (counts[mood] ?? 0) + 1;
+  }
+
+  final byCategory = MoneyTotals.of(inMonth).spentByCategory;
+  final notes = [
+    for (final level in const [2, 1])
+      for (final MapEntry(key: id, value: amount) in budget.byCategory.entries)
+        if (!categoryById(id).oneGo &&
+            _against(byCategory[id] ?? 0, amount) == level)
+          '${categoryById(id).label}: ${formatPaise(byCategory[id] ?? 0)} of '
+              '${formatPaise(amount)}',
+  ];
+
+  return (
+    mood: _levels[_againstShare(spent, days, everyday, daysInMonth)],
+    spentPaise: spent,
+    days: days,
+    averagePaise: (spent / days / 100).round() * 100,
+    counts: counts,
+    categoryNotes: notes,
+  );
 }
+
+/// What Penny says on Home, about today: by today's face, and whether
+/// anything counted was spent today. How the month is going is in the box
+/// under it.
+String homeLine(PennyMood mood, {required int todaySpentPaise}) =>
+    switch (mood) {
+      PennyMood.happy when todaySpentPaise == 0 =>
+        'Nothing spent today. Nice!',
+      PennyMood.happy => "Today's within your share. Keep it up!",
+      PennyMood.worried => "Today's a bit over your share.",
+      PennyMood.sad => "Today went well over your share. Let's plan a fix!",
+      _ => mood.line,
+    };
 
 /// A day's money the way Penny counts it: spending in the budgeted everyday
 /// categories her mood goes by, in everyday ones without a budget, and paid
@@ -391,26 +407,6 @@ DaySpending splitDaySpending(Budget budget, Iterable<Txn> entries) {
     cameBack: cameBack,
     invested: invested,
   );
-}
-
-/// How a month's days went: how many had each mood, and the spending mood
-/// most of them had. Null when no day has a mood yet.
-({PennyMood mostly, Map<PennyMood, int> counts})? moodSummary(
-  Map<int, PennyMood> moods,
-) {
-  if (moods.isEmpty) return null;
-  final counts = <PennyMood, int>{};
-  for (final mood in moods.values) {
-    counts[mood] = (counts[mood] ?? 0) + 1;
-  }
-  // Goal days are a treat, not a habit, so "mostly" is about spending; a
-  // tie goes to the kinder mood.
-  PennyMood? mostly;
-  for (final mood in _levels) {
-    final count = counts[mood] ?? 0;
-    if (count > 0 && (mostly == null || count > counts[mostly]!)) mostly = mood;
-  }
-  return (mostly: mostly ?? PennyMood.celebrating, counts: counts);
 }
 
 /// "18 days left", "1 day left" or "Last day".

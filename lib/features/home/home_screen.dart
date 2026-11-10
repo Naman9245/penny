@@ -270,7 +270,12 @@ class _PennyCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  celebrated == null ? mood.line : celebrationLine(celebrated),
+                  celebrated == null
+                      ? homeLine(
+                          mood,
+                          todaySpentPaise: status.todaySpentPaise,
+                        )
+                      : celebrationLine(celebrated),
                   style: AppText.h3,
                 ),
                 if (budget) ...[

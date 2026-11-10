@@ -19,7 +19,6 @@ Future<void> showDaySheet(
   required List<Txn> entries,
   required DaySpending spend,
   required int? sharePaise,
-  String? monthNote,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -32,7 +31,6 @@ Future<void> showDaySheet(
       entries: entries,
       spend: spend,
       sharePaise: sharePaise,
-      monthNote: monthNote,
     ),
   );
 }
@@ -44,7 +42,6 @@ class _DaySheet extends StatelessWidget {
     required this.entries,
     required this.spend,
     required this.sharePaise,
-    required this.monthNote,
   });
 
   final DateTime date;
@@ -55,14 +52,9 @@ class _DaySheet extends StatelessWidget {
   final DaySpending spend;
   final int? sharePaise;
 
-  /// How far the month had gone, when that made the day worse than its own
-  /// spending.
-  final String? monthNote;
-
   @override
   Widget build(BuildContext context) {
     final share = sharePaise;
-    final monthNote = this.monthNote;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -97,12 +89,6 @@ class _DaySheet extends StatelessWidget {
                       key: const ValueKey('day-spent'),
                       style: AppText.bodyStrong,
                     ),
-                    if (monthNote != null)
-                      Text(
-                        monthNote,
-                        key: const ValueKey('day-month-note'),
-                        style: AppText.body,
-                      ),
                     if (share != null && spend.noBudget > 0)
                       Text(
                         'Plus ${formatPaise(spend.noBudget)} with no budget',

@@ -85,7 +85,7 @@ void main() {
     // past 85% of it; rent doesn't count.
     final share = formatPaise(dailySharePaise(700000, month));
     expect(
-      find.text("You've gone over budget. Let's plan a quick fix!"),
+      find.text("Today went well over your share. Let's plan a fix!"),
       findsOneWidget,
     );
     expect(find.text('Everyday budget · $left'), findsOneWidget);
@@ -106,7 +106,7 @@ void main() {
     );
 
     expect(
-      find.text("You've gone over budget. Let's plan a quick fix!"),
+      find.text("Today went well over your share. Let's plan a fix!"),
       findsOneWidget,
     );
     expect(find.text('Food is over its budget'), findsOneWidget);

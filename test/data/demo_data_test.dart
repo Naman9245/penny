@@ -138,7 +138,17 @@ void main() {
         october.values.toSet(),
         containsAll([PennyMood.happy, PennyMood.worried, PennyMood.sad]),
       );
-      expect(moodSummary(october)!.mostly, PennyMood.happy);
+      expect(
+        monthMood(
+          budget: budget,
+          monthTxns: txns.where(
+            (t) => monthStart(t.occurredAt) == DateTime(2026, 10),
+          ),
+          month: DateTime(2026, 10),
+          moods: october,
+        )!.mood,
+        PennyMood.happy,
+      );
 
       final goalDays = {for (final p in await goals(db)) ?p.reachedOn};
       expect(moodsOf(DateTime(2026, 11), goalDays)[2], PennyMood.celebrating);

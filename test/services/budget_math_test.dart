@@ -162,41 +162,36 @@ void main() {
       expect(today([txn(451, on(10, 9))]), PennyMood.sad);
     });
 
-    test('85% of the everyday budget worries every day after, over it '
-        'saddens them', () {
+    test('the month so far never colours a quiet day', () {
       // Spent on the 4th, so the 10th spent nothing itself.
-      expect(today([txn(7649, on(4))]), PennyMood.happy);
-      expect(today([txn(7650, on(4))]), PennyMood.worried);
-      expect(today([txn(9001, on(4))]), PennyMood.sad);
+      expect(today([txn(7650, on(4))]), PennyMood.happy);
+      expect(today([txn(9001, on(4))]), PennyMood.happy);
 
       final days = moods([txn(2000, on(2)), txn(6000, on(6))]);
-      // Under 85% until the 6th, which is sad by its own spending.
       expect(days[3], PennyMood.happy);
       expect(days[6], PennyMood.sad);
-      expect(days[7], PennyMood.worried);
-      expect(days[10], PennyMood.worried);
+      expect(days[7], PennyMood.happy);
+      expect(days[10], PennyMood.happy);
     });
 
-    test('a category over its amount saddens the days after; near it is '
-        'only a note', () {
+    test('a category over its budget never saddens a day with nothing spent',
+        () {
       const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
-      expect(today([txn(1800, on(4))], budget: split), PennyMood.happy);
-      expect(today([txn(2001, on(4))], budget: split), PennyMood.sad);
+      final over = [txn(2174, on(4))];
+      expect(moods(over, budget: split)[4], PennyMood.sad);
+      expect(today(over, budget: split), PennyMood.happy);
     });
 
-    test("a payback lifts the month so far, but not the day it's for", () {
-      // ₹8,100 of ₹9,000 by the 1st is worrying; ₹3,000 back on the 2nd
-      // brings the month down to ₹5,100. Investing on the 3rd is no spend.
+    test('money back later never changes the day it was paid for', () {
       final txns = [
         txn(8100, on(1)),
         txn(3000, on(2), type: TxnType.credit),
         txn(5000, on(3), categoryId: 'invest'),
       ];
-      final withPayback = moods(txns);
-      expect(withPayback[1], PennyMood.sad);
-      expect(withPayback[2], PennyMood.happy);
-      expect(withPayback[3], PennyMood.happy);
-      expect(moods([txns.first])[2], PennyMood.worried);
+      final days = moods(txns);
+      expect(days[1], PennyMood.sad);
+      expect(days[2], PennyMood.happy);
+      expect(days[3], PennyMood.happy);
     });
 
     test('rent never changes the mood, even over its budget', () {
@@ -233,31 +228,85 @@ void main() {
       });
     });
 
-    test('the month sums up as the mood most days had', () {
-      expect(moodSummary(const {}), isNull);
-      final summary = moodSummary({
-        1: PennyMood.sad,
-        2: PennyMood.happy,
-        3: PennyMood.sad,
-        4: PennyMood.celebrating,
-        5: PennyMood.celebrating,
-        6: PennyMood.celebrating,
-      })!;
-      // Goal days don't count towards "mostly".
-      expect(summary.mostly, PennyMood.sad);
-      expect(summary.counts, {
-        PennyMood.sad: 2,
-        PennyMood.happy: 1,
-        PennyMood.celebrating: 3,
-      });
-      // A tie goes to the kinder mood.
+    test("the month goes by its average day against the share", () {
+      // ₹150 a day: ₹4,500 for groceries over November's 30 days.
+      const groceries = Budget(byCategory: {'groceries': 450000});
+      MonthMood? month0(List<Txn> txns, {Budget budget = groceries}) {
+        final days = dayMoods(
+          budget: budget,
+          monthTxns: txns,
+          month: month,
+          now: tenth,
+          firstEntry: on(6),
+        );
+        return monthMood(
+          budget: budget,
+          monthTxns: txns,
+          month: month,
+          moods: days,
+        );
+      }
+
+      // ₹2,573 over the 6th to the 10th: ₹515 a day, well over ₹150.
+      final spent = [
+        txn(1500, on(6), categoryId: 'groceries'),
+        txn(674, on(7), categoryId: 'groceries'),
+        txn(399, on(8), categoryId: 'groceries'),
+        txn(300, on(9), categoryId: 'people'), // No budget.
+      ];
+      final sad = month0(spent)!;
+      expect(sad.mood, PennyMood.sad);
+      expect(sad.spentPaise, 257300);
+      expect(sad.days, 5);
+      expect(sad.averagePaise, 51500);
+      expect(sad.counts, {PennyMood.sad: 3, PennyMood.happy: 2});
+      expect(sad.categoryNotes, isEmpty);
+
+      // Within the share on average, though one day went over.
+      final fine = month0([txn(600, on(6), categoryId: 'groceries')])!;
+      expect(fine.mood, PennyMood.happy);
+      expect(fine.averagePaise, 12000);
+      expect(fine.counts, {PennyMood.sad: 1, PennyMood.happy: 4});
+
+      // Up to one and a half times the share is worried.
       expect(
-        moodSummary({1: PennyMood.sad, 2: PennyMood.worried})!.mostly,
+        month0([txn(1125, on(6), categoryId: 'groceries')])!.mood,
         PennyMood.worried,
       );
+
+      // A category over its own budget is named, then one near it.
+      const split = Budget(
+        byCategory: {'groceries': 200000, 'food': 100000, 'fun': 200000},
+      );
+      final notes = month0([
+        txn(2174, on(6), categoryId: 'groceries'),
+        txn(900, on(7), categoryId: 'food'),
+      ], budget: split)!.categoryNotes;
+      expect(notes, ['Groceries: ₹2,174 of ₹2,000', 'Food: ₹900 of ₹1,000']);
+
+      expect(month0(spent, budget: Budget.none), isNull);
+    });
+
+    test("Home's line is about today", () {
       expect(
-        moodSummary({1: PennyMood.celebrating})!.mostly,
-        PennyMood.celebrating,
+        homeLine(PennyMood.happy, todaySpentPaise: 0),
+        'Nothing spent today. Nice!',
+      );
+      expect(
+        homeLine(PennyMood.happy, todaySpentPaise: 10000),
+        "Today's within your share. Keep it up!",
+      );
+      expect(
+        homeLine(PennyMood.worried, todaySpentPaise: 20000),
+        "Today's a bit over your share.",
+      );
+      expect(
+        homeLine(PennyMood.sad, todaySpentPaise: 50000),
+        "Today went well over your share. Let's plan a fix!",
+      );
+      expect(
+        homeLine(PennyMood.neutral, todaySpentPaise: 0),
+        PennyMood.neutral.line,
       );
     });
 
@@ -268,24 +317,6 @@ void main() {
   });
 
   group('the numbers behind a day', () {
-    test('the month so far is named when it made the day worse', () {
-      String? note(List<Txn> txns, int day, {Budget budget = budget}) =>
-          monthNoteOn(budget: budget, monthTxns: txns, date: on(day, 0));
-
-      final big = [txn(8000, on(4)), txn(100, on(6))];
-      // The 4th is sad by its own spending; the 6th is worried by the month.
-      expect(note(big, 4), isNull);
-      expect(note(big, 6), 'Everyday budget so far: ₹8,100 of ₹9,000');
-      expect(note(big, 3), isNull);
-
-      const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
-      final food = [txn(2100, on(3))];
-      expect(note(food, 3, budget: split), isNull);
-      expect(note(food, 5, budget: split), 'Food so far: ₹2,100 of ₹2,000');
-
-      expect(note(big, 6, budget: Budget.none), isNull);
-    });
-
     test("a day's spending splits the way Penny counts it", () {
       final spend = splitDaySpending(
         const Budget(byCategory: {'food': 900000, 'rent': 800000}),
