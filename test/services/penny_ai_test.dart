@@ -7,6 +7,8 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/goal_plan.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/penny_ai.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthException, AuthRetryableFetchException;
 
 import '../helpers/txn_factory.dart';
 
@@ -287,4 +289,126 @@ void main() {
       expect(chatAnswerFrom('Cook twice a week.'), isNull);
     });
   });
+
+  group('the sign-in is ready before Penny is asked', () {
+    final now = DateTime(2026, 11, 10, 12);
+
+    test('none yet: an anonymous one is made', () async {
+      final signIn = FakeSignIn(signedIn: false);
+      await readySignIn(signIn, now: now);
+      expect(signIn.calls, ['anonymous']);
+    });
+
+    test('still good: nothing to do', () async {
+      final signIn = FakeSignIn(expiresAt: now.add(const Duration(hours: 1)));
+      await readySignIn(signIn, now: now);
+      expect(signIn.calls, isEmpty);
+    });
+
+    test('run out, or within a minute of it: renewed first', () async {
+      for (final at in [
+        now.subtract(const Duration(days: 3)),
+        now.add(const Duration(seconds: 30)),
+      ]) {
+        final signIn = FakeSignIn(expiresAt: at);
+        await readySignIn(signIn, now: now);
+        expect(signIn.calls, ['renew']);
+      }
+    });
+
+    test('after a refused call: renewed whatever the time', () async {
+      final signIn = FakeSignIn(expiresAt: now.add(const Duration(hours: 1)));
+      await readySignIn(signIn, renew: true, now: now);
+      expect(signIn.calls, ['renew']);
+    });
+
+    test('a renewal the server refuses makes a new anonymous one', () async {
+      final signIn = FakeSignIn(
+        expiresAt: now.subtract(const Duration(hours: 1)),
+        renewError: const AuthException('Invalid Refresh Token: Already Used'),
+      );
+      await readySignIn(signIn, now: now);
+      expect(signIn.calls, ['renew', 'anonymous']);
+    });
+
+    test("a refused Google sign-in is the user's to redo", () async {
+      final signIn = FakeSignIn(
+        expiresAt: now.subtract(const Duration(hours: 1)),
+        isAnonymous: false,
+        renewError: const AuthException('Invalid Refresh Token'),
+      );
+      await expectLater(
+        readySignIn(signIn, now: now),
+        throwsA(
+          isA<AiException>().having(
+            (e) => e.failure,
+            'failure',
+            AiFailure.signedOut,
+          ),
+        ),
+      );
+      expect(signIn.calls, ['renew']);
+    });
+
+    test('offline, nothing new is made', () async {
+      final signIn = FakeSignIn(
+        expiresAt: now.subtract(const Duration(hours: 1)),
+        renewError: AuthRetryableFetchException(),
+      );
+      await expectLater(
+        readySignIn(signIn, now: now),
+        throwsA(isA<AuthRetryableFetchException>()),
+      );
+      expect(signIn.calls, ['renew']);
+    });
+  });
+
+  test("the hidden copy's client leaves everything for the open app", () {
+    const later = LaterAiClient();
+    expect(later.isSetUp, isTrue);
+    expect(
+      later.readSms(from: 'sms', text: 'x'),
+      throwsA(
+        isA<AiException>().having((e) => e.failure, 'failure', AiFailure.later),
+      ),
+    );
+    expect(
+      const AiException(AiFailure.signedOut).message,
+      contains('Sign in again in Settings'),
+    );
+  });
+}
+
+/// A sign-in that says what was done to it.
+class FakeSignIn implements SignIn {
+  FakeSignIn({
+    this.signedIn = true,
+    this.isAnonymous = true,
+    this.expiresAt,
+    this.renewError,
+  });
+
+  @override
+  bool signedIn;
+
+  @override
+  final bool isAnonymous;
+
+  @override
+  final DateTime? expiresAt;
+
+  final Exception? renewError;
+  final calls = <String>[];
+
+  @override
+  Future<void> renew() async {
+    calls.add('renew');
+    if (renewError case final error?) throw error;
+  }
+
+  @override
+  Future<void> signInAnonymously() async {
+    calls.add('anonymous');
+    signedIn = true;
+  }
 }

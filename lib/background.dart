@@ -24,7 +24,9 @@ Future<void> readInBackground() async {
       inbox: inbox,
       prefs: await SharedPreferences.getInstance(),
       open: AppDatabase.named,
-      ai: SupabaseAiClient(),
+      // What the rules can't read waits for the open app, so only it ever
+      // signs in to Penny's server.
+      ai: const LaterAiClient(),
     );
   } finally {
     await inbox.done();
@@ -56,6 +58,8 @@ Future<List<CaptureRead>> readWaiting({
         mode: mode,
         now: DateTime.now(),
         ai: ai,
+        // Older ones waiting for the AI stay for the open app, unasked.
+        retryUnread: ai is! LaterAiClient,
       );
       await noteReads(PrefsRepository(db), round);
       reads.addAll(round);

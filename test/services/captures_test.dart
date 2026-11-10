@@ -289,16 +289,13 @@ void main() {
         sms('HDFC Bank', '₹1.00 deducted from your PayZapp Wallet.'),
       ]);
       final reads = await take(CaptureMode.save);
+      expect([
+        for (final r in reads) r.outcome,
+      ], everyElement(CaptureOutcome.saved));
       expect(
-        [for (final r in reads) r.outcome],
-        everyElement(CaptureOutcome.saved),
+        [for (final r in reads) r.categoryId],
+        ['food', 'from_people', 'people', 'other'],
       );
-      expect([for (final r in reads) r.categoryId], [
-        'food',
-        'from_people',
-        'people',
-        'other',
-      ]);
       final swiggy = (await txns.findById(reads.first.entryId!))!;
       expect(swiggy.source, TxnSource.sms);
       expect(swiggy.merchant, 'Swiggy');
@@ -328,60 +325,69 @@ void main() {
       expect(await entries(), hasLength(1));
     });
 
-    test('two payments, each seen from the bank and from GPay, are two', () async {
-      String bank(String ref) =>
-          'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
-          'Ref $ref';
-      Capture gpay(int minutes) => app(
-        'gpay',
-        '₹1 paid to Amit Sharma',
-        'Payment successful',
-        when: at.add(Duration(minutes: minutes)),
-      );
-      source.waiting.addAll([
-        sms('AX-HDFCBK', bank('630512340001')),
-        gpay(1),
-        sms(
-          'AX-HDFCBK',
-          bank('630512340002'),
-          when: at.add(const Duration(minutes: 5)),
-        ),
-        gpay(6),
-      ]);
-      final reads = await take(CaptureMode.save);
-      expect([for (final r in reads) r.outcome], [
-        CaptureOutcome.saved,
-        CaptureOutcome.letGo,
-        CaptureOutcome.saved,
-        CaptureOutcome.letGo,
-      ]);
-      expect(await entries(), hasLength(2));
+    test(
+      'two payments, each seen from the bank and from GPay, are two',
+      () async {
+        String bank(String ref) =>
+            'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
+            'Ref $ref';
+        Capture gpay(int minutes) => app(
+          'gpay',
+          '₹1 paid to Amit Sharma',
+          'Payment successful',
+          when: at.add(Duration(minutes: minutes)),
+        );
+        source.waiting.addAll([
+          sms('AX-HDFCBK', bank('630512340001')),
+          gpay(1),
+          sms(
+            'AX-HDFCBK',
+            bank('630512340002'),
+            when: at.add(const Duration(minutes: 5)),
+          ),
+          gpay(6),
+        ]);
+        final reads = await take(CaptureMode.save);
+        expect(
+          [for (final r in reads) r.outcome],
+          [
+            CaptureOutcome.saved,
+            CaptureOutcome.letGo,
+            CaptureOutcome.saved,
+            CaptureOutcome.letGo,
+          ],
+        );
+        expect(await entries(), hasLength(2));
 
-      // GPay's notice shown again is known: nothing new.
-      source.waiting.add(gpay(1));
-      expect(await take(CaptureMode.save), isEmpty);
-    });
+        // GPay's notice shown again is known: nothing new.
+        source.waiting.add(gpay(1));
+        expect(await take(CaptureMode.save), isEmpty);
+      },
+    );
 
-    test('two payments of one amount from one place are two payments', () async {
-      String sent(String ref) =>
-          'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
-          'Ref $ref';
-      source.waiting.addAll([
-        sms('JM-HDFCBK', sent('630512340001')),
-        // The same bank by another route: still one place.
-        sms(
-          'VM-HDFCBK-S',
-          sent('630512340002'),
-          when: at.add(const Duration(minutes: 3)),
-        ),
-      ]);
-      final reads = await take(CaptureMode.save);
-      expect(
-        [for (final r in reads) r.outcome],
-        [CaptureOutcome.saved, CaptureOutcome.saved],
-      );
-      expect(await entries(), hasLength(2));
-    });
+    test(
+      'two payments of one amount from one place are two payments',
+      () async {
+        String sent(String ref) =>
+            'Sent Rs.1.00 From HDFC Bank A/C *4821 To AMIT SHARMA On 05/11/26 '
+            'Ref $ref';
+        source.waiting.addAll([
+          sms('JM-HDFCBK', sent('630512340001')),
+          // The same bank by another route: still one place.
+          sms(
+            'VM-HDFCBK-S',
+            sent('630512340002'),
+            when: at.add(const Duration(minutes: 3)),
+          ),
+        ]);
+        final reads = await take(CaptureMode.save);
+        expect(
+          [for (final r in reads) r.outcome],
+          [CaptureOutcome.saved, CaptureOutcome.saved],
+        );
+        expect(await entries(), hasLength(2));
+      },
+    );
 
     test("a fund's confirmation days after the bank's debit is the same "
         'investment', () async {
@@ -406,20 +412,23 @@ void main() {
       expect(saved.categoryId, 'invest');
     });
 
-    test('one like an entry typed by hand that day is saved, saying so', () async {
-      await txns.add(
-        amountPaise: 25000,
-        type: TxnType.debit,
-        categoryId: 'food',
-        occurredAt: DateTime(2026, 11, 5, 9),
-        merchant: 'Lunch',
-      );
-      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
-      final read = (await take(CaptureMode.save)).single;
-      expect(read.outcome, CaptureOutcome.saved);
-      expect(read.note, '₹250 · Lunch');
-      expect(await entries(), hasLength(2));
-    });
+    test(
+      'one like an entry typed by hand that day is saved, saying so',
+      () async {
+        await txns.add(
+          amountPaise: 25000,
+          type: TxnType.debit,
+          categoryId: 'food',
+          occurredAt: DateTime(2026, 11, 5, 9),
+          merchant: 'Lunch',
+        );
+        source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+        final read = (await take(CaptureMode.save)).single;
+        expect(read.outcome, CaptureOutcome.saved);
+        expect(read.note, '₹250 · Lunch');
+        expect(await entries(), hasLength(2));
+      },
+    );
 
     test('waiting to be checked, one like an entry says which', () async {
       await txns.add(
@@ -722,7 +731,10 @@ void main() {
       expect(entry.merchant, 'Amit Sharma');
       expect(entry.payeeIsPerson, isTrue);
       // What went: no name.
-      expect(ai.smsRead.single, 'PayZapp: ₹1.00 moved to [w1] [w2] for order 4521.');
+      expect(
+        ai.smsRead.single,
+        'PayZapp: ₹1.00 moved to [w1] [w2] for order 4521.',
+      );
     });
 
     test("one it says only moved your own money is let go", () async {
@@ -762,7 +774,10 @@ void main() {
       final first = (await take(ai)).single;
       expect(first.outcome, CaptureOutcome.unread);
       expect(await prefs.unread(), hasLength(1));
-      expect(noticeFor([first])!.title, "Penny couldn't read a payment message");
+      expect(
+        noticeFor([first])!.title,
+        "Penny couldn't read a payment message",
+      );
 
       ai
         ..failure = null
@@ -770,6 +785,30 @@ void main() {
       final second = (await take(ai)).single;
       expect(second.outcome, CaptureOutcome.saved);
       expect(await prefs.unread(), isEmpty);
+    });
+
+    test("the hidden copy keeps what waits for the AI, unasked", () async {
+      final ai = FakeAiClient(failure: const AiException(AiFailure.offline));
+      source.waiting.add(sms('JM-HDFCBK', odd));
+      await take(ai);
+      expect(await prefs.unread(), hasLength(1));
+
+      // Another arrives while Penny is closed: both wait for the open app.
+      source.waiting.add(sms('JM-HDFCBK', odd.replaceFirst('1.00', '2.00')));
+      final later = FakeAiClient(failure: const AiException(AiFailure.later));
+      final reads = await takeCaptures(
+        source: source,
+        db: db,
+        txns: txns,
+        captures: captures,
+        mode: CaptureMode.save,
+        now: at,
+        ai: later,
+        retryUnread: false,
+      );
+      expect(reads.single.outcome, CaptureOutcome.unread);
+      expect(await prefs.unread(), hasLength(2));
+      expect(later.smsRead, hasLength(1), reason: 'only the new one');
     });
 
     test("never asked about an OTP, a friend's text, or one with no money "
@@ -832,21 +871,24 @@ void main() {
       merchant: 'Swiggy',
     );
 
-    test('cancels the payment it gives back, so Spent goes back down', () async {
-      await paid();
-      source.waiting.add(sms('HDFC Bank', reversal));
-      final read = (await take(CaptureMode.save)).single;
-      expect(read.outcome, CaptureOutcome.saved);
-      expect(read.what, '+₹641 · Swiggy (money back)');
-      expect(read.categoryId, 'food');
-      final entry = (await txns.findById(read.entryId!))!;
-      expect(entry.type, TxnType.credit);
-      expect(entry.merchant, 'Swiggy');
-      expect(MoneyKind.of(entry.type, entry.categoryId), MoneyKind.paidBack);
-      final totals = MoneyTotals.of(await db.select(db.txns).get());
-      expect(totals.spentPaise, 0);
-      expect(totals.gotPaise, 0);
-    });
+    test(
+      'cancels the payment it gives back, so Spent goes back down',
+      () async {
+        await paid();
+        source.waiting.add(sms('HDFC Bank', reversal));
+        final read = (await take(CaptureMode.save)).single;
+        expect(read.outcome, CaptureOutcome.saved);
+        expect(read.what, '+₹641 · Swiggy (money back)');
+        expect(read.categoryId, 'food');
+        final entry = (await txns.findById(read.entryId!))!;
+        expect(entry.type, TxnType.credit);
+        expect(entry.merchant, 'Swiggy');
+        expect(MoneyKind.of(entry.type, entry.categoryId), MoneyKind.paidBack);
+        final totals = MoneyTotals.of(await db.select(db.txns).get());
+        expect(totals.spentPaise, 0);
+        expect(totals.gotPaise, 0);
+      },
+    );
 
     test('with no payment it gives back, it is a refund', () async {
       source.waiting.add(sms('HDFC Bank', reversal));
@@ -855,16 +897,23 @@ void main() {
       expect(read.what, '+₹641 · Got');
     });
 
-    test('a payment of another amount, or over a week old, is not it', () async {
-      await paid(paise: 50000);
-      await paid(ago: const Duration(days: 8));
-      source.waiting.add(sms('HDFC Bank', reversal));
-      expect((await take(CaptureMode.save)).single.categoryId, 'refund');
-    });
+    test(
+      'a payment of another amount, or over a week old, is not it',
+      () async {
+        await paid(paise: 50000);
+        await paid(ago: const Duration(days: 8));
+        source.waiting.add(sms('HDFC Bank', reversal));
+        expect((await take(CaptureMode.save)).single.categoryId, 'refund');
+      },
+    );
 
     test('read before its payment, it still cancels it', () async {
       source.waiting.addAll([
-        sms('HDFC Bank', reversal, when: at.subtract(const Duration(minutes: 4))),
+        sms(
+          'HDFC Bank',
+          reversal,
+          when: at.subtract(const Duration(minutes: 4)),
+        ),
         sms(
           'AX-HDFCBK',
           'Rs.641.00 debited from A/c XX4821 to SWIGGY. UPI Ref 630500000003.',
@@ -890,14 +939,17 @@ void main() {
       expect((await take(CaptureMode.save)).single.categoryId, 'from_people');
     });
 
-    test('waiting to be checked, it waits as money back for that payment', () async {
-      await paid();
-      source.waiting.add(sms('HDFC Bank', reversal));
-      await take(CaptureMode.check);
-      final held = (await captures.watchWaiting().first).single;
-      expect(held.suggestedCategoryId, 'food');
-      expect(held.payee, 'Swiggy');
-      expect(held.type, TxnType.credit);
-    });
+    test(
+      'waiting to be checked, it waits as money back for that payment',
+      () async {
+        await paid();
+        source.waiting.add(sms('HDFC Bank', reversal));
+        await take(CaptureMode.check);
+        final held = (await captures.watchWaiting().first).single;
+        expect(held.suggestedCategoryId, 'food');
+        expect(held.payee, 'Swiggy');
+        expect(held.type, TxnType.credit);
+      },
+    );
   });
 }

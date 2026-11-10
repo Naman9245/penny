@@ -411,7 +411,11 @@ Future<void> _cancelEarlierBack(
 
 /// An entry typed by hand on [at]'s day for the same amount the same way,
 /// in words like "₹250 · Lunch", or null when there's none.
-Future<String?> typedLookalikeOf(AppDatabase db, SmsTxn sms, DateTime at) async {
+Future<String?> typedLookalikeOf(
+  AppDatabase db,
+  SmsTxn sms,
+  DateTime at,
+) async {
   final day = dayStart(at);
   final typed =
       await (db.select(db.txns)
@@ -481,15 +485,21 @@ Future<List<CaptureRead>> takeCaptures({
   required CaptureMode mode,
   required DateTime now,
   AiClient? ai,
+  bool retryUnread = true,
 }) async {
   final waiting = await source.peek();
   final reads = <CaptureRead>[];
   final asking = ai != null && ai.isSetUp ? ai : null;
   final prefs = PrefsRepository(db);
-  final again = asking == null
+  final earlier = asking == null
       ? const <UnreadCapture>[]
       : await prefs.unread();
-  final stillUnread = <String, UnreadCapture>{};
+  final again = retryUnread ? earlier : const <UnreadCapture>[];
+  // Ones not asked about again this time are kept as they were.
+  final stillUnread = <String, UnreadCapture>{
+    if (!retryUnread)
+      for (final capture in earlier) _letGoKey(capture): capture,
+  };
   for (final capture in [...again, ...waiting.captures]) {
     var (:payment, :letGo) = explainCapture(capture);
     final sender = capture.app == 'sms' ? capture.title.trim() : null;
@@ -648,8 +658,7 @@ Future<List<CaptureRead>> takeCaptures({
 PennyNotice? noticeFor(List<CaptureRead> reads) {
   final payments = [
     for (final read in reads)
-      if (read.outcome
-          case CaptureOutcome.saved || CaptureOutcome.waiting)
+      if (read.outcome case CaptureOutcome.saved || CaptureOutcome.waiting)
         read,
   ];
   final unread = reads.where((r) => r.outcome == CaptureOutcome.unread).length;
@@ -659,7 +668,7 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
       title: unread == 1
           ? "Penny couldn't read a payment message"
           : "Penny couldn't read $unread payment messages",
-      text: "She'll try again when you're online. It's on Home.",
+      text: "She'll try again next time you open her. It's on Home.",
       lines: const [],
     );
   }

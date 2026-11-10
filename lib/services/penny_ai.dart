@@ -25,7 +25,13 @@ enum AiFailure {
   /// The server is missing its Gemini key.
   serverNotReady,
   signInOff,
+
+  /// The Google sign-in for backup ran out and has to be done again.
+  signedOut,
   offline,
+
+  /// Not asked from here: Penny's hidden copy leaves it for the open app.
+  later,
   dailyLimit,
   busy,
 
@@ -50,7 +56,12 @@ class AiException implements Exception {
       "Penny's server isn't ready yet: its Gemini key is missing.",
     AiFailure.signInOff =>
       "Penny can't sign in yet: anonymous sign-ins are off in Supabase.",
-    AiFailure.offline => "You're offline. Connect and try again.",
+    AiFailure.signedOut =>
+      'Your sign-in ran out. Sign in again in Settings, then try again.',
+    AiFailure.offline =>
+      "Penny couldn't reach her server. Check your connection and try "
+          'again.',
+    AiFailure.later => 'Penny will read it when you open her.',
     AiFailure.dailyLimit =>
       'Penny can look ${limit ?? 'only a few'} times a day. '
           'Try again tomorrow.',
@@ -285,19 +296,49 @@ class SupabaseAiClient implements AiClient {
       _call('read-sms', {'v': 1, 'from': from, 'text': text}, smsAiReadFrom);
 
   /// Calls [function] with [body] and reads its reply with [read], which
-  /// returns null for a reply that makes no sense.
+  /// returns null for a reply that makes no sense. A failure is logged as
+  /// what kind it was, never what was sent.
   Future<T> _call<T>(
     String function,
     Map<String, Object?> body,
     T? Function(Object? data) read,
   ) async {
-    if (!isSetUp) throw const AiException(AiFailure.notSetUp);
     try {
-      final client = await startSupabase();
-      if (client.auth.currentSession == null) {
-        await client.auth.signInAnonymously();
-      }
+      return await _callOnce(function, body, read);
+    } on AiException catch (error) {
+      debugPrint(
+        'Penny: $function failed (${error.failure.name}'
+        '${_detail == null ? '' : ', $_detail'})',
+      );
+      rethrow;
+    } finally {
+      _detail = null;
+    }
+  }
+
+  /// What went wrong in the last call, for the log: a status or an error
+  /// code, never content.
+  String? _detail;
+
+  /// How long starting Penny's server connection or signing in may take.
+  static const _signInLimit = Duration(seconds: 20);
+
+  Future<T> _callOnce<T>(
+    String function,
+    Map<String, Object?> body,
+    T? Function(Object? data) read,
+  ) async {
+    if (!isSetUp) throw const AiException(AiFailure.notSetUp);
+    // Until Penny is asked, a wait too long means her server wasn't reached.
+    var asked = false;
+    try {
+      final client = await startSupabase().timeout(_signInLimit);
+      final signIn = _SupabaseSignIn(client.auth, _signInLimit);
+      // An expired sign-in is renewed first, so the call doesn't go out
+      // with one the server refuses.
+      await readySignIn(signIn);
       Future<T> invoke() async {
+        asked = true;
         final response = await client.functions
             .invoke(function, body: body)
             // The server gives Gemini 50 seconds, then answers either way.
@@ -311,14 +352,17 @@ class SupabaseAiClient implements AiClient {
       } on FunctionException catch (error) {
         if (error.status != 401) rethrow;
         // An expired or revoked session: sign in again and retry once.
-        await _renewSession(client);
+        _detail = 'status 401, renewed';
+        await readySignIn(signIn, renew: true);
         return await invoke();
       }
     } on AiException {
       rethrow;
     } on FunctionException catch (error) {
+      _detail = 'status ${error.status}';
       throw aiExceptionFor(error.status, error.details);
     } on AuthException catch (error) {
+      _detail = 'sign-in ${error.code ?? error.statusCode ?? 'error'}';
       throw switch (error) {
         AuthRetryableFetchException() => const AiException(AiFailure.offline),
         _ when error.code == 'anonymous_provider_disabled' => const AiException(
@@ -327,19 +371,109 @@ class SupabaseAiClient implements AiClient {
         _ => const AiException(AiFailure.unavailable),
       };
     } on TimeoutException {
-      throw const AiException(AiFailure.slow);
-    } on Exception {
+      _detail ??= asked ? 'timed out' : 'timed out signing in';
+      throw AiException(asked ? AiFailure.slow : AiFailure.offline);
+    } on Exception catch (error) {
+      _detail = error.runtimeType.toString();
       throw const AiException(AiFailure.unavailable);
     }
   }
+}
 
-  Future<void> _renewSession(SupabaseClient client) async {
-    try {
-      await client.auth.refreshSession();
-    } on AuthException {
-      await client.auth.signInAnonymously();
-    }
+/// What [readySignIn] needs from a sign-in, so it can be tested.
+abstract interface class SignIn {
+  /// Whether there's a sign-in at all.
+  bool get signedIn;
+
+  /// Whether it's an anonymous one, rather than Google's for backup.
+  bool get isAnonymous;
+
+  /// When it runs out, if known.
+  DateTime? get expiresAt;
+
+  /// Throws [AuthException] when the server refuses it.
+  Future<void> renew();
+  Future<void> signInAnonymously();
+}
+
+class _SupabaseSignIn implements SignIn {
+  _SupabaseSignIn(this._auth, this._limit);
+
+  final GoTrueClient _auth;
+  final Duration _limit;
+
+  @override
+  bool get signedIn => _auth.currentSession != null;
+
+  @override
+  bool get isAnonymous => _auth.currentUser?.isAnonymous ?? true;
+
+  @override
+  DateTime? get expiresAt => switch (_auth.currentSession?.expiresAt) {
+    final seconds? => DateTime.fromMillisecondsSinceEpoch(seconds * 1000),
+    null => null,
+  };
+
+  @override
+  Future<void> renew() => _auth.refreshSession().timeout(_limit);
+
+  @override
+  Future<void> signInAnonymously() => _auth.signInAnonymously().timeout(_limit);
+}
+
+/// Makes sure [signIn] is one the server will take before Penny is asked:
+/// made when there's none, renewed when it has run out or does within a
+/// minute, or always with [renew]. A renewal the server refuses, say used
+/// up or lost, makes a new anonymous one; a Google sign-in for backup needs
+/// the user, so that's [AiFailure.signedOut]. Offline, the error goes up as
+/// it is.
+Future<void> readySignIn(
+  SignIn signIn, {
+  bool renew = false,
+  DateTime? now,
+}) async {
+  if (!signIn.signedIn) {
+    await signIn.signInAnonymously();
+    return;
   }
+  final expires = signIn.expiresAt;
+  final soon = (now ?? DateTime.now()).add(const Duration(minutes: 1));
+  if (!renew && (expires == null || expires.isAfter(soon))) return;
+  try {
+    await signIn.renew();
+  } on AuthRetryableFetchException {
+    rethrow;
+  } on AuthException {
+    if (!signIn.isAnonymous) throw const AiException(AiFailure.signedOut);
+    debugPrint('Penny: her sign-in was refused, so she signed in again');
+    await signIn.signInAnonymously();
+  }
+}
+
+/// [AiClient] for Penny's hidden copy, which never asks the AI itself: it
+/// would sign in apart from the open app, and two copies renewing one
+/// sign-in can lose it. What the rules can't read waits for the open app.
+class LaterAiClient implements AiClient {
+  const LaterAiClient();
+
+  @override
+  bool get isSetUp => true;
+
+  @override
+  Future<SmsAiRead> readSms({required String from, required String text}) =>
+      Future.error(const AiException(AiFailure.later));
+
+  @override
+  Future<AiAnswer> analyzeMonth(InsightRequest request) =>
+      Future.error(const AiException(AiFailure.later));
+
+  @override
+  Future<ChatAnswer> chat(ChatRequest request) =>
+      Future.error(const AiException(AiFailure.later));
+
+  @override
+  Future<PlanAnswer> planGoal(GoalPlanRequest request) =>
+      Future.error(const AiException(AiFailure.later));
 }
 
 /// The failure an error reply from analyze-month stands for. Status 0 means

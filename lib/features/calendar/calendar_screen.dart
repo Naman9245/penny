@@ -311,7 +311,8 @@ class _MonthSummary extends StatelessWidget {
   static const _lines = {
     PennyMood.happy: 'Your average day is within your share. Keep it up!',
     PennyMood.worried: 'Your average day is a little over your share.',
-    PennyMood.sad: "Your average day is well over your share. Let's plan a "
+    PennyMood.sad:
+        "Your average day is well over your share. Let's plan a "
         'fix!',
   };
 

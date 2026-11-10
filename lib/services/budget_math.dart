@@ -320,12 +320,13 @@ MonthMood? monthMood({
     for (final txn in monthTxns)
       if (monthStart(txn.occurredAt) == start) txn,
   ];
-  final spent = MoneyTotals.of([
-    for (final txn in inMonth)
-      if (moods.containsKey(txn.occurredAt.day)) txn,
-  ]).spentByCategory.entries
-      .where((entry) => _everyday(budget, entry.key))
-      .fold(0, (sum, entry) => sum + entry.value);
+  final spent =
+      MoneyTotals.of([
+            for (final txn in inMonth)
+              if (moods.containsKey(txn.occurredAt.day)) txn,
+          ]).spentByCategory.entries
+          .where((entry) => _everyday(budget, entry.key))
+          .fold(0, (sum, entry) => sum + entry.value);
   final days = moods.length;
 
   final counts = <PennyMood, int>{};
@@ -358,8 +359,7 @@ MonthMood? monthMood({
 /// under it.
 String homeLine(PennyMood mood, {required int todaySpentPaise}) =>
     switch (mood) {
-      PennyMood.happy when todaySpentPaise == 0 =>
-        'Nothing spent today. Nice!',
+      PennyMood.happy when todaySpentPaise == 0 => 'Nothing spent today. Nice!',
       PennyMood.happy => "Today's within your share. Keep it up!",
       PennyMood.worried => "Today's a bit over your share.",
       PennyMood.sad => "Today went well over your share. Let's plan a fix!",
