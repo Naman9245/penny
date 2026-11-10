@@ -55,6 +55,7 @@ const _letGo = {
   IgnoreReason.failed: 'a failed payment',
   IgnoreReason.offer: 'an offer',
   IgnoreReason.ownTransfer: 'a move between your own accounts',
+  IgnoreReason.cardBill: 'a credit card bill',
   IgnoreReason.receipt: 'a receipt for a payment already made',
   IgnoreReason.balance: 'only a balance',
   IgnoreReason.unreadable: 'no payment in it',
@@ -555,155 +556,173 @@ Future<List<CaptureRead>> takeCaptures({
       for (final capture in earlier) _letGoKey(capture): capture,
   };
   for (final capture in [...again, ...waiting.captures]) {
-    var (:payment, :letGo) = explainCapture(capture);
-    final sender = capture.app == 'sms' ? capture.title.trim() : null;
-    CaptureRead read(
-      CaptureOutcome outcome,
-      String what, {
-      String? key,
-      DateTime? at,
-      SmsTxn? sms,
-      String? categoryId,
-      String? entryId,
-      String? note,
-    }) => (
-      key: key ?? _letGoKey(capture),
-      app: capture.app,
-      sender: sender,
-      at: at ?? capture.at,
-      outcome: outcome,
-      what: what,
-      sms: sms,
-      categoryId: categoryId,
-      entryId: entryId,
-      note: note,
-    );
+    try {
+      var (:payment, :letGo) = explainCapture(capture);
+      final sender = capture.app == 'sms' ? capture.title.trim() : null;
+      CaptureRead read(
+        CaptureOutcome outcome,
+        String what, {
+        String? key,
+        DateTime? at,
+        SmsTxn? sms,
+        String? categoryId,
+        String? entryId,
+        String? note,
+      }) => (
+        key: key ?? _letGoKey(capture),
+        app: capture.app,
+        sender: sender,
+        at: at ?? capture.at,
+        outcome: outcome,
+        what: what,
+        sms: sms,
+        categoryId: categoryId,
+        entryId: entryId,
+        note: note,
+      );
 
-    if (payment == null &&
-        asking != null &&
-        letGo == _letGo[IgnoreReason.unreadable] &&
-        _moneyMoved.hasMatch(_textOf(capture))) {
-      try {
-        (:payment, :letGo) = await readWithAi(asking, capture);
-        // What's logged says what happened, never what was read.
-        debugPrint(
-          payment != null
-              ? 'Penny: her AI read a payment'
-              : 'Penny: her AI found no payment',
-        );
-      } on AiException catch (error) {
-        debugPrint("Penny: her AI couldn't answer (${error.failure.name})");
-        stillUnread[_letGoKey(capture)] = capture;
-        reads.add(read(CaptureOutcome.unread, 'Penny will try again'));
+      if (payment == null &&
+          asking != null &&
+          letGo == _letGo[IgnoreReason.unreadable] &&
+          _moneyMoved.hasMatch(_textOf(capture))) {
+        try {
+          (:payment, :letGo) = await readWithAi(asking, capture);
+          // What's logged says what happened, never what was read.
+          debugPrint(
+            payment != null
+                ? 'Penny: her AI read a payment'
+                : 'Penny: her AI found no payment',
+          );
+        } on AiException catch (error) {
+          debugPrint("Penny: her AI couldn't answer (${error.failure.name})");
+          stillUnread[_letGoKey(capture)] = capture;
+          reads.add(read(CaptureOutcome.unread, 'Penny will try again'));
+          continue;
+        }
+      }
+      if (payment == null) {
+        reads.add(read(CaptureOutcome.letGo, letGo ?? 'no payment in it'));
         continue;
       }
-    }
-    if (payment == null) {
-      reads.add(read(CaptureOutcome.letGo, letGo ?? 'no payment in it'));
-      continue;
-    }
-    if (await captures.isKnown(payment.dedupeKey)) continue;
-    final at = occurredAtOf(payment, capture.at);
-    // Money back for a payment cancels it: it goes in that payment's
-    // category, under its name.
-    var back = '';
-    if (await reversedPaymentOf(
+      if (await captures.isKnown(payment.dedupeKey)) continue;
+      final at = occurredAtOf(payment, capture.at);
+      // Money back for a payment cancels it: it goes in that payment's
+      // category, under its name.
+      var back = '';
+      if (await reversedPaymentOf(
+            db,
+            payment,
+            at,
+            _textOf(capture),
+            from: _sourceOf(capture.app, sender),
+          )
+          case final paid?) {
+        payment = payment.backFor(
+          payee: paid.merchant,
+          categoryId: paid.categoryId,
+          payeeIsPerson: paid.payeeIsPerson ?? false,
+        );
+        back = ' (money back)';
+      }
+      if (mode == CaptureMode.save) {
+        final repeat = await repeatOf(
           db,
           payment,
           at,
-          _textOf(capture),
-          from: _sourceOf(capture.app, sender),
-        )
-        case final paid?) {
-      payment = payment.backFor(
-        payee: paid.merchant,
-        categoryId: paid.categoryId,
-        payeeIsPerson: paid.payeeIsPerson ?? false,
-      );
-      back = ' (money back)';
-    }
-    if (mode == CaptureMode.save) {
-      final repeat = await repeatOf(
-        db,
-        payment,
-        at,
-        app: capture.app,
-        sender: sender,
-      );
-      if (repeat != null) {
-        // Kept as a copy of that entry: known if shown again, and never
-        // matched to another.
-        if (repeat.entryId case final entryId?) {
-          await captures.recordSaved(
-            payment,
-            app: capture.app,
-            at: at,
-            entryId: entryId,
-            sender: sender,
+          app: capture.app,
+          sender: sender,
+        );
+        if (repeat != null) {
+          // Kept as a copy of that entry: known if shown again, and never
+          // matched to another.
+          if (repeat.entryId case final entryId?) {
+            await captures.recordSaved(
+              payment,
+              app: capture.app,
+              at: at,
+              entryId: entryId,
+              sender: sender,
+            );
+          }
+          reads.add(
+            read(
+              CaptureOutcome.letGo,
+              repeat.what,
+              key: payment.dedupeKey,
+              at: at,
+            ),
           );
+          continue;
         }
+        final categoryId =
+            payment.suggestedCategoryId ?? fallbackCategoryOf(payment);
+        final note = await typedLookalikeOf(db, payment, at);
+        final entryId = await txns.add(
+          amountPaise: payment.amountPaise,
+          type: payment.type,
+          categoryId: categoryId,
+          occurredAt: at,
+          merchant: payment.payee,
+          source: TxnSource.sms,
+          dedupeKey: payment.dedupeKey,
+          payeeIsPerson: payment.payeeIsPerson,
+        );
+        await _cancelEarlierBack(db, txns, payment, at, categoryId);
+        await captures.recordSaved(
+          payment,
+          app: capture.app,
+          at: at,
+          entryId: entryId,
+          sender: sender,
+        );
         reads.add(
           read(
-            CaptureOutcome.letGo,
-            repeat.what,
+            CaptureOutcome.saved,
+            '${whatOf(payment)}$back',
             key: payment.dedupeKey,
             at: at,
+            sms: payment,
+            categoryId: categoryId,
+            entryId: entryId,
+            note: note,
           ),
         );
         continue;
       }
-      final categoryId =
-          payment.suggestedCategoryId ?? fallbackCategoryOf(payment);
-      final note = await typedLookalikeOf(db, payment, at);
-      final entryId = await txns.add(
-        amountPaise: payment.amountPaise,
-        type: payment.type,
-        categoryId: categoryId,
-        occurredAt: at,
-        merchant: payment.payee,
-        source: TxnSource.sms,
-        dedupeKey: payment.dedupeKey,
-        payeeIsPerson: payment.payeeIsPerson,
-      );
-      await _cancelEarlierBack(db, txns, payment, at, categoryId);
-      await captures.recordSaved(
+      await captures.hold(
         payment,
         app: capture.app,
         at: at,
-        entryId: entryId,
         sender: sender,
+        lookalike: await lookalikeOf(db, payment, at),
       );
       reads.add(
         read(
-          CaptureOutcome.saved,
+          CaptureOutcome.waiting,
           '${whatOf(payment)}$back',
           key: payment.dedupeKey,
           at: at,
           sms: payment,
-          categoryId: categoryId,
-          entryId: entryId,
-          note: note,
+          categoryId: payment.suggestedCategoryId,
         ),
       );
-      continue;
+    } catch (error) {
+      // One message that can't be read never holds up the rest. What's
+      // logged says what went wrong, never what was read.
+      debugPrint("Penny: couldn't read one (${error.runtimeType})");
+      reads.add((
+        key: _letGoKey(capture),
+        app: capture.app,
+        sender: capture.app == 'sms' ? capture.title.trim() : null,
+        at: capture.at,
+        outcome: CaptureOutcome.letGo,
+        what: "Penny couldn't read this one",
+        sms: null,
+        categoryId: null,
+        entryId: null,
+        note: null,
+      ));
     }
-    await captures.hold(
-      payment,
-      app: capture.app,
-      at: at,
-      sender: sender,
-      lookalike: await lookalikeOf(db, payment, at),
-    );
-    reads.add(
-      read(
-        CaptureOutcome.waiting,
-        '${whatOf(payment)}$back',
-        key: payment.dedupeKey,
-        at: at,
-        sms: payment,
-        categoryId: payment.suggestedCategoryId,
-      ),
-    );
   }
   // A skipped one is let go after two months, as is the record of a saved
   // one.

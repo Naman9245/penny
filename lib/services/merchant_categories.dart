@@ -120,6 +120,10 @@ const _spendKeywords = <String, List<String>>{
     'biryani',
     'bakery',
     'canteen',
+    'sweets',
+    'mithai',
+    'dhaba',
+    'chai',
   ],
   'groceries': [
     'blinkit',
@@ -232,6 +236,7 @@ const _spendKeywords = <String, List<String>>{
     'fibernet',
     'tata play',
     'recharge',
+    'recharged',
     'billpay',
   ],
   'fun': [

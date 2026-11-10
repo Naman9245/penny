@@ -873,6 +873,19 @@ void main() {
       },
     );
 
+    test("CRED's notice for a card bill isn't spending", () async {
+      source.waiting.add(
+        app(
+          'dreamplug',
+          'Payment successful',
+          'Payment of ₹12,000 successful for your HDFC Bank credit card',
+        ),
+      );
+      final read = (await take(FakeAiClient())).single;
+      expect(read.outcome, CaptureOutcome.letGo);
+      expect(read.what, 'a credit card bill');
+    });
+
     test("a bank's SMS saved under any contact name is still read", () async {
       source.waiting.addAll([
         sms('Alerts', 'Rs.250.00 debited from A/c XX4821 to SWIGGY.'),
@@ -886,6 +899,21 @@ void main() {
         [for (final r in reads) r.outcome],
         [CaptureOutcome.saved, CaptureOutcome.saved],
       );
+    });
+
+    test("one message that can't be read never holds up the rest", () async {
+      final ai = FakeAiClient(read: (_) => throw StateError('broken'));
+      source.waiting.addAll([
+        sms('JM-HDFCBK', odd),
+        sms('AX-HDFCBK', 'Rs.250.00 debited from A/c XX4821 to SWIGGY.'),
+      ]);
+      final reads = await take(ai);
+      expect(
+        [for (final r in reads) r.outcome],
+        [CaptureOutcome.letGo, CaptureOutcome.saved],
+      );
+      expect(reads.first.what, "Penny couldn't read this one");
+      expect(source.waiting, isEmpty, reason: 'the batch is cleared');
     });
 
     test("never asked about an OTP, a friend's text, or one with no money "

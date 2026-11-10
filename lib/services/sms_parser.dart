@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
+import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/merchant_categories.dart';
 
@@ -18,6 +19,10 @@ enum IgnoreReason {
   offer('It looks like an offer, not a payment.'),
   ownTransfer(
     'It moves money between your own accounts, so Penny leaves it out.',
+  ),
+  cardBill(
+    'It pays a credit card bill. Penny counted what you bought with the card '
+    'when you paid by it.',
   ),
   receipt(
     "It confirms a payment you've already made, which your bank's message "
@@ -150,6 +155,29 @@ final _ownCardPayment = _rx(
 final _failed = _rx(
   r'\b(?:failed|declined|unsuccessful|could not be processed|was not processed|insufficient (?:funds|balance))\b',
 );
+// What a bank says might happen, not what did: "In case of failed
+// transaction, amount will be refunded", "If the txn failed, …".
+final _ifFailed = _rx(
+  r'\b(?:in\s+case\s+of\s+(?:a\s+|any\s+)?|if\s+(?:the\s+|your\s+|this\s+)?(?:transaction|txn|payment)\s+(?:is\s+|has\s+|was\s+)?)(?:failed|unsuccessful|declined)\b[^.\n]*',
+);
+// The next one coming, under a payment that's been made: "Next payment due
+// on 10-12-26".
+final _nextDue = _rx(
+  r'\bnext\s+(?:payment|debit|due|emi|instal(?:l)?ment|bill|renewal|auto[\s-]?pay)\b[^.\n]*',
+);
+// Money that has already moved.
+final _moved = _rx(
+  r'\b(?:debited|deducted|spent|paid|sent|withdrawn|transferred)\b',
+);
+// Paying a credit card's bill from the bank account: what the card bought
+// was counted when it was bought.
+final _cardBill = _rx(
+  r'\bcredit\s*card\b[^\n]{0,60}\b(?:bill|dues?|outstanding|payment)\b'
+  r'|\b(?:bill\s+)?payment\b[^\n]{0,60}\b(?:for|towards|to)\s+(?:your\s+)?[^\n]{0,30}\bcredit\s*card\b'
+  r'|\bbilldesk\b[^\n]{0,40}\bcredit\s*card\b'
+  r'|\bto\s+(?:vpa\s+)?cred(?:\s*club|\.club)?\b(?![.\w]*@)'
+  r'|\bcred\.club@',
+);
 // A lender's receipt for an EMI, or an insurer's for a premium: the bank's
 // own message already has the money leaving.
 final _receipt = _rx(
@@ -176,6 +204,11 @@ final _refundedTo = _rx(r'\brefunded\s+(?:to|into)\b');
 final _walletLoad = _rx(
   r'\b(?:add(?:ed)?\s+money|money\s+added|loaded|load|top[\s-]?up|topped\s+up|added|recharged)\b[^\n]{0,60}\b(?:wallet|upi\s*lite|pay\s+balance)\b'
   r'|\b(?:wallet|upi\s*lite)\b[^\n]{0,30}\b(?:load|loaded|top[\s-]?up|topped\s+up)\b',
+);
+// Paid out of a wallet: "Recharged … using Paytm Wallet". Spending, not
+// loading it.
+final _paidFromWallet = _rx(
+  r'\b(?:using|via|from|through)\s+(?:your\s+)?(?:(?!to\b)[a-z]+\s+){0,2}(?:wallet|pay\s+balance)\b',
 );
 final _notALoad = _rx(
   r'\b(?:cashback|refund(?:ed)?|reward|rewards|reversal|reversed)\b',
@@ -244,7 +277,7 @@ final _balanceAfter = _rx(
 const _honorific = r'(?:(?:mr|mrs|ms|miss|shri|smt|dr)\.?\s+)?';
 const _name = r"([a-z][a-z0-9&'* ]{0,40}?)";
 const _end =
-    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account|debited|credited|deducted)\b|\s+-)';
+    r'(?=\s*(?:$|[\n.;,(:/])|\s+(?:on|ref|refno|upi|via|from|avl|info|not|if|call|dt|dated|thru|towards|for|has|have|is|was|by|with|using|at|in|to|bal|incl|including|successful|successfully|done|completed|booking|executed|processed|a/?c|acct|account|debited|credited|deducted|auto[\s-]?pay|mandate|subscription)\b|\s+-)';
 final _upiPath = _rx(r'\bupi/(?:p2[am]/)?\d+/([a-z][^/\n.]{1,40})');
 final _debitPayees = [
   _rx(r'\b(?:invested|allotted|sip)\b[^\n]{0,40}?\bin\s+' + _name + _end),
@@ -286,7 +319,16 @@ final _atmWithdrawal = _rx(
   r'\b(?:withdrawn|withdrawal)\b[^\n]*\batm\b|\batm\b[^\n]*\bwithdrawn\b',
 );
 final _business = _rx(
-  r'\b(?:pvt|private|ltd|limited|llp|india|store|stores|services|technologies|solutions|pay|bank|mart|enterprises|restaurant|cafe|hotel)\b',
+  r'\b(?:pvt|private|ltd|limited|llp|india|store|stores|services|technologies|solutions|pay|bank|mart|enterprises|restaurant|cafe|hotel'
+  // What a shop sells, or is: "Sharma Sweets", "Apollo Pharmacy".
+  r'|sweets?|medicals?|pharmacy|pharma|chemists?|bakery|bakers|kirana|traders|trading|foods?|dhaba|general|stall|cent(?:er|re)|agency|agencies'
+  r'|motors|fuels?|petroleum|pizza|pizzeria|burgers?|coffee|chai|tea|juice|snacks|kitchen|biryani|bhojanalaya|canteen|mess|lodge|resort'
+  r'|cabs?|travels?|tours|salon|parlou?r|studio|electronics|mobiles?|fashions?|garments|textiles|footwear|opticals?|optics|clinic|hospital'
+  r'|diagnostics|labs?|school|academy|institute|college|classes|tuitions?|gym|fitness|fresh|bazaar|market|supermarket|hypermarket|industries'
+  r'|company|corporation|associates|brothers|bros|sons|international|retail|wholesale|distributors|supplies|hardware|paints|furniture'
+  r'|jewell?ers?|books|stationery|xerox|printers|garage|automobiles|dairy|vegetables|fruits|meat|chicken|bar|pub|lounge|bistro'
+  // What a payment is for, after a shop's name: "NETFLIX autopay".
+  r'|auto[\s-]?pay|mandate|subscriptions?|orders?|bill|recharge|payment|emi|nach|trip|rides?|bookings?|tickets?|money|wallet)\b',
 );
 const _acronyms = {
   'ATM',
@@ -400,16 +442,22 @@ SmsParse parseSms(String raw, {DateTime? now}) {
     return const SmsIgnored(IgnoreReason.otp);
   }
   if (_request.hasMatch(text)) return const SmsIgnored(IgnoreReason.request);
-  if (_upcoming.hasMatch(text)) return const SmsIgnored(IgnoreReason.upcoming);
+  // The next one due, under money that has already left, isn't this one.
+  final withoutNext = text.replaceAll(_nextDue, ' ');
+  final dueLater = _moved.hasMatch(withoutNext) ? withoutNext : text;
+  if (_upcoming.hasMatch(dueLater)) {
+    return const SmsIgnored(IgnoreReason.upcoming);
+  }
   final refundCredited =
       _refundWord.hasMatch(text) &&
       (_credited.hasMatch(text) || _refundedTo.hasMatch(text));
-  if (!refundCredited && _failed.hasMatch(text)) {
+  if (!refundCredited && _failed.hasMatch(text.replaceAll(_ifFailed, ' '))) {
     return const SmsIgnored(IgnoreReason.failed);
   }
   if (_ownCardPayment.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.ownTransfer);
   }
+  if (_cardBill.hasMatch(text)) return const SmsIgnored(IgnoreReason.cardBill);
   if (_ownAccount.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.ownTransfer);
   }
@@ -418,7 +466,9 @@ SmsParse parseSms(String raw, {DateTime? now}) {
       _shopReceipt.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.receipt);
   }
-  if (_walletLoad.hasMatch(text) && !_notALoad.hasMatch(text)) {
+  if (_walletLoad.hasMatch(text) &&
+      !_notALoad.hasMatch(text) &&
+      !_paidFromWallet.hasMatch(text)) {
     return const SmsIgnored(IgnoreReason.ownTransfer);
   }
   final accounts = _accountRef.allMatches(text).toList();
@@ -438,7 +488,23 @@ SmsParse parseSms(String raw, {DateTime? now}) {
 
   final payee = _payee(text, type);
   final date = _date(text, now);
-  final category = suggestCategory(type: type, text: text, payee: payee?.name);
+  // A person's name can hold a brand's word, like "Zara Khan", and the
+  // message other words, like the bank's own "Airtel Payments Bank": for a
+  // person, neither picks a category. Investing is never paying a person.
+  final fromText = suggestCategory(type: type, text: text, payee: payee?.name);
+  final toPerson =
+      type == TxnType.debit &&
+      payee != null &&
+      payee.isPerson &&
+      _isPersonName(payee.name) &&
+      // The rest of the message, the name aside, says it's investing.
+      !isInvestCategory(
+        suggestCategory(
+          type: type,
+          text: text.replaceRange(payee.start, payee.end, ' '),
+        ),
+      );
+  final category = toPerson ? null : fromText;
 
   return SmsTxn(
     amountPaise: amount.paise,
@@ -585,7 +651,9 @@ TxnType? _direction(String text) {
     return TxnType.debit;
   }
   if (credit != null) return TxnType.credit;
-  if (_weakDebit.hasMatch(text)) return TxnType.debit;
+  if (_weakDebit.hasMatch(text) || _paidFromWallet.hasMatch(text)) {
+    return TxnType.debit;
+  }
   return null;
 }
 
@@ -690,6 +758,34 @@ String? _cleanName(String raw) {
   if (name.length < 2 || _notAPayee.hasMatch(name)) return null;
   if (!RegExp('[A-Za-z]{2}').hasMatch(name)) return null;
   return _titleCase(name.length > 40 ? name.substring(0, 40).trim() : name);
+}
+
+/// Brands named like people: in a name of two or more words they're more
+/// likely someone's first name ("Zara Khan", "Dhan Singh") than the shop.
+const _nameLikeBrands = {
+  'zara',
+  'dhan',
+  'max',
+  'raymond',
+  'mango',
+  'arrow',
+  'lakme',
+  'tanishq',
+};
+
+/// Whether [name], a payee that reads like a person's, is one: two to four
+/// words that, brands named like people aside, say nothing of a shop.
+/// "Zara Khan" and "Dhan Singh" are; "Zara" alone, "HP Petrol Pump" and
+/// "Shree Ganesh Mandir Trust" aren't.
+bool _isPersonName(String name) {
+  final words = name.split(' ');
+  if (words.length < 2) return false;
+  final rest = [
+    for (final word in words)
+      if (!_nameLikeBrands.contains(word.toLowerCase())) word,
+  ].join(' ');
+  return rest.isEmpty ||
+      suggestCategory(type: TxnType.debit, text: rest, payee: rest) == null;
 }
 
 /// Whether an SMS payee's name reads like a person's rather than a shop's:

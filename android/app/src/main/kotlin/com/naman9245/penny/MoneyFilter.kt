@@ -28,8 +28,21 @@ object MoneyFilter {
         CURRENCY.containsMatchIn(text) ||
             (PLAIN_AMOUNT.containsMatchIn(text) && MONEY_WORD.containsMatchIn(text))
 
-    /** A bank's sender code, with or without its route: "JM-HDFCBK-S", "HDFCBK". */
-    private val SENDER_CODE = Regex("""^(?:[A-Z]{2}-)?[A-Z0-9]{5,9}(?:-[A-Z])?$""")
+    /**
+     * A bank's sender code with its route: "JM-HDFCBK-S". Must match
+     * _senderCode in lib/services/sms_parser.dart.
+     */
+    private val ROUTED_CODE = Regex(
+        """^[A-Z]{2}-[A-Z0-9]{3,9}(?:-[A-Z])?$""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * A bare sender code: six capitals or digits, a letter first, like
+     * "HDFCBK". A contact named "Rahul" isn't one. Must match _bareSenderCode
+     * in lib/services/sms_parser.dart.
+     */
+    private val BARE_CODE = Regex("""^[A-Z][A-Z0-9]{5}$""")
 
     /**
      * A money brand's name, as the Messages app may show a bank's sender
@@ -62,7 +75,8 @@ object MoneyFilter {
      */
     fun fromMoneySender(sender: String, body: String): Boolean {
         val name = sender.trim()
-        return SENDER_CODE.matches(name.uppercase()) && name.any { it.isLetter() } ||
+        return ROUTED_CODE.matches(name) ||
+            BARE_CODE.matches(name) ||
             MONEY_BRAND.containsMatchIn(name) ||
             MASKED_ACCOUNT.containsMatchIn(body)
     }
