@@ -116,6 +116,42 @@ void main() {
     expect(justReachedGoal(both.take(1), today), isNull);
   });
 
+  test('goals still going come first, then those past their date, then '
+      'those reached', () {
+    // As the database gives them: soonest date first.
+    final listed = inListOrder(
+      goalProgress(
+        [
+          goal(id: 'long-passed', deadline: DateTime(2026, 9, 30)),
+          goal(id: 'reached-late', deadline: DateTime(2026, 10, 20)),
+          goal(id: 'passed', deadline: DateTime(2026, 10, 31)),
+          goal(id: 'today', deadline: DateTime(2026, 11, 2)),
+          goal(id: 'soon', deadline: DateTime(2026, 11, 20)),
+          goal(id: 'soon-too', deadline: DateTime(2026, 11, 20)),
+          goal(id: 'reached', deadline: DateTime(2027, 1, 1)),
+          goal(id: 'far', deadline: DateTime(2027, 2, 15)),
+        ],
+        [
+          money(15000, DateTime(2026, 10, 5), goalId: 'reached'),
+          money(15000, DateTime(2026, 11, 1), goalId: 'reached-late'),
+        ],
+      ),
+      today,
+    );
+    expect(
+      [for (final g in listed) g.goal.id],
+      [
+        // Still going, soonest first; a date of today has not passed yet.
+        'today', 'soon', 'soon-too', 'far',
+        // Past their date, the one just gone first.
+        'passed', 'long-passed',
+        // Reached, the latest first, even one reached after its date.
+        'reached-late', 'reached',
+      ],
+    );
+    expect(inListOrder(const [], today), isEmpty);
+  });
+
   test('saved in a month counts money in, less taken out', () {
     final deposits = [
       money(500, DateTime(2026, 10, 31, 23)),

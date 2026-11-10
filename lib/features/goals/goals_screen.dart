@@ -25,7 +25,7 @@ class GoalsScreen extends ConsumerWidget {
     final goals = ref.watch(goalProgressProvider);
     final deposits = ref.watch(goalDepositsProvider).value ?? const [];
     final month = monthStart(now);
-    final list = goals.value ?? const <GoalProgress>[];
+    final list = inListOrder(goals.value ?? const [], now);
 
     return SafeArea(
       bottom: false,
@@ -156,9 +156,15 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final goal = progress.goal;
+    final missed = progress.isMissed(today);
     return BrutalCard(
       key: ValueKey('goal-${goal.id}'),
-      color: progress.reached ? AppColors.sky : AppColors.white,
+      // A goal past its date has ended, so it goes the page's own cream.
+      color: progress.reached
+          ? AppColors.sky
+          : missed
+          ? AppColors.cream
+          : AppColors.white,
       onTap: () => context.push('/goals/${goal.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +177,11 @@ class _GoalCard extends StatelessWidget {
                   mood: PennyMood.celebrating,
                   size: 40,
                   bob: false,
-                ),
+                )
+              else if (missed) ...[
+                const SizedBox(width: 8),
+                const DatePassedPill(),
+              ],
             ],
           ),
           const SizedBox(height: 10),

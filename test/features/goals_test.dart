@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/data/goal_repository.dart';
 import 'package:penny/features/goals/goal_screen.dart';
+import 'package:penny/widgets/brutal_card.dart';
 
 import '../helpers/app_harness.dart';
 
@@ -154,6 +156,44 @@ void main() {
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
     expect(find.text('−₹500'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('a goal past its date looks ended, below one still going', (
+    tester,
+  ) async {
+    final db = await pumpApp(
+      tester,
+      seedDb: (db) async {
+        await seedGoal(db);
+        await GoalRepository(db).add(
+          title: 'New phone',
+          targetPaise: 3000000,
+          deadline: DateTime.now().subtract(const Duration(days: 10)),
+        );
+      },
+    );
+    await openGoals(tester);
+
+    expect(find.text('Date passed'), findsOneWidget);
+    final live = find.ancestor(
+      of: find.text('Delhi trip'),
+      matching: find.byType(BrutalCard),
+    );
+    final passed = find.ancestor(
+      of: find.text('Date passed'),
+      matching: find.byType(BrutalCard),
+    );
+    expect(
+      find.descendant(of: passed, matching: find.text('New phone')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(passed).dy,
+      greaterThan(tester.getTopLeft(live).dy),
+    );
+    expect(tester.widget<BrutalCard>(passed).color, AppColors.cream);
+    expect(tester.widget<BrutalCard>(live).color, AppColors.white);
     await closeApp(tester, db);
   });
 

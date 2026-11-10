@@ -90,6 +90,27 @@ GoalProgress _progressOf(Goal goal, List<GoalDeposit> deposits) {
   return GoalProgress(goal: goal, savedPaise: saved, reachedOn: reachedOn);
 }
 
+/// [goals] in the order Penny lists them: those still going, soonest date
+/// first, then those whose date has passed, the latest first, then those
+/// reached, the latest first. Goals that tie keep the order given.
+List<GoalProgress> inListOrder(Iterable<GoalProgress> goals, DateTime today) {
+  int group(GoalProgress g) => g.reached ? 2 : (g.isMissed(today) ? 1 : 0);
+  final ordered = goals.indexed.toList()
+    ..sort((a, b) {
+      final (i, x) = a;
+      final (j, y) = b;
+      final byGroup = group(x).compareTo(group(y));
+      if (byGroup != 0) return byGroup;
+      final byDate = switch (group(x)) {
+        0 => x.goal.deadline.compareTo(y.goal.deadline),
+        1 => y.goal.deadline.compareTo(x.goal.deadline),
+        _ => y.reachedOn!.compareTo(x.reachedOn!),
+      };
+      return byDate != 0 ? byDate : i.compareTo(j);
+    });
+  return [for (final (_, goal) in ordered) goal];
+}
+
 /// Put in, less taken out, between [from] and [to] across every goal.
 int savedBetween(Iterable<GoalDeposit> deposits, DateTime from, DateTime to) =>
     deposits
