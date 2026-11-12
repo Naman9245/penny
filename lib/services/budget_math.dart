@@ -282,17 +282,11 @@ Map<int, PennyMood> dayMoods({
 
 /// How a month went, for the card under the mood calendar.
 typedef MonthMood = ({
-  /// Happy, worried or sad, by the average day.
+  /// Happy, worried or sad: the face most days had.
   PennyMood mood,
 
   /// Everyday spending on the days that have a face, as Home counts it.
   int spentPaise,
-
-  /// The days that have a face.
-  int days,
-
-  /// [spentPaise] ÷ [days], to the rupee.
-  int averagePaise,
 
   /// How many days had each face.
   Map<PennyMood, int> counts,
@@ -302,10 +296,12 @@ typedef MonthMood = ({
   List<String> categoryNotes,
 });
 
-/// [month]'s mood from its days' faces in [moods]: the everyday spending of
-/// the days that have one, with what came back taken off as on Home, ÷
-/// those days, against the daily share, by the same rule as a single day.
-/// Null without an everyday budget, or before any day has a face.
+/// [month]'s mood from its days' faces in [moods]: the face most of them
+/// had, of happy, worried and sad, so a month of happy days with a few sad
+/// ones is happy. A tie goes to the worse face, and goal days count for
+/// neither. With it, the everyday spending of the days that have a face,
+/// with what came back taken off as on Home. Null without an everyday
+/// budget, or before any day has a face.
 MonthMood? monthMood({
   required Budget budget,
   required Iterable<Txn> monthTxns,
@@ -315,7 +311,6 @@ MonthMood? monthMood({
   final everyday = budget.everydayPaise;
   if (everyday == 0 || moods.isEmpty) return null;
   final start = monthStart(month);
-  final daysInMonth = DateTime(start.year, start.month + 1, 0).day;
   final inMonth = [
     for (final txn in monthTxns)
       if (monthStart(txn.occurredAt) == start) txn,
@@ -327,11 +322,24 @@ MonthMood? monthMood({
           ]).spentByCategory.entries
           .where((entry) => _everyday(budget, entry.key))
           .fold(0, (sum, entry) => sum + entry.value);
-  final days = moods.length;
 
   final counts = <PennyMood, int>{};
   for (final mood in moods.values) {
     counts[mood] = (counts[mood] ?? 0) + 1;
+  }
+  // Best to worst, so a later face with as many days wins the tie.
+  var mood = PennyMood.happy;
+  var most = 0;
+  for (final face in const [
+    PennyMood.happy,
+    PennyMood.worried,
+    PennyMood.sad,
+  ]) {
+    final days = counts[face] ?? 0;
+    if (days > 0 && days >= most) {
+      mood = face;
+      most = days;
+    }
   }
 
   final byCategory = MoneyTotals.of(inMonth).spentByCategory;
@@ -344,14 +352,7 @@ MonthMood? monthMood({
               '${formatPaise(amount)}',
   ];
 
-  return (
-    mood: _levels[_againstShare(spent, days, everyday, daysInMonth)],
-    spentPaise: spent,
-    days: days,
-    averagePaise: (spent / days / 100).round() * 100,
-    counts: counts,
-    categoryNotes: notes,
-  );
+  return (mood: mood, spentPaise: spent, counts: counts, categoryNotes: notes);
 }
 
 /// What Penny says on Home, about today: by today's face, and whether

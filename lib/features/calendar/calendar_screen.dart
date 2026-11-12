@@ -99,9 +99,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           _MonthGrid(month: month, moods: moods, today: today, onDay: openDay),
           const SizedBox(height: 14),
           const _Legend(),
-          if ((summary, share) case (final summary?, final share?)) ...[
+          if (summary != null) ...[
             const SizedBox(height: 18),
-            _MonthSummary(summary: summary, sharePaise: share),
+            _MonthSummary(summary: summary, budgetPaise: everyday),
           ],
         ],
       ),
@@ -298,21 +298,21 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-/// How the month went, in one card: its average day against the share,
-/// which sets the month's face, how many days had each face, and each
-/// everyday category over or near its budget.
+/// How the month went, in one card: the face most days had, which is the
+/// month's, how many days had each face, how much of the everyday budget
+/// is spent, and each everyday category over or near its budget.
 class _MonthSummary extends StatelessWidget {
-  const _MonthSummary({required this.summary, required this.sharePaise});
+  const _MonthSummary({required this.summary, required this.budgetPaise});
 
   final MonthMood summary;
-  final int sharePaise;
+
+  /// The month's everyday budget.
+  final int budgetPaise;
 
   static const _lines = {
-    PennyMood.happy: 'Your average day is within your share. Keep it up!',
-    PennyMood.worried: 'Your average day is a little over your share.',
-    PennyMood.sad:
-        "Your average day is well over your share. Let's plan a "
-        'fix!',
+    PennyMood.happy: 'Most days were within your share. Keep it up!',
+    PennyMood.worried: 'Most days went a little over your share.',
+    PennyMood.sad: "Most days went well over your share. Let's plan a fix!",
   };
 
   @override
@@ -331,7 +331,6 @@ class _MonthSummary extends StatelessWidget {
       count(PennyMood.sad, 'sad', 'sad'),
       count(PennyMood.celebrating, 'goal day', 'goal days'),
     ].where((part) => part.isNotEmpty).join(' · ');
-    final days = summary.days == 1 ? '1 day' : '${summary.days} days';
 
     return BrutalCard(
       key: const ValueKey('month-summary'),
@@ -349,20 +348,14 @@ class _MonthSummary extends StatelessWidget {
                 Text(_lines[mood] ?? mood.line, style: AppText.body),
                 const SizedBox(height: 8),
                 Text(
-                  'Average day: ${formatPaise(summary.averagePaise)} of your '
-                  '${formatPaise(sharePaise)} share',
-                  key: const ValueKey('month-average'),
+                  tally,
+                  key: const ValueKey('month-tally'),
                   style: AppText.bodyStrong,
                 ),
                 Text(
-                  '${formatPaise(summary.spentPaise)} over $days',
+                  '${formatPaise(summary.spentPaise)} of your '
+                  '${formatPaise(budgetPaise)} everyday budget spent',
                   key: const ValueKey('month-spent'),
-                  style: AppText.small.copyWith(color: AppColors.ink),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tally,
-                  key: const ValueKey('month-tally'),
                   style: AppText.small.copyWith(color: AppColors.ink),
                 ),
                 for (final (i, note) in summary.categoryNotes.indexed)
@@ -420,8 +413,8 @@ class _Legend extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Each day goes by what you spent that day. The month goes by your '
-          "average day. Home shows today's face.",
+          'Each day goes by what you spent that day. The month goes by the '
+          "face most days had. Home shows today's face.",
           style: AppText.small,
         ),
       ],

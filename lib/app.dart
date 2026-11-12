@@ -148,8 +148,6 @@ class _PennyAppState extends ConsumerState<PennyApp> {
                   '${kindLabel(firstSms.type, first.categoryId!)} '
                   'from a notification'
             : 'Added ${saved.length} payments from notifications',
-        if (saved.length == 1 && first.note != null)
-          'It may repeat ${first.note} you typed',
         if (waiting.isNotEmpty) '${waiting.length} more to check on Home',
       ].join('. '),
       onUndo: () async {

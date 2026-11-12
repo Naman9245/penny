@@ -106,6 +106,19 @@ class SmsTxn extends SmsParse {
     preview: preview,
   );
 
+  /// The same payment, going in [categoryId].
+  SmsTxn withCategory(String categoryId) => SmsTxn(
+    amountPaise: amountPaise,
+    type: type,
+    payee: payee,
+    payeeIsPerson: payeeIsPerson,
+    occurredAt: occurredAt,
+    hasTime: hasTime,
+    suggestedCategoryId: categoryId,
+    dedupeKey: dedupeKey,
+    preview: preview,
+  );
+
   /// The same money, coming back for the payment to [payee] in
   /// [categoryId]: it goes in that category, as money back.
   SmsTxn backFor({

@@ -473,38 +473,154 @@ void main() {
       expect(saved.categoryId, 'invest');
     });
 
+    Future<String> typeLunch() => txns.add(
+      amountPaise: 25000,
+      type: TxnType.debit,
+      categoryId: 'food',
+      occurredAt: DateTime(2026, 11, 5, 9),
+      merchant: 'Lunch',
+    );
+
     test(
-      'one like an entry typed by hand that day is saved, saying so',
+      'one typed by hand that day is that entry, never saved again',
       () async {
-        await txns.add(
-          amountPaise: 25000,
-          type: TxnType.debit,
-          categoryId: 'food',
-          occurredAt: DateTime(2026, 11, 5, 9),
-          merchant: 'Lunch',
-        );
+        final typed = await typeLunch();
         source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
         final read = (await take(CaptureMode.save)).single;
-        expect(read.outcome, CaptureOutcome.saved);
-        expect(read.note, '₹250 · Lunch');
-        expect(await entries(), hasLength(2));
+        expect(read.outcome, CaptureOutcome.letGo);
+        expect(read.what, 'already typed by you');
+        expect([for (final t in await entries()) t.id], [typed]);
+
+        // Known now: read again, it's passed over.
+        source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+        expect(await take(CaptureMode.save), isEmpty);
+        expect(await entries(), hasLength(1));
       },
     );
 
-    test('waiting to be checked, one like an entry says which', () async {
+    test('two payments of one amount from one bank, one typed, make two '
+        'entries', () async {
+      await typeLunch();
+      source.waiting.addAll([
+        sms('AX-HDFCBK', bankSwiggy),
+        sms(
+          'AX-HDFCBK',
+          'Rs.250.00 debited from A/c XX4821 to UBER. UPI Ref 630512345999.',
+          when: at.add(const Duration(hours: 2)),
+        ),
+      ]);
+      final reads = await take(CaptureMode.save);
+      expect(
+        [for (final r in reads) r.outcome],
+        [CaptureOutcome.letGo, CaptureOutcome.saved],
+      );
+      expect(await entries(), hasLength(2));
+    });
+
+    test('one typed on another day is a payment of its own', () async {
       await txns.add(
         amountPaise: 25000,
         type: TxnType.debit,
         categoryId: 'food',
-        occurredAt: DateTime(2026, 11, 5, 9),
+        occurredAt: DateTime(2026, 11, 4, 9),
         merchant: 'Lunch',
       );
       source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
       expect(
-        [for (final r in await take(CaptureMode.check)) r.outcome],
-        [CaptureOutcome.waiting],
+        (await take(CaptureMode.save)).single.outcome,
+        CaptureOutcome.saved,
       );
-      expect((await waiting()).single.lookalike, '₹250 · Lunch at 9:00 AM');
+      expect(await entries(), hasLength(2));
+    });
+
+    test('one from a read Penny has no record of, like one back from the '
+        'backup, is that entry', () async {
+      await txns.add(
+        amountPaise: 25000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: at.subtract(const Duration(minutes: 10)),
+        merchant: 'Swiggy',
+        source: TxnSource.sms,
+        dedupeKey: 'saved on another phone',
+      );
+      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+      expect((await take(CaptureMode.save)).single.what, 'already saved');
+      expect(await entries(), hasLength(1));
+    });
+
+    test(
+      'waiting to be checked, one typed by hand that day is that entry',
+      () async {
+        await typeLunch();
+        source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+        expect(
+          [for (final r in await take(CaptureMode.check)) r.what],
+          ['already typed by you'],
+        );
+        expect(await waiting(), isEmpty);
+      },
+    );
+
+    test(
+      'waiting to be checked, one like another waiting says which',
+      () async {
+        source.waiting.addAll([
+          app('gpay', '₹250 paid to Swiggy', 'Payment successful'),
+          sms(
+            'AX-HDFCBK',
+            bankSwiggy,
+            when: at.add(const Duration(minutes: 2)),
+          ),
+        ]);
+        await take(CaptureMode.check);
+        final held = await waiting();
+        expect(held, hasLength(2));
+        expect(held.first.lookalike, '₹250 · Swiggy at 2:30 PM, also waiting');
+      },
+    );
+
+    test('a name met before goes where the user put it', () async {
+      // Penny put Ramesh Kumar in People; the user moved him to Food.
+      await txns.add(
+        amountPaise: 12000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: DateTime(2026, 11, 1, 13),
+        merchant: 'Ramesh Kumar',
+      );
+      const ramesh =
+          'Rs.250.00 debited from A/c XX4821 to RAMESH KUMAR. UPI Ref '
+          '630512345678.';
+      source.waiting.add(sms('AX-HDFCBK', ramesh));
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.categoryId, 'food');
+      final saved = await txns.findById(read.entryId!);
+      expect(saved!.categoryId, 'food');
+
+      // Waiting to be checked, it's offered there too.
+      source.waiting.add(
+        sms(
+          'AX-HDFCBK',
+          ramesh.replaceAll('630512345678', '630512345700'),
+          when: at.add(const Duration(hours: 3)),
+        ),
+      );
+      await take(CaptureMode.check);
+      expect((await waiting()).single.suggestedCategoryId, 'food');
+    });
+
+    test('a name never met goes in the guessed category', () async {
+      await txns.add(
+        amountPaise: 12000,
+        type: TxnType.credit,
+        categoryId: 'salary',
+        occurredAt: DateTime(2026, 11, 1, 13),
+        merchant: 'Swiggy',
+      );
+      source.waiting.add(sms('AX-HDFCBK', bankSwiggy));
+      // Only a spend's category for a spend.
+      expect((await take(CaptureMode.save)).single.categoryId, 'food');
     });
 
     test('saved straight away, then undone: it waits to be checked', () async {
@@ -573,7 +689,6 @@ void main() {
       CaptureOutcome outcome,
       Capture capture, {
       String? entryId,
-      String? note,
     }) {
       final sms = readCapture(capture)!;
       return (
@@ -586,7 +701,6 @@ void main() {
         sms: sms,
         categoryId: sms.suggestedCategoryId,
         entryId: entryId,
-        note: note,
       );
     }
 
@@ -602,7 +716,6 @@ void main() {
       sms: null,
       categoryId: null,
       entryId: null,
-      note: null,
     );
 
     test('one waiting, with the category Penny guessed', () {
@@ -628,17 +741,6 @@ void main() {
       ])!;
       expect(notice.title, 'Penny saved −₹250 · Swiggy');
       expect(notice.text, '🍔 Food. Open Penny to change it or undo it.');
-    });
-
-    test('one saved that may repeat an entry typed by hand', () {
-      final notice = noticeFor([
-        read(CaptureOutcome.saved, swiggy, entryId: 'e1', note: '₹250 · Lunch'),
-      ])!;
-      expect(
-        notice.text,
-        '🍔 Food. May repeat ₹250 · Lunch you typed. Open Penny to change it '
-        'or undo it.',
-      );
     });
 
     test('several at once, a line each', () {
@@ -1122,5 +1224,161 @@ void main() {
         expect(held.type, TxnType.credit);
       },
     );
+  });
+
+  test('how far back a month or two goes, in days', () {
+    expect(lookBackDays(1, DateTime(2026, 12, 11, 15)), 30);
+    expect(lookBackDays(2, DateTime(2026, 12, 11)), 61);
+    expect(lookBackDays(3, DateTime(2026, 11, 11)), 92);
+  });
+
+  group('payments saved twice', () {
+    late AppDatabase db;
+    late TxnRepository txns;
+    late CaptureRepository captures;
+    // Moved on by each test, so entries are made one after another.
+    var clock = at;
+
+    setUp(() {
+      clock = at;
+      db = AppDatabase(NativeDatabase.memory());
+      txns = TxnRepository(db, clock: () => clock);
+      captures = CaptureRepository(db, clock: () => clock);
+    });
+    tearDown(() => db.close());
+
+    Future<List<Txn>> live() =>
+        (db.select(db.txns)..where((t) => t.deletedAt.isNull())).get();
+
+    // An entry saved from [capture] the way Penny saves one, a minute on.
+    Future<String> savedFrom(Capture capture) async {
+      clock = clock.add(const Duration(minutes: 1));
+      final sms = readCapture(capture)!;
+      final when = occurredAtOf(sms, capture.at);
+      final id = await txns.add(
+        amountPaise: sms.amountPaise,
+        type: sms.type,
+        categoryId: sms.suggestedCategoryId ?? fallbackCategoryOf(sms),
+        occurredAt: when,
+        merchant: sms.payee,
+        source: TxnSource.sms,
+        dedupeKey: sms.dedupeKey,
+      );
+      await captures.recordSaved(
+        sms,
+        app: capture.app,
+        at: when,
+        entryId: id,
+        sender: capture.app == 'sms' ? capture.title : null,
+      );
+      return id;
+    }
+
+    Future<String> typeLunch() {
+      clock = clock.add(const Duration(minutes: 1));
+      return txns.add(
+        amountPaise: 25000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: DateTime(2026, 11, 5, 9),
+        merchant: 'Lunch',
+      );
+    }
+
+    const ramesh =
+        'Rs.250.00 debited from A/c XX4821 to RAMESH KUMAR. UPI Ref '
+        '630512345678.';
+
+    test('one read that copies an entry typed that day is found, taken off, '
+        'and can come back', () async {
+      final typed = await typeLunch();
+      final copy = await savedFrom(sms('AX-HDFCBK', ramesh));
+      final found = await findReadCopies(db);
+      expect([for (final c in found) (c.copy.id, c.of.id)], [(copy, typed)]);
+
+      final moved = await removeReadCopies(db, txns, found);
+      expect([for (final t in await live()) t.id], [typed]);
+      expect(await findReadCopies(db), isEmpty);
+
+      // Read again, it's known: never saved a second time.
+      final source = FakeSource()..waiting.add(sms('AX-HDFCBK', ramesh));
+      final reads = await takeCaptures(
+        source: source,
+        db: db,
+        txns: txns,
+        captures: captures,
+        mode: CaptureMode.save,
+        now: at,
+      );
+      expect(reads, isEmpty);
+
+      await restoreReadCopies(db, txns, moved);
+      expect(await live(), hasLength(2));
+      expect(await findReadCopies(db), hasLength(1));
+    });
+
+    test('the one typed by hand stays, even typed after', () async {
+      final copy = await savedFrom(sms('AX-HDFCBK', ramesh));
+      final typed = await typeLunch();
+      final found = (await findReadCopies(db)).single;
+      expect((found.copy.id, found.of.id), (copy, typed));
+    });
+
+    test('two payments of one amount from one bank are two', () async {
+      await savedFrom(sms('AX-HDFCBK', ramesh));
+      await savedFrom(
+        sms(
+          'AX-HDFCBK',
+          'Rs.250.00 debited from A/c XX4821 to UBER. UPI Ref 630512345999.',
+          when: at.add(const Duration(minutes: 5)),
+        ),
+      );
+      expect(await findReadCopies(db), isEmpty);
+    });
+
+    test('one typed copies only one read from each place', () async {
+      final typed = await typeLunch();
+      final first = await savedFrom(sms('AX-HDFCBK', ramesh));
+      await savedFrom(
+        sms(
+          'AX-HDFCBK',
+          'Rs.250.00 debited from A/c XX4821 to UBER. UPI Ref 630512345999.',
+          when: at.add(const Duration(hours: 2)),
+        ),
+      );
+      final found = (await findReadCopies(db)).single;
+      expect((found.copy.id, found.of.id), (first, typed));
+    });
+
+    test(
+      'an SMS saved after an entry back from the backup copies it',
+      () async {
+        clock = clock.add(const Duration(minutes: 1));
+        final backup = await txns.add(
+          amountPaise: 25000,
+          type: TxnType.debit,
+          categoryId: 'food',
+          occurredAt: at.subtract(const Duration(minutes: 10)),
+          merchant: 'Swiggy',
+          source: TxnSource.sms,
+          dedupeKey: 'saved on another phone',
+        );
+        final copy = await savedFrom(sms('AX-HDFCBK', bankSwiggy));
+        final found = (await findReadCopies(db)).single;
+        expect((found.copy.id, found.of.id), (copy, backup));
+      },
+    );
+
+    test("an app's notice and an SMS of one payment: the later one copies the "
+        'other', () async {
+      final notice = await savedFrom(
+        app('gpay', '₹250 paid to Swiggy', 'Payment successful'),
+      );
+      final copy = await savedFrom(
+        sms('AX-HDFCBK', bankSwiggy, when: at.add(const Duration(minutes: 3))),
+      );
+      final found = (await findReadCopies(db)).single;
+      expect((found.copy.id, found.of.id), (copy, notice));
+    });
   });
 }

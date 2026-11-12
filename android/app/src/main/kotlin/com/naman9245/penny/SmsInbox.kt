@@ -21,8 +21,11 @@ object SmsInbox {
 
     private const val DAY_MS = 24L * 60 * 60 * 1000
 
-    /** How far back the first look goes: three months, so Penny starts full. */
-    private const val FIRST_LOOK_MS = 90 * DAY_MS
+    /**
+     * How far back the first look goes: two days. Older ones wait until the
+     * user picks how far back in Settings.
+     */
+    private const val FIRST_LOOK_MS = 2 * DAY_MS
 
     /** Whether the user let Penny receive and read SMS. */
     fun allowed(context: Context): Boolean =
@@ -49,7 +52,7 @@ object SmsInbox {
 
     /**
      * Looks at the SMS that came since the last look (the first time, the
-     * last three months) and queues the payments among them. How many were
+     * last two days) and queues the payments among them. How many were
      * new.
      */
     @Synchronized

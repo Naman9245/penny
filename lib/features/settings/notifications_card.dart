@@ -4,19 +4,41 @@ import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/core/utils/money.dart';
+import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/captures.dart';
+import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_pill.dart';
+import 'package:penny/widgets/sliding_toggle.dart';
+import 'package:penny/widgets/undo_snack_bar.dart';
 
 /// "What Penny read", newest first.
 final captureLogProvider = StreamProvider.autoDispose<List<CaptureLogEntry>>(
   (ref) => ref.watch(prefsRepositoryProvider).watchCaptureLog(),
 );
+
+/// Entries Penny saved twice from payments she read, kept up to date.
+final readCopiesProvider = StreamProvider.autoDispose<List<ReadCopy>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db
+      .customSelect('SELECT 1', readsFrom: {db.txns, db.pendingCaptures})
+      .watch()
+      .asyncMap((_) => findReadCopies(db));
+});
+
+/// How far back reading older bank SMS can go, in months.
+const _lookBackMonths = [1, 2, 3];
+
+/// "the last month", "the last 2 months".
+String _lastMonths(int months) =>
+    months == 1 ? 'the last month' : 'the last $months months';
 
 /// Settings' "Read payment notifications": whether Penny may, the way to
 /// allow it on Android's own page, what happens to a payment she reads, and
@@ -35,9 +57,11 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
 
   var _showAll = false;
 
-  /// While Penny reads the last three months of SMS, and what she found.
+  /// How far back to read older SMS, in months; while Penny reads them;
+  /// and what she found, and how far back she looked.
+  var _months = 1;
   var _lookingBack = false;
-  int? _lookedBack;
+  ({int found, int months})? _lookedBack;
 
   @override
   void initState() {
@@ -76,16 +100,32 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
   }
 
   Future<void> _lookBack() async {
+    final months = _months;
     setState(() => _lookingBack = true);
     final found = await lookBackAtSms(
       inbox: ref.read(notificationInboxProvider),
       intake: ref.read(captureIntakeProvider),
+      days: lookBackDays(months, ref.read(todayProvider)),
     );
     if (!mounted) return;
     setState(() {
       _lookingBack = false;
-      _lookedBack = found;
+      _lookedBack = (found: found, months: months);
     });
+  }
+
+  Future<void> _removeCopies(List<ReadCopy> copies) async {
+    final db = ref.read(appDatabaseProvider);
+    final txns = ref.read(txnRepositoryProvider);
+    final moved = await removeReadCopies(db, txns, copies);
+    if (!mounted) return;
+    showUndoSnackBar(
+      context,
+      message: copies.length == 1
+          ? 'Took off 1 copy'
+          : 'Took off ${copies.length} copies',
+      onUndo: () => restoreReadCopies(db, txns, moved),
+    );
   }
 
   Future<void> _allowNotifications() async {
@@ -100,6 +140,7 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
     final notifies = ref.watch(pennyNotifiesProvider).value ?? true;
     final readsSms = ref.watch(smsAccessProvider).value ?? false;
     final log = ref.watch(captureLogProvider).value ?? const [];
+    final copies = ref.watch(readCopiesProvider).value ?? const [];
     final today = ref.watch(todayProvider);
     final mode = ref.watch(captureModeProvider);
     final setMode = ref.read(captureModeProvider.notifier).set;
@@ -206,29 +247,61 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
             style: AppText.small,
           ),
           if (readsSms) ...[
+            const SizedBox(height: 14),
+            const Text('Read older bank SMS', style: AppText.label),
+            const SizedBox(height: 4),
+            const Text(
+              'Pick how far back. A payment already in your entries is '
+              'never added twice.',
+              style: AppText.small,
+            ),
+            const SizedBox(height: 8),
+            // Smaller, rather than cut off, on a narrow phone or at a large
+            // text size.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SlidingToggle<int>(
+                key: const ValueKey('sms-look-back-months'),
+                options: [
+                  for (final months in _lookBackMonths)
+                    ToggleOption(
+                      value: months,
+                      label: months == 1 ? '1 month' : '$months months',
+                      color: AppColors.yellow,
+                    ),
+                ],
+                value: _months,
+                onChanged: (months) => setState(() => _months = months),
+              ),
+            ),
             const SizedBox(height: 8),
             BrutalChip(
               key: const ValueKey('sms-look-back'),
-              label: _lookingBack ? 'Reading…' : 'Read the last 3 months',
+              label: _lookingBack ? 'Reading…' : 'Read ${_lastMonths(_months)}',
               icon: Icons.history_rounded,
               onTap: _lookingBack ? null : _lookBack,
             ),
-            if (_lookedBack case final found?) ...[
+            if (_lookedBack case (:final found, :final months)) ...[
               const SizedBox(height: 4),
               Text(
                 switch (found) {
-                  0 => 'Nothing new in the last 3 months.',
+                  0 => 'Nothing new in ${_lastMonths(months)}.',
                   1 =>
-                    'Penny found 1 payment message from the last 3 '
-                        "months. It's on Home.",
+                    'Penny found 1 payment message from '
+                        "${_lastMonths(months)}. It's on Home.",
                   _ =>
-                    'Penny found $found payment messages from the last 3 '
-                        "months. They're on Home.",
+                    'Penny found $found payment messages from '
+                        "${_lastMonths(months)}. They're on Home.",
                 },
                 key: const ValueKey('sms-looked-back'),
                 style: AppText.small.copyWith(color: AppColors.ink),
               ),
             ],
+          ],
+          if (copies.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _ReadCopies(copies: copies, onRemove: () => _removeCopies(copies)),
           ],
           const SizedBox(height: 14),
           const Text('When Penny reads a payment', style: AppText.label),
@@ -255,9 +328,9 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
           Text(
             mode == CaptureMode.check
                 ? 'They wait on Home for you to add or skip.'
-                : "They're saved as soon as Penny reads them. One like an "
-                      "entry you've typed says so, and you can change any "
-                      'of them.',
+                : "They're saved as soon as Penny reads them. One you've "
+                      "already typed isn't saved again, and you can change "
+                      'any of them.',
             style: AppText.small.copyWith(color: AppColors.ink),
           ),
           if (allowed || log.isNotEmpty) ...[
@@ -305,6 +378,89 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Entries Penny saved twice, each with the entry it copies, and the way to
+/// take the copies off.
+class _ReadCopies extends StatefulWidget {
+  const _ReadCopies({required this.copies, required this.onRemove});
+
+  final List<ReadCopy> copies;
+  final VoidCallback onRemove;
+
+  @override
+  State<_ReadCopies> createState() => _ReadCopiesState();
+}
+
+class _ReadCopiesState extends State<_ReadCopies> {
+  static const _short = 5;
+
+  var _showAll = false;
+
+  /// "−₹250 · Ramesh Kumar (People)".
+  static String _entry(Txn txn) {
+    final sign = txn.type == TxnType.debit ? '−' : '+';
+    final kind = kindLabel(txn.type, txn.categoryId);
+    final name = txn.merchant;
+    return '$sign${formatPaise(txn.amountPaise)} · '
+        '${name == null ? kind : '$name ($kind)'}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final copies = widget.copies;
+    final shown = _showAll ? copies : copies.take(_short);
+    final count = copies.length;
+    return Column(
+      key: const ValueKey('read-copies'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Saved twice', style: AppText.label),
+        const SizedBox(height: 4),
+        Text(
+          count == 1
+              ? 'Penny saved 1 payment twice: once as the entry you already '
+                    'had, and once from what she read. Take the copy off and '
+                    'it counts once.'
+              : 'Penny saved $count payments twice: once as the entry you '
+                    'already had, and once from what she read. Take the '
+                    'copies off and each counts once.',
+          style: AppText.small.copyWith(color: AppColors.ink),
+        ),
+        const SizedBox(height: 6),
+        for (final (i, (:copy, :of)) in shown.indexed)
+          Padding(
+            key: ValueKey('read-copy-$i'),
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Text(
+              '${DateFormat('d MMM').format(copy.occurredAt)}: '
+              '${_entry(copy)}, a copy of ${_entry(of)}',
+              style: AppText.small,
+            ),
+          ),
+        if (count > _short)
+          TextButton(
+            key: const ValueKey('read-copies-all'),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              foregroundColor: AppColors.ink,
+              textStyle: AppText.label,
+            ),
+            onPressed: () => setState(() => _showAll = !_showAll),
+            child: Text(_showAll ? 'Show fewer' : 'Show all $count'),
+          ),
+        const SizedBox(height: 8),
+        BrutalButton(
+          key: const ValueKey('read-copies-remove'),
+          label: count == 1 ? 'Take off 1 copy' : 'Take off $count copies',
+          icon: Icons.delete_sweep_outlined,
+          color: AppColors.yellow,
+          expand: true,
+          onPressed: widget.onRemove,
+        ),
+      ],
     );
   }
 }

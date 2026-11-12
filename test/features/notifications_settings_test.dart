@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
+import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/prefs_repository.dart';
+import 'package:penny/data/txn_repository.dart';
+import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/captures.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/app_harness.dart';
@@ -10,8 +14,9 @@ import '../helpers/app_harness.dart';
 void main() {
   /// Android's side of "penny/notifications", faked: [allowed] says whether
   /// Penny may read notifications, and [notifies] whether she may post her
-  /// own. What each ask to notify was called with goes in [asked]. Returns
-  /// every method called, in order.
+  /// own. What each ask to notify was called with goes in [asked], and each
+  /// look back at older SMS in [lookedBack]. Returns every method called, in
+  /// order.
   List<String> fakeAndroid(
     WidgetTester tester, {
     required bool allowed,
@@ -19,6 +24,7 @@ void main() {
     bool sms = false,
     List<Object?>? asked,
     List<Map<String, Object?>> lookBack = const [],
+    List<Object?>? lookedBack,
   }) {
     var batch = 0;
     final calls = <String>[];
@@ -27,6 +33,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call.method);
       if (call.method == 'askToNotify') asked?.add(call.arguments);
+      if (call.method == 'lookBack') lookedBack?.add(call.arguments);
       return switch (call.method) {
         'isEnabled' => allowed,
         'canNotify' => notifies,
@@ -202,9 +209,9 @@ void main() {
     await closeApp(tester, db);
   });
 
-  testWidgets('reading bank SMS: the last 3 months, a batch at a time', (
-    tester,
-  ) async {
+  testWidgets('reading older bank SMS: as far back as picked, a batch at a '
+      'time', (tester) async {
+    final lookedBack = <Object?>[];
     final calls = fakeAndroid(
       tester,
       allowed: true,
@@ -213,16 +220,135 @@ void main() {
         {'kept': 100, 'until': 1762000000000, 'done': false},
         {'kept': 3, 'until': 1762900000000, 'done': true},
       ],
+      lookedBack: lookedBack,
     );
     final db = await pumpApp(tester);
     await openSettings(tester);
+    // A month unless another is picked.
+    expect(find.text('Read the last month'), findsOneWidget);
+    await tapInView(tester, find.text('3 months'));
     await tapInView(tester, find.byKey(const ValueKey('sms-look-back')));
     await tester.pumpAndSettle();
     expect(calls.where((c) => c == 'lookBack'), hasLength(2));
+    expect((lookedBack.first! as Map)['days'], lookBackDays(3, DateTime.now()));
     expect(
       find.text(
         "Penny found 103 payment messages from the last 3 months. They're "
         'on Home.',
+      ),
+      findsOneWidget,
+    );
+    await closeApp(tester, db);
+  });
+
+  testWidgets('payments saved twice are listed, and taken off in one go', (
+    tester,
+  ) async {
+    fakeAndroid(tester, allowed: true, sms: true);
+    final day = DateTime.now().subtract(const Duration(days: 3));
+    final at = DateTime(day.year, day.month, day.day, 14, 30);
+    final db = await pumpApp(
+      tester,
+      seedDb: (db) async {
+        await TxnRepository(db, clock: () => at).add(
+          amountPaise: 25000,
+          type: TxnType.debit,
+          categoryId: 'food',
+          occurredAt: DateTime(at.year, at.month, at.day, 9),
+          merchant: 'Lunch',
+        );
+        // Then saved again from its bank SMS.
+        final sms = readCapture((
+          app: 'sms',
+          title: 'AX-HDFCBK',
+          text:
+              'Rs.250.00 debited from A/c XX4821 to RAMESH KUMAR. UPI Ref '
+              '630512345678.',
+          at: at,
+        ))!;
+        final copy =
+            await TxnRepository(
+              db,
+              clock: () => at.add(const Duration(minutes: 1)),
+            ).add(
+              amountPaise: 25000,
+              type: TxnType.debit,
+              categoryId: 'people',
+              occurredAt: at,
+              merchant: sms.payee,
+              source: TxnSource.sms,
+              dedupeKey: sms.dedupeKey,
+            );
+        await CaptureRepository(db).recordSaved(
+          sms,
+          app: 'sms',
+          at: at,
+          entryId: copy,
+          sender: 'AX-HDFCBK',
+        );
+      },
+    );
+    await openSettings(tester);
+    final copies = find.byKey(const ValueKey('read-copies'));
+    await tapInView(tester, find.byKey(const ValueKey('read-copies-remove')));
+    expect(copies, findsNothing);
+    expect(find.text('Took off 1 copy'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('a payment saved twice says which entry it copies', (
+    tester,
+  ) async {
+    fakeAndroid(tester, allowed: true, sms: true);
+    final day = DateTime.now().subtract(const Duration(days: 3));
+    final at = DateTime(day.year, day.month, day.day, 14, 30);
+    final db = await pumpApp(
+      tester,
+      seedDb: (db) async {
+        await TxnRepository(db, clock: () => at).add(
+          amountPaise: 25000,
+          type: TxnType.debit,
+          categoryId: 'food',
+          occurredAt: DateTime(at.year, at.month, at.day, 9),
+          merchant: 'Lunch',
+        );
+        final sms = readCapture((
+          app: 'sms',
+          title: 'AX-HDFCBK',
+          text:
+              'Rs.250.00 debited from A/c XX4821 to RAMESH KUMAR. UPI Ref '
+              '630512345678.',
+          at: at,
+        ))!;
+        final copy =
+            await TxnRepository(
+              db,
+              clock: () => at.add(const Duration(minutes: 1)),
+            ).add(
+              amountPaise: 25000,
+              type: TxnType.debit,
+              categoryId: 'people',
+              occurredAt: at,
+              merchant: sms.payee,
+              source: TxnSource.sms,
+              dedupeKey: sms.dedupeKey,
+            );
+        await CaptureRepository(db).recordSaved(
+          sms,
+          app: 'sms',
+          at: at,
+          entryId: copy,
+          sender: 'AX-HDFCBK',
+        );
+      },
+    );
+    await openSettings(tester);
+    await tapInView(tester, find.byKey(const ValueKey('read-copies')));
+    expect(find.text('Saved twice'), findsOneWidget);
+    expect(
+      find.text(
+        '${DateFormat('d MMM').format(at)}: −₹250 · Ramesh Kumar '
+        '(To people), a copy of −₹250 · Lunch (Food)',
       ),
       findsOneWidget,
     );

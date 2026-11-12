@@ -174,13 +174,15 @@ void main() {
       expect(days[10], PennyMood.happy);
     });
 
-    test('a category over its budget never saddens a day with nothing spent',
-        () {
-      const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
-      final over = [txn(2174, on(4))];
-      expect(moods(over, budget: split)[4], PennyMood.sad);
-      expect(today(over, budget: split), PennyMood.happy);
-    });
+    test(
+      'a category over its budget never saddens a day with nothing spent',
+      () {
+        const split = Budget(byCategory: {'food': 200000, 'fun': 700000});
+        final over = [txn(2174, on(4))];
+        expect(moods(over, budget: split)[4], PennyMood.sad);
+        expect(today(over, budget: split), PennyMood.happy);
+      },
+    );
 
     test('money back later never changes the day it was paid for', () {
       final txns = [
@@ -228,7 +230,7 @@ void main() {
       });
     });
 
-    test("the month goes by its average day against the share", () {
+    test('the month goes by the face most days had', () {
       // ₹150 a day: ₹4,500 for groceries over November's 30 days.
       const groceries = Budget(byCategory: {'groceries': 450000});
       MonthMood? month0(List<Txn> txns, {Budget budget = groceries}) {
@@ -247,7 +249,7 @@ void main() {
         );
       }
 
-      // ₹2,573 over the 6th to the 10th: ₹515 a day, well over ₹150.
+      // Three of the five days from the 6th to the 10th well over ₹150.
       final spent = [
         txn(1500, on(6), categoryId: 'groceries'),
         txn(674, on(7), categoryId: 'groceries'),
@@ -257,21 +259,62 @@ void main() {
       final sad = month0(spent)!;
       expect(sad.mood, PennyMood.sad);
       expect(sad.spentPaise, 257300);
-      expect(sad.days, 5);
-      expect(sad.averagePaise, 51500);
       expect(sad.counts, {PennyMood.sad: 3, PennyMood.happy: 2});
       expect(sad.categoryNotes, isEmpty);
 
-      // Within the share on average, though one day went over.
+      // One sad day in five: the month is happy.
       final fine = month0([txn(600, on(6), categoryId: 'groceries')])!;
       expect(fine.mood, PennyMood.happy);
-      expect(fine.averagePaise, 12000);
       expect(fine.counts, {PennyMood.sad: 1, PennyMood.happy: 4});
 
-      // Up to one and a half times the share is worried.
+      // Most days a little over the share is worried.
       expect(
-        month0([txn(1125, on(6), categoryId: 'groceries')])!.mood,
+        month0([
+          for (final day in [6, 7, 8])
+            txn(200, on(day), categoryId: 'groceries'),
+        ])!.mood,
         PennyMood.worried,
+      );
+
+      // As many happy days as sad: the worse face.
+      final tie = month0([
+        txn(600, on(6), categoryId: 'groceries'),
+        txn(600, on(7), categoryId: 'groceries'),
+        txn(200, on(8), categoryId: 'groceries'),
+      ])!;
+      expect(tie.counts, {
+        PennyMood.sad: 2,
+        PennyMood.worried: 1,
+        PennyMood.happy: 2,
+      });
+      expect(tie.mood, PennyMood.sad);
+
+      // Eight happy days and three big sad ones: a happy month, however
+      // much the sad days came to.
+      final mostlyHappy = monthMood(
+        budget: groceries,
+        monthTxns: [
+          for (final day in [9, 10, 11])
+            txn(9000, on(day), categoryId: 'groceries'),
+        ],
+        month: month,
+        moods: {
+          for (var day = 1; day <= 11; day++)
+            day: day >= 9 ? PennyMood.sad : PennyMood.happy,
+        },
+      )!;
+      expect(mostlyHappy.mood, PennyMood.happy);
+      expect(mostlyHappy.spentPaise, 2700000);
+
+      // Goal days count for neither.
+      expect(
+        monthMood(
+          budget: groceries,
+          monthTxns: const [],
+          month: month,
+          moods: {1: PennyMood.celebrating, 2: PennyMood.celebrating},
+        )!.mood,
+        PennyMood.happy,
       );
 
       // A category over its own budget is named, then one near it.

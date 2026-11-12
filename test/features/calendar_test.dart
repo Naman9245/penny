@@ -67,17 +67,19 @@ void main() {
     await tester.pumpAndSettle();
     Finder inSummary(String text) =>
         find.descendant(of: summary, matching: find.text(text));
-    // ₹6,400 of food over the days since the first entry is well within a
-    // ₹1,000 share on average.
+    // Most days were happy, so the month is, with ₹6,400 of its everyday
+    // budget spent.
     final share = formatPaise(dailySharePaise(3000000, month));
-    final average = formatPaise((640000 / (days - 1) / 100).round() * 100);
     expect(inSummary('Happy'), findsOneWidget);
     expect(
-      inSummary('Average day: $average of your $share share'),
+      inSummary('Most days were within your share. Keep it up!'),
       findsOneWidget,
     );
-    expect(inSummary('₹6,400 over ${days - 1} days'), findsOneWidget);
     expect(inSummary('${days - 3} happy · 1 worried · 1 sad'), findsOneWidget);
+    expect(
+      inSummary('₹6,400 of your ₹30,000 everyday budget spent'),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(find.byKey(const ValueKey('day-4')), -300);
     await tester.pumpAndSettle();
 
@@ -114,7 +116,10 @@ void main() {
     await tester.scrollUntilVisible(summary, 300);
     await tester.pumpAndSettle();
     expect(
-      find.descendant(of: summary, matching: find.text('Food: ₹6,500 of ₹7,000')),
+      find.descendant(
+        of: summary,
+        matching: find.text('Food: ₹6,500 of ₹7,000'),
+      ),
       findsOneWidget,
     );
     await tester.scrollUntilVisible(find.byKey(const ValueKey('day-5')), -300);

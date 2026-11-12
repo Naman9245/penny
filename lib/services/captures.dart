@@ -340,6 +340,222 @@ Future<({String what, String? entryId})?> repeatOf(
   return null;
 }
 
+/// The entry [sms] at [at], read from [app] (an SMS from [sender]), already
+/// is, for the same amount the same way: one typed by hand that day, or one
+/// saved from a read Penny has no record of, like an entry back from the
+/// backup, within half an hour (three days for investing). One already
+/// matched with a copy from this place isn't matched again, so two real
+/// payments of one amount stay two. Says how, in words for "What Penny
+/// read", and which entry. Null when there's none.
+Future<({String what, String entryId})?> sameEntryOf(
+  AppDatabase db,
+  SmsTxn sms,
+  DateTime at, {
+  required String app,
+  String? sender,
+}) async {
+  final window = isInvestCategory(sms.suggestedCategoryId)
+      ? _sameInvestment
+      : _sameMoment;
+  final day = dayStart(at);
+  final nextDay = DateTime(day.year, day.month, day.day + 1);
+  final early = at.subtract(window);
+  final late = at.add(window);
+  final source = _sourceOf(app, sender);
+  final entries =
+      await (db.select(db.txns)..where(
+            (t) =>
+                t.deletedAt.isNull() &
+                t.amountPaise.equals(sms.amountPaise) &
+                t.type.equalsValue(sms.type) &
+                t.occurredAt.isBetweenValues(
+                  early.isBefore(day) ? early : day,
+                  late.isAfter(nextDay) ? late : nextDay,
+                ),
+          ))
+          .get();
+  Duration apart(Txn txn) => txn.occurredAt.difference(at).abs();
+  entries.sort((a, b) => apart(a).compareTo(apart(b)));
+  for (final txn in entries) {
+    final typed = txn.source == TxnSource.manual;
+    if (typed ? dayStart(txn.occurredAt) != day : apart(txn) > window) {
+      continue;
+    }
+    final copies = await (db.select(
+      db.pendingCaptures,
+    )..where((p) => p.savedAs.equals(txn.id))).get();
+    // Where a read entry came from is [repeatOf]'s to weigh.
+    if (!typed && copies.any((copy) => copy.dedupeKey == txn.dedupeKey)) {
+      continue;
+    }
+    if (copies.any((copy) => _sourceOf(copy.app, copy.sender) == source)) {
+      continue;
+    }
+    return (
+      what: typed ? 'already typed by you' : 'already saved',
+      entryId: txn.id,
+    );
+  }
+  return null;
+}
+
+/// The category of the latest entry paid to, or from, the same name as
+/// [sms], so a shop or person Penny reads again goes where the user put it
+/// before. Null for a payment without a name, or a name not met yet.
+Future<String?> yourCategoryOf(AppDatabase db, SmsTxn sms) async {
+  final payee = sms.payee?.trim().toLowerCase();
+  if (payee == null || payee.isEmpty) return null;
+  final last =
+      await (db.select(db.txns)
+            ..where(
+              (t) =>
+                  t.deletedAt.isNull() &
+                  t.type.equalsValue(sms.type) &
+                  t.merchant.trim().lower().equals(payee),
+            )
+            ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])
+            ..limit(1))
+          .getSingleOrNull();
+  final id = last?.categoryId;
+  // Only one of the same kind: a spend's category for a spend.
+  if (id == null || categoryById(id).type != sms.type) return null;
+  return id;
+}
+
+/// An entry Penny saved from a payment she read that copies an entry
+/// already there, and that entry.
+typedef ReadCopy = ({Txn copy, Txn of});
+
+/// Every entry Penny saved from a payment she read that copies another,
+/// oldest first: for the same amount the same way, on the day of one typed
+/// by hand, or within half an hour (three days for investing) of an older
+/// one read somewhere else (an SMS against an app's notice), or one she has
+/// no record of, like an entry back from the backup. One typed by hand is
+/// always the one kept, and each entry is copied at most once from each
+/// place, so two real payments of one amount stay two.
+Future<List<ReadCopy>> findReadCopies(AppDatabase db) async {
+  final entries = await (db.select(
+    db.txns,
+  )..where((t) => t.deletedAt.isNull())).get();
+  final byId = {for (final entry in entries) entry.id: entry};
+  final records = await (db.select(
+    db.pendingCaptures,
+  )..where((p) => p.savedAs.isNotNull())).get();
+  // Where each read entry was read, and the places already matched to each
+  // entry.
+  final readAs = <String, PendingCapture>{};
+  final matched = <String, Set<String>>{};
+  for (final record in records) {
+    final id = record.savedAs!;
+    if (byId[id]?.dedupeKey == record.dedupeKey) {
+      readAs[id] = record;
+    } else {
+      (matched[id] ??= {}).add(_sourceOf(record.app, record.sender));
+    }
+  }
+  final reads = [
+    for (final entry in entries)
+      if (readAs.containsKey(entry.id)) entry,
+  ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+  final copies = <ReadCopy>[];
+  final gone = <String>{};
+  for (final copy in reads) {
+    final record = readAs[copy.id]!;
+    final place = _sourceOf(record.app, record.sender);
+    final investing = isInvestCategory(copy.categoryId);
+    final window = investing ? _sameInvestment : _sameMoment;
+    Duration apart(Txn other) =>
+        other.occurredAt.difference(copy.occurredAt).abs();
+    final candidates = [
+      for (final other in entries)
+        if (other.id != copy.id &&
+            !gone.contains(other.id) &&
+            other.amountPaise == copy.amountPaise &&
+            other.type == copy.type &&
+            !(matched[other.id]?.contains(place) ?? false) &&
+            _isCopyOf(copy, record, other, readAs[other.id], investing, window))
+          other,
+    ];
+    if (candidates.isEmpty) continue;
+    // One typed by hand first, then the nearest.
+    candidates.sort((a, b) {
+      final typed = (b.source == TxnSource.manual ? 1 : 0).compareTo(
+        a.source == TxnSource.manual ? 1 : 0,
+      );
+      return typed != 0 ? typed : apart(a).compareTo(apart(b));
+    });
+    final of = candidates.first;
+    copies.add((copy: copy, of: of));
+    gone.add(copy.id);
+    (matched[of.id] ??= {}).add(place);
+  }
+  return copies;
+}
+
+/// Whether [copy], read as [record], is the same payment as [other], read
+/// as [otherRecord] when Penny knows.
+bool _isCopyOf(
+  Txn copy,
+  PendingCapture record,
+  Txn other,
+  PendingCapture? otherRecord,
+  bool investing,
+  Duration window,
+) {
+  if (other.source == TxnSource.manual) {
+    return dayStart(other.occurredAt) == dayStart(copy.occurredAt);
+  }
+  if (other.occurredAt.difference(copy.occurredAt).abs() > window) {
+    return false;
+  }
+  // The older one stays.
+  if (!other.createdAt.isBefore(copy.createdAt)) return false;
+  if (otherRecord == null) return true;
+  if (_sourceOf(otherRecord.app, otherRecord.sender) ==
+      _sourceOf(record.app, record.sender)) {
+    return false;
+  }
+  // One payment is an SMS and an app's notice, never two of either; an
+  // investment and its confirmation can be any two places.
+  return investing || (otherRecord.app == 'sms') != (record.app == 'sms');
+}
+
+/// Takes [copies] off: each copy is deleted, and what was read for it is
+/// kept as a copy of the entry it copies, so it's never saved again. What
+/// [restoreReadCopies] needs to put them back.
+Future<Map<String, List<String>>> removeReadCopies(
+  AppDatabase db,
+  TxnRepository txns,
+  List<ReadCopy> copies,
+) => db.transaction(() async {
+  final moved = <String, List<String>>{};
+  for (final (:copy, :of) in copies) {
+    final records = await (db.select(
+      db.pendingCaptures,
+    )..where((p) => p.savedAs.equals(copy.id))).get();
+    await (db.update(db.pendingCaptures)
+          ..where((p) => p.savedAs.equals(copy.id)))
+        .write(PendingCapturesCompanion(savedAs: Value(of.id)));
+    await txns.softDelete(copy.id);
+    moved[copy.id] = [for (final record in records) record.dedupeKey];
+  }
+  return moved;
+});
+
+/// Puts back the copies [removeReadCopies] took off, as [moved] says.
+Future<void> restoreReadCopies(
+  AppDatabase db,
+  TxnRepository txns,
+  Map<String, List<String>> moved,
+) => db.transaction(() async {
+  for (final MapEntry(key: id, value: keys) in moved.entries) {
+    await txns.restore(id);
+    await (db.update(db.pendingCaptures)..where((p) => p.dedupeKey.isIn(keys)))
+        .write(PendingCapturesCompanion(savedAs: Value(id)));
+  }
+});
+
 /// Words that say money came back for a payment.
 final _moneyBack = RegExp(
   r'\b(?:reversed|reversal|refund|refunded|credited\s+back|returned)\b',
@@ -466,34 +682,6 @@ Future<void> _cancelEarlierBack(
   );
 }
 
-/// An entry typed by hand on [at]'s day for the same amount the same way,
-/// in words like "₹250 · Lunch", or null when there's none.
-Future<String?> typedLookalikeOf(
-  AppDatabase db,
-  SmsTxn sms,
-  DateTime at,
-) async {
-  final day = dayStart(at);
-  final typed =
-      await (db.select(db.txns)
-            ..where(
-              (t) =>
-                  t.deletedAt.isNull() &
-                  t.source.equalsValue(TxnSource.manual) &
-                  t.amountPaise.equals(sms.amountPaise) &
-                  t.type.equalsValue(sms.type) &
-                  t.occurredAt.isBetweenValues(
-                    day,
-                    DateTime(day.year, day.month, day.day + 1),
-                  ),
-            )
-            ..limit(1))
-          .getSingleOrNull();
-  if (typed == null) return null;
-  return '${formatPaise(typed.amountPaise)} · '
-      '${typed.merchant ?? kindLabel(typed.type, typed.categoryId)}';
-}
-
 /// What Penny did with a notification she read. [unread]: neither her rules
 /// nor, for now, her AI could read it; it's read again later.
 enum CaptureOutcome { waiting, saved, letGo, unread }
@@ -501,8 +689,7 @@ enum CaptureOutcome { waiting, saved, letGo, unread }
 /// One notification Penny read, and what she did with it. [what] says what
 /// it was, like "−₹250 · Swiggy", or why it was let go, like "an OTP".
 /// [key] tells it apart from others without keeping its text. [sender] is
-/// who sent an SMS; [categoryId] is where a payment went, or would go; and
-/// [note] names an entry typed by hand that a saved one may repeat.
+/// who sent an SMS; [categoryId] is where a payment went, or would go.
 typedef CaptureRead = ({
   String key,
   String app,
@@ -513,7 +700,6 @@ typedef CaptureRead = ({
   SmsTxn? sms,
   String? categoryId,
   String? entryId,
-  String? note,
 });
 
 /// A let-go notification's key: a fingerprint, never its text.
@@ -522,10 +708,13 @@ String _letGoKey(Capture capture) => sha256
     .toString();
 
 /// Takes everything waiting in [source]. Under [CaptureMode.save] every
-/// payment is saved straight away, in its guessed category or else
+/// payment is saved straight away, in the category of the last entry to or
+/// from the same name ([yourCategoryOf]), else its guessed one, else
 /// [fallbackCategoryOf], unless it's one already read from somewhere else
-/// ([repeatOf]), which is let go. Under [CaptureMode.check] each is held to
-/// be checked. Anything that isn't a payment is let go.
+/// ([repeatOf]). Under [CaptureMode.check] each is held to be checked. One
+/// that's already an entry, like one typed by hand that day
+/// ([sameEntryOf]), is never saved or held again. Anything that isn't a
+/// payment is let go.
 ///
 /// One from a bank, a wallet or a payment app that says money moved, but
 /// that the rules can't read, goes to [ai] with its names hidden
@@ -569,7 +758,6 @@ Future<List<CaptureRead>> takeCaptures({
         SmsTxn? sms,
         String? categoryId,
         String? entryId,
-        String? note,
       }) => (
         key: key ?? _letGoKey(capture),
         app: capture.app,
@@ -580,7 +768,6 @@ Future<List<CaptureRead>> takeCaptures({
         sms: sms,
         categoryId: categoryId,
         entryId: entryId,
-        note: note,
       );
 
       if (payment == null &&
@@ -633,40 +820,42 @@ Future<List<CaptureRead>> takeCaptures({
           payeeIsPerson: paid.payeeIsPerson ?? false,
         );
         back = ' (money back)';
+      } else if (await yourCategoryOf(db, payment) case final yours?) {
+        // A name met before goes where the user put it.
+        payment = payment.withCategory(yours);
+      }
+      // A payment already among the entries, or already read from
+      // somewhere else, is kept as a copy of that one: known if shown
+      // again, never saved or waiting twice, and never matched to another.
+      final same =
+          (mode == CaptureMode.save
+              ? await repeatOf(
+                  db,
+                  payment,
+                  at,
+                  app: capture.app,
+                  sender: sender,
+                )
+              : null) ??
+          await sameEntryOf(db, payment, at, app: capture.app, sender: sender);
+      if (same != null) {
+        if (same.entryId case final entryId?) {
+          await captures.recordSaved(
+            payment,
+            app: capture.app,
+            at: at,
+            entryId: entryId,
+            sender: sender,
+          );
+        }
+        reads.add(
+          read(CaptureOutcome.letGo, same.what, key: payment.dedupeKey, at: at),
+        );
+        continue;
       }
       if (mode == CaptureMode.save) {
-        final repeat = await repeatOf(
-          db,
-          payment,
-          at,
-          app: capture.app,
-          sender: sender,
-        );
-        if (repeat != null) {
-          // Kept as a copy of that entry: known if shown again, and never
-          // matched to another.
-          if (repeat.entryId case final entryId?) {
-            await captures.recordSaved(
-              payment,
-              app: capture.app,
-              at: at,
-              entryId: entryId,
-              sender: sender,
-            );
-          }
-          reads.add(
-            read(
-              CaptureOutcome.letGo,
-              repeat.what,
-              key: payment.dedupeKey,
-              at: at,
-            ),
-          );
-          continue;
-        }
         final categoryId =
             payment.suggestedCategoryId ?? fallbackCategoryOf(payment);
-        final note = await typedLookalikeOf(db, payment, at);
         final entryId = await txns.add(
           amountPaise: payment.amountPaise,
           type: payment.type,
@@ -694,7 +883,6 @@ Future<List<CaptureRead>> takeCaptures({
             sms: payment,
             categoryId: categoryId,
             entryId: entryId,
-            note: note,
           ),
         );
         continue;
@@ -730,7 +918,6 @@ Future<List<CaptureRead>> takeCaptures({
         sms: null,
         categoryId: null,
         entryId: null,
-        note: null,
       ));
     }
   }
@@ -768,7 +955,6 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
             title: 'Penny saved ${one.what}',
             text: [
               '$category.',
-              if (one.note case final note?) 'May repeat $note you typed.',
               'Open Penny to change it or undo it.',
             ].join(' '),
             lines: const [],
@@ -794,11 +980,7 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
     ].join(', '),
     lines: [
       for (final read in payments.take(5))
-        [
-          read.what,
-          ?_categoryOf(read),
-          if (read.note != null) 'may repeat one you typed',
-        ].join(' · '),
+        [read.what, ?_categoryOf(read)].join(' · '),
     ],
   );
 }
@@ -863,8 +1045,14 @@ class CaptureIntake {
   }
 }
 
-/// How far back the look at older SMS goes.
-const lookBackDays = 90;
+/// How many days back from [today] the same day [months] months ago is: 30
+/// on 11 Dec for one month, 61 on 11 Dec for two.
+int lookBackDays(int months, DateTime today) {
+  final day = dayStart(today);
+  final since = DateTime(day.year, day.month - months, day.day);
+  // Rounded, so a clock change on the way doesn't lose a day.
+  return (day.difference(since).inHours / 24).round();
+}
 
 /// Reads the bank SMS of the last [days] days with the same rules as new
 /// ones, a batch at a time, each read before the next is asked for so the
@@ -873,7 +1061,7 @@ const lookBackDays = 90;
 Future<int> lookBackAtSms({
   required NotificationInbox inbox,
   required CaptureIntake intake,
-  int days = lookBackDays,
+  required int days,
 }) async {
   var found = 0;
   DateTime? after;
