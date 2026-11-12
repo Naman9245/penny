@@ -17,7 +17,9 @@ import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/money_text.dart';
+import 'package:penny/widgets/page_header.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/progress_ring.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
 /// One goal: how far along it is, money in and out, and what's been put in.
@@ -59,15 +61,9 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Row(
-              children: [
-                BrutalIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  semanticLabel: 'Back',
-                  onPressed: () => context.pop(),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Text(goal.title, style: AppText.h2)),
+            PageHeader(
+              title: goal.title,
+              actions: [
                 BrutalIconButton(
                   key: const ValueKey('edit-goal'),
                   icon: Icons.edit_outlined,
@@ -219,7 +215,8 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
   }
 }
 
-/// The big card at the top: Penny, what's saved, and what's still needed.
+/// The big card at the top: Penny in a ring that fills as the goal does,
+/// what's saved, and what's still needed.
 class _Progress extends StatelessWidget {
   const _Progress({required this.progress, required this.today});
 
@@ -229,9 +226,10 @@ class _Progress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final goal = progress.goal;
+    final missed = progress.isMissed(today);
     final mood = progress.reached
         ? PennyMood.celebrating
-        : progress.isMissed(today)
+        : missed
         ? PennyMood.worried
         : PennyMood.happy;
     return BrutalCard(
@@ -242,8 +240,13 @@ class _Progress extends StatelessWidget {
         children: [
           Row(
             children: [
-              PennyMascot(mood: mood, size: 72),
-              const SizedBox(width: 12),
+              ProgressRing(
+                progress: progress.progress,
+                size: 100,
+                thickness: 8,
+                child: PennyMascot(mood: mood, size: 68),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,22 +262,39 @@ class _Progress extends StatelessWidget {
                     Text(
                       'of ${formatPaise(goal.targetPaise)} by '
                       '${DateFormat('d MMM y').format(goal.deadline)}',
-                      style: AppText.bodyStrong,
+                      style: AppText.chip,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${(progress.progress * 100).floor()}% of the way',
+                      style: AppText.small.copyWith(color: AppColors.ink),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          GoalProgressBar(progress: progress.progress),
-          const SizedBox(height: 10),
-          Text(goalNeedLine(progress, today), style: AppText.bodyStrong),
-          if (!progress.reached && !progress.isMissed(today))
-            Text(
-              'About ${formatPaise(progress.perMonthPaise(today))} a month',
-              style: AppText.small,
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: AppColors.wash,
+              borderRadius: BorderRadius.circular(16),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(goalNeedLine(progress, today), style: AppText.bodyStrong),
+                if (!progress.reached && !missed)
+                  Text(
+                    'About ${formatPaise(progress.perMonthPaise(today))} a '
+                    'month',
+                    style: AppText.small,
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

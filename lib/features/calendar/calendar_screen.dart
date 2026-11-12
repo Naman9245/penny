@@ -15,6 +15,8 @@ import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/card_title.dart';
+import 'package:penny/widgets/first_show.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/pressable_area.dart';
@@ -70,40 +72,56 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          const Text('Mood calendar', style: AppText.h1),
-          const SizedBox(height: 14),
-          MonthSwitcher(
-            month: month,
-            onChanged: ref.read(calendarMonthProvider.notifier).show,
-          ),
-          const SizedBox(height: 16),
-          if (share == null)
-            const _SetBudget()
-          else ...[
-            Text(
-              'Your share each day: ${formatPaise(share)}',
-              style: AppText.bodyStrong,
-              textAlign: TextAlign.center,
+      child: FirstShowScope(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            const Text('Mood calendar', style: AppText.h1),
+            const SizedBox(height: 14),
+            MonthSwitcher(
+              month: month,
+              onChanged: ref.read(calendarMonthProvider.notifier).show,
             ),
-            Text(
-              shareExplained(everyday, month),
-              key: const ValueKey('share-explained'),
-              style: AppText.small,
-              textAlign: TextAlign.center,
+            const SizedBox(height: 16),
+            if (share == null)
+              const Entrance(id: 'set-budget', child: _SetBudget())
+            else
+              Entrance(
+                id: 'share',
+                child: BrutalCard(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: CardTitle(
+                    key: const ValueKey('share-explained'),
+                    icon: Icons.today_rounded,
+                    color: AppColors.yellow,
+                    title: 'Your share each day: ${formatPaise(share)}',
+                    subtitle: shareExplained(everyday, month),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Entrance(
+              id: 'grid',
+              index: 1,
+              child: _MonthGrid(
+                month: month,
+                moods: moods,
+                today: today,
+                onDay: openDay,
+              ),
             ),
+            const SizedBox(height: 14),
+            const _Legend(),
+            if (summary != null) ...[
+              const SizedBox(height: 18),
+              Entrance(
+                id: 'summary',
+                index: 2,
+                child: _MonthSummary(summary: summary, budgetPaise: everyday),
+              ),
+            ],
           ],
-          const SizedBox(height: 14),
-          _MonthGrid(month: month, moods: moods, today: today, onDay: openDay),
-          const SizedBox(height: 14),
-          const _Legend(),
-          if (summary != null) ...[
-            const SizedBox(height: 18),
-            _MonthSummary(summary: summary, budgetPaise: everyday),
-          ],
-        ],
+        ),
       ),
     );
   }

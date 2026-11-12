@@ -12,7 +12,10 @@ import 'package:penny/services/goal_math.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/first_show.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/progress_ring.dart';
+import 'package:penny/widgets/speech_bubble.dart';
 
 /// What the user is saving for, each goal with how far along it is, and
 /// Penny cheering them on.
@@ -29,44 +32,53 @@ class GoalsScreen extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        // Room at the bottom so the Add button never hides the last goal.
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
-          Row(
-            children: [
-              const Expanded(child: Text('Goals', style: AppText.h1)),
-              if (list.isNotEmpty)
-                BrutalChip(
-                  key: const ValueKey('add-goal'),
-                  label: 'New goal',
-                  icon: Icons.add_rounded,
-                  onTap: () => context.push('/goals/new'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _Cheer(
-            goals: list,
-            savedThisMonth: savedBetween(deposits, month, nextMonth(month)),
-            today: now,
-          ),
-          const SizedBox(height: 18),
-          if (goals.hasValue && list.isEmpty)
-            const _FirstGoal()
-          else
-            for (final goal in list) ...[
-              _GoalCard(progress: goal, today: now),
-              const SizedBox(height: 14),
-            ],
-          if (list.isNotEmpty)
-            const Text(
-              'Money you put toward a goal is still yours, so it stays in '
-              'Left on Home.',
-              key: ValueKey('goals-left-note'),
-              style: AppText.small,
+      child: FirstShowScope(
+        child: ListView(
+          // Room at the bottom so the Add button never hides the last goal.
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          children: [
+            Row(
+              children: [
+                const Expanded(child: Text('Goals', style: AppText.h1)),
+                if (list.isNotEmpty)
+                  BrutalChip(
+                    key: const ValueKey('add-goal'),
+                    label: 'New goal',
+                    icon: Icons.add_rounded,
+                    onTap: () => context.push('/goals/new'),
+                  ),
+              ],
             ),
-        ],
+            const SizedBox(height: 14),
+            Entrance(
+              id: 'cheer',
+              child: _Cheer(
+                goals: list,
+                savedThisMonth: savedBetween(deposits, month, nextMonth(month)),
+                today: now,
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (goals.hasValue && list.isEmpty)
+              const Entrance(id: 'first', index: 1, child: _FirstGoal())
+            else
+              for (final (i, goal) in list.indexed) ...[
+                Entrance(
+                  id: goal.goal.id,
+                  index: i + 1,
+                  child: _GoalCard(progress: goal, today: now),
+                ),
+                const SizedBox(height: 14),
+              ],
+            if (list.isNotEmpty)
+              const Text(
+                'Money you put toward a goal is still yours, so it stays in '
+                'Left on Home.',
+                key: ValueKey('goals-left-note'),
+                style: AppText.small,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -105,12 +117,14 @@ class _Cheer extends StatelessWidget {
     return BrutalCard(
       key: const ValueKey('goals-cheer'),
       color: mood.color,
-      padding: const EdgeInsets.fromLTRB(10, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(10, 12, 14, 12),
       child: Row(
         children: [
-          PennyMascot(mood: mood, size: 72),
-          const SizedBox(width: 10),
-          Expanded(child: Text(line, style: AppText.h3)),
+          PennyMascot(mood: mood, size: 76),
+          const SizedBox(width: 2),
+          Expanded(
+            child: SpeechBubble(child: Text(line, style: AppText.h3)),
+          ),
         ],
       ),
     );
@@ -166,33 +180,46 @@ class _GoalCard extends StatelessWidget {
           ? AppColors.cream
           : AppColors.white,
       onTap: () => context.push('/goals/${goal.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(goal.title, style: AppText.h3)),
-              if (progress.reached)
-                const PennyMascot(
-                  mood: PennyMood.celebrating,
-                  size: 40,
-                  bob: false,
-                )
-              else if (missed) ...[
-                const SizedBox(width: 8),
-                const DatePassedPill(),
+          if (progress.reached)
+            const PennyMascot(mood: PennyMood.celebrating, size: 60, bob: false)
+          else
+            ProgressRing(
+              progress: progress.progress,
+              size: 60,
+              child: Text(
+                '${(progress.progress * 100).floor()}%',
+                style: AppText.chip,
+              ),
+            ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(goal.title, style: AppText.h3)),
+                    if (missed && !progress.reached) ...[
+                      const SizedBox(width: 8),
+                      const DatePassedPill(),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${formatPaise(progress.savedPaise)} of '
+                  '${formatPaise(goal.targetPaise)}',
+                  style: AppText.bodyStrong,
+                ),
+                const SizedBox(height: 2),
+                Text(goalNeedLine(progress, today), style: AppText.small),
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          GoalProgressBar(progress: progress.progress),
-          const SizedBox(height: 10),
-          Text(
-            '${formatPaise(progress.savedPaise)} of '
-            '${formatPaise(goal.targetPaise)}',
-            style: AppText.bodyStrong,
-          ),
-          Text(goalNeedLine(progress, today), style: AppText.small),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.ink),
         ],
       ),
     );
