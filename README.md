@@ -2,7 +2,24 @@
 
 A money manager for Indian users, with Penny, a coin who reacts to how your month is going. An Android app built with Flutter.
 
-**Status: seven milestones done.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, payments read from notifications, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, CSV export, Penny's animations, the welcome, and Google sign-in with backup and sync work. Receipt photos come later.
+**Status: eight milestones done.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, payments read from notifications, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, CSV export, Penny's animations, the welcome, Google sign-in with backup and sync, the Money report, payments coming up, reading older bank SMS and the app lock work. Receipt photos come later.
+
+## The idea
+
+Most people in India now pay by UPI: dozens of small payments a week, each with a bank SMS. Money rarely goes in one big purchase. It goes ₹120 at a time, without anyone noticing, and the month ends with less left than expected and no clear idea why.
+
+Expense apps don't fix this, for four reasons:
+- **Typing every payment is a chore**, so people stop after a week.
+- **A list of numbers doesn't say** whether the month is going well.
+- **Generic advice** ("spend less on food") doesn't know your month or what matters to you.
+- **Many apps upload** every SMS, account number and contact.
+
+Penny tries the opposite:
+- **Capture without typing.** Penny reads payments from your bank SMS and payment-app notifications (GPay, PhonePe, Paytm and others) on the phone, with rules first and AI only for what the rules can't read. Typing one by hand still takes seconds.
+- **Feel the month, not just count it.** Your budget becomes a fair share for each day. Penny, a cartoon coin, is happy when a day stays within its share, worried a little over it, and sad well over it. The mood calendar shows the whole month at a glance.
+- **Advice that knows you.** Her AI sorts spending into necessary and wasteful by *your* needs, explains each wasteful item, finds habits worth cutting, plans savings goals, and answers questions in English, Hindi or Hinglish.
+- **Numbers you can trust.** Every rupee figure is worked out on the phone from your entries. The AI only judges and explains, so it can't get a total wrong.
+- **Private by design.** Everything lives on the phone. The AI sees month totals per shop, with people only as "Person 1, 2", never SMS text, account numbers or names. Backup is optional.
 
 ## What works now
 
@@ -60,6 +77,78 @@ A money manager for Indian users, with Penny, a coin who reacts to how your mont
 
 Flutter · Riverpod · go_router · Drift (SQLite) · flutter_animate · fl_chart · Supabase (anonymous and Google sign-in, Postgres with row-level security for sync, Edge Functions in Deno and TypeScript) · google_sign_in · Gemini with schema-bound JSON output.
 
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph Android["Android (Kotlin)"]
+    NL["PaymentNotificationListener<br/>bank SMS app + payment apps"]
+    SR["SmsReceiver / SmsInbox<br/>new SMS, catch-up, look back"]
+    MF["MoneyFilter<br/>money words + bank senders only"]
+    Q[("CaptureQueue<br/>private file")]
+    BR["BackgroundReader<br/>hidden Flutter engine"]
+    NL --> MF
+    SR --> MF
+    MF --> Q
+    Q --> BR
+  end
+
+  subgraph App["Flutter app (Dart)"]
+    CAP["captures.dart<br/>read, de-duplicate, money back,<br/>coming up, save or wait"]
+    PARSE["sms_parser.dart<br/>rules: amount, direction, payee,<br/>date, OTP, failed, own moves, card bills"]
+    MATH["budget, report, goal, upcoming maths<br/>every number, on the phone"]
+    UI["features/*<br/>Home, Analysis, Goals, Calendar,<br/>Money report, chat, Settings"]
+    DB[("Drift / SQLite<br/>offline-first, paise, UUIDv7")]
+    AIC["penny_ai.dart<br/>masks names and long numbers"]
+    CAP --> PARSE
+    CAP --> DB
+    DB --> MATH --> UI
+    UI --> AIC
+    CAP -. "only what the rules<br/>can't read" .-> AIC
+  end
+
+  subgraph Server["Supabase"]
+    EF["Edge Functions (Deno)<br/>analyze-month, penny-chat,<br/>plan-goal, read-sms, delete-account"]
+    PG[("Postgres<br/>sync tables with row-level security,<br/>daily AI limits")]
+    G["Google Gemini<br/>schema-bound JSON"]
+    EF --> G
+    EF --> PG
+  end
+
+  Q --> CAP
+  BR --> CAP
+  AIC --> EF
+  DB <-. "optional backup and sync" .-> PG
+```
+
+**How a payment flows.** A bank SMS or a payment app's notification arrives:
+1. **Android filters it first.** `MoneyFilter` keeps only messages with an amount, and for SMS only those from a bank, wallet or investment sender. A friend's text is never stored.
+2. **It waits** in a private file (`CaptureQueue`) until Penny reads it: right away if she's open, or else through a hidden copy of the app (`BackgroundReader`).
+3. **The rules read it.** `sms_parser.dart` works out the amount, debit or credit, payee, date and category. It lets go of OTPs, requests, failed payments, payments not made yet (which go to Home's *Coming up* card), moves between your own accounts and credit card bills.
+4. **The rules aren't the end of it.** `captures.dart` checks the reading against what's already there:
+   - one payment seen twice (the bank's SMS and GPay's notice) is kept once;
+   - a payment already typed by hand or restored from backup isn't added again;
+   - a reversal or refund cancels the payment it's for;
+   - a shop or person you've categorised before keeps your category.
+5. **It's saved, or waits** on Home for you to check, as you choose in Settings.
+6. **A message that says money moved but that the rules can't read** goes to the AI (`read-sms`). Every word that could be a name is first swapped for a tag like `[w3]`, and long numbers become `•••`. The payee is put back on the phone.
+
+**Where things live:**
+- **Phone (the source of truth):** SQLite through Drift. Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, so the app works fully offline and sync can merge edits.
+- **Riverpod providers** connect the database to the screens. The maths (`money_kinds`, `budget_math`, `report_math`, `goal_math`, `upcoming_math`) is plain Dart functions with tests.
+- **Server (only for what needs one):**
+  - Edge Functions call Gemini with a fixed JSON schema and clean every answer before the app sees it. Sentences with digits are dropped, so numbers only ever come from the phone.
+  - Daily limits are counted per user in Postgres.
+  - Backup (Google sign-in) syncs the user's own rows. Row-level security lets only that account read or write them, the newer edit wins, and deletes stay soft so they reach every phone.
+
+**What the AI gets:** `insight_builder.dart` builds exactly what's sent:
+- the month's totals per shop, with people as "Person 1, 2";
+- income by category;
+- the eleven months before, as totals only;
+- your budget and your note.
+
+"See what Penny sends" in the app shows it line by line.
+
 ## Run it
 
 ```bash
@@ -95,9 +184,10 @@ dart run flutter_native_splash:create
 - `functions/analyze-month/`: the report. It checks the request, counts the call, asks Gemini for JSON in a fixed schema, and cleans the answer before returning it.
 - `functions/penny-chat/`: the chat. It checks the month, the goals and the last 12 messages, masks long digit runs, and returns Penny's reply as plain text.
 - `functions/plan-goal/`: a goal's plan. It checks the month and the goal, asks Gemini for up to four cuts in a fixed schema, and drops any that touch a need.
+- `functions/read-sms/`: reads one money message the rules couldn't, sent with names and long numbers already hidden, and answers in a fixed schema.
 - `functions/delete-account/`: deletes the signed-in account; its synced rows and call counts go with it.
 
-To use your own project: create one, apply the migrations, deploy the four functions (`supabase functions deploy analyze-month`, `penny-chat`, `plan-goal` and `delete-account`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, the fastest), `CHAT_MODEL` and `PLAN_MODEL` (if different), `DAILY_USER_LIMIT` (10 reports) and `DAILY_TOTAL_LIMIT` (50), `CHAT_USER_LIMIT` (30 messages) and `CHAT_TOTAL_LIMIT` (200), `PLAN_USER_LIMIT` (10 plans) and `PLAN_TOTAL_LIMIT` (50).
+To use your own project: create one, apply the migrations, deploy the five functions (`supabase functions deploy analyze-month`, `penny-chat`, `plan-goal`, `read-sms` and `delete-account`), turn on anonymous sign-ins, and add the secret `GEMINI_API_KEY`. Optional secrets: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, the fastest), `CHAT_MODEL` and `PLAN_MODEL` (if different), `DAILY_USER_LIMIT` (10 reports) and `DAILY_TOTAL_LIMIT` (50), `CHAT_USER_LIMIT` (30 messages) and `CHAT_TOTAL_LIMIT` (200), `PLAN_USER_LIMIT` (10 plans) and `PLAN_TOTAL_LIMIT` (50).
 
 ## Test
 
@@ -123,8 +213,12 @@ lib/
               Penny
 assets/icon/  the icon and launch images Penny's painter draws
 tool/         render_icons_test.dart, which draws them
-supabase/     migrations, and the analyze-month, penny-chat, plan-goal and
-              delete-account Edge Functions
+android/      Kotlin: the notification listener, SMS receiver and inbox,
+              money filter, capture queue, hidden background reader and
+              Penny's own notification
+supabase/     migrations, and the analyze-month, penny-chat, plan-goal,
+              read-sms and delete-account Edge Functions
+docs/         Penny-App-Overview.pdf, the app explained for anyone
 ```
 
 ## Roadmap
@@ -136,6 +230,7 @@ supabase/     migrations, and the analyze-month, penny-chat, plan-goal and
 5. ✅ Penny's animations, polish (icon, launch screen, welcome), Google sign-in with backup and sync
 6. ✅ Faster logging (split, usual entries, type it), paybacks and investing, fixed bills, a forecast and search
 7. ✅ Payments read from notifications (bank, wallet and investing SMS, payment, wallet and investing apps), checked first or saved straight away, Penny's own notification and What Penny read, reading with Penny closed, AI for what the rules can't read, more categories, and CSV export
-8. Later: receipt photos
+8. ✅ The Money report (where every rupee went, history, every wasteful item explained, patterns), payments coming up, reading older bank SMS, payments never saved twice, the app lock, and fixes from two outside reviews
+9. Later: receipt photos
 
 Baloo 2 and DM Sans are bundled under the SIL Open Font License.
