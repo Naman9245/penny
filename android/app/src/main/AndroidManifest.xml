@@ -17,7 +17,7 @@
     <!-- Android's own backup is off: Penny's money reaches the cloud only
          through her own backup, when you sign in for it. -->
     <application
-        android:label="Penny"
+        android:label="${appName}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
@@ -66,7 +66,7 @@
         </receiver>
         <service
             android:name=".PaymentNotificationListener"
-            android:label="Penny"
+            android:label="${appName}"
             android:exported="true"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>

@@ -4,6 +4,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val preview = providers.gradleProperty("preview").orNull == "true"
+
 android {
     namespace = "com.naman9245.penny"
     compileSdk = flutter.compileSdkVersion
@@ -16,7 +18,13 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.naman9245.penny"
+        // A preview (flutter build apk -P preview=true) installs beside the
+        // real Penny under its own name, so a change can be tried on a phone
+        // without touching her money. A build from another computer is
+        // signed with another key, so it can't replace her anyway.
+        applicationId =
+            if (preview) "com.naman9245.penny.preview" else "com.naman9245.penny"
+        manifestPlaceholders["appName"] = if (preview) "Penny Preview" else "Penny"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

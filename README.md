@@ -167,6 +167,12 @@ To install on a phone, build one APK per phone type and use the one that matches
 flutter build apk --release --split-per-abi --dart-define-from-file=env/supabase.json
 ```
 
+To try a change on a phone that already has Penny, build a preview instead. It installs beside her as "Penny Preview", with its own data, so her money is never touched (a build signed on another computer can't replace her anyway; Android would ask to uninstall her first, which deletes what's on the phone):
+
+```bash
+flutter build apk --release --split-per-abi --dart-define-from-file=env/supabase.json -P preview=true
+```
+
 After changing how Penny looks, redraw the icon and launch images, then regenerate them:
 
 ```bash
