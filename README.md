@@ -40,7 +40,7 @@ Penny tries the opposite:
   - **Money back**: a reversal or refund ("Your UPI transaction of 641.00 has been reversed") cancels the payment of the same amount from the week before: it goes in that payment's category as money back, so Spent goes back down. With no such payment, it's a refund.
   - **What the rules can't read**: a money SMS or notice that says money moved, but that Penny's rules can't read, goes to her AI with names and numbers hidden (see Privacy). When the AI can't answer, it waits on Home as one she couldn't read yet.
 - **Export**: Settings → Export entries sends every entry as a CSV, through the share menu, that opens in Excel or Google Sheets.
-- **Analysis**: spent and got, a card per category with what came back, the necessary-vs-wasteful split, what you put away, and the last six months as a chart.
+- **Analysis**: spent, got and left, the necessary-vs-wasteful split, every category biggest first with its share as a bar, what's left of its budget and what came back, what you put away, and the last six months as a chart.
 - **Month routines**:
   - **Fixed bills**: in a month's first week, Home offers last month's rent, bills, subscriptions and education not logged yet. Log adds one today, with Undo; Skip hides it for the month.
   - **Forecast**: from the 3rd, Penny's box says where the month is heading at your everyday pace: what will be left of the everyday budget, the day it runs out, or about how much the month comes to without one. Worked out on the phone.
@@ -50,12 +50,12 @@ Penny tries the opposite:
 - **Talk to Penny** (Gemini): tap Penny on Home and ask her how to save, in English, Hindi or Hinglish. She knows this month's totals as Home shows them, your My needs, your note, your budget and your goals, and treats rent, bills, subscriptions and education as fixed costs. With no goals set she doesn't assume any; she suggests adding one.
 - **Budget and Penny's moods**: give each category you care about a monthly amount. The monthly budget is their total, split into everyday spending and what's paid in one go (rent, bills, subscriptions, EMIs, bank charges, education and money sent to family). One rule gives every day Penny's mood, and Home shows today's, so Home and the calendar always agree: **that day's everyday spending** against its share of the budget (the everyday budget ÷ the days in the month). Happy at or under it, so a day with nothing spent is happy; worried up to 1.5 times it; sad above that. How the month is going never colours a day: it shows in Home's box and on the month's card.
 
-  A day a goal is reached is celebrating. Categories without a budget aren't counted, and rent and the rest paid in one go never change her mood: Home notes when one goes over its budget, and when a category is near its own. Home's line is about today ("Nothing spent today. Nice!"), and its box shows the month and today against the day's share, any everyday category over or near its budget, and when the everyday budget runs out at this pace. Analysis cards show each budget.
+  A day a goal is reached is celebrating. Categories without a budget aren't counted, and rent and the rest paid in one go never change her mood: Home notes when one goes over its budget, and when a category is near its own. Home's line is about today ("Nothing spent today. Nice!"), and its box leads with what's left of today's share ("₹439 left today"), then the month against the everyday budget, each with a bar, any everyday category over or near its budget, and when the everyday budget runs out at this pace. Analysis says what's left of each category's budget, and Budget shows each one used as a bar.
 - **Lock Penny** (Settings, off until you turn it on): asks for your fingerprint or the phone's PIN when Penny opens, and when you come back after a minute away. Turning it on or off asks too, and needs a screen lock on the phone. Her notifications and her hidden copy keep working while she's locked.
 - **Mood calendar**: every day by the same rule, Penny's face on its colour: mint happy, yellow worried, pink sad, sky blue for a goal reached. Under the month, its mood by the average day: the everyday spending of the days with a face ÷ those days, against the share, by the same rule as a day ("Average day: ₹515 of your ₹150 share"), with how many days had each face and each everyday category over or near its budget. Tap a day for its entries and the numbers behind its face: what counted against the share, and what had no budget or was paid in one go.
 - **Demo data**: Settings (the gear on Home) swaps in four months of made-up money, with a budget, goals and My needs, to try every screen on. It lives in its own database, so your own entries stay untouched and come back when you turn it off. Reset starts it again from today, and sample bank SMS are there to paste.
 - **Goals** (Gemini plans): save for something by a date, with what's needed each week. Note money in and out; reaching the target sets Penny celebrating. Plan with Penny picks up to four cuts from last month's spending, and the phone works out what each saves a month against what the goal needs.
-- **Penny moves**: she floats and blinks, bops to her headphones when happy, sweats when worried, cries when sad, and hops in confetti when celebrating; a new mood lands with a bounce. Moments get their own faces: thinking while the chat waits, glasses on while a report or plan is worked out, an idea beside tips, sleepy where nothing's logged. She keeps still when the phone asks for less motion. All of it is drawn in code, no animation files.
+- **Penny moves**: she floats and blinks, bops to her headphones when happy, sweats when worried, cries when sad, and hops in confetti when celebrating; a new mood lands with a bounce. Moments get their own faces: thinking while the chat waits, glasses on while a report or plan is worked out, an idea beside tips, sleepy where nothing's logged. She keeps still when the phone asks for less motion. All of it is drawn in code, no animation files. On Home, the goals and her chat she talks in a speech bubble pointing at her, and on a goal's page she sits inside a ring that fills as the money goes in. Each tab's cards rise in on its first look and its big amounts count up, once, and never when the phone asks for less motion.
 - **First launch**: three short pages (meet Penny, what stays private, where to start), shown once and again from Settings. The app icon and launch screen are Penny too, drawn from her own painter by `tool/render_icons_test.dart`.
 - **Backup and sync** (optional): sign in with Google in Settings and your entries, budgets, goals with their money, My needs rules and note are kept in your account and synced: as the app opens or comes back, a few seconds after a change, and on Sync now. A new phone signs in and gets everything back; two phones end up the same, the newer edit of each row winning. An edit always counts as newer than the one it replaces, even within the same second or on a phone whose clock is behind, and when the account refuses an edit because it already has one as new, the phone takes the account's. Sign out keeps everything on the phone. Delete account removes the account and its copy, and can clear the phone too. The app works fully without an account, and backup pauses while demo data is on.
 - **Offline-first**: everything lives on the phone in SQLite (Drift). Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, ready for sync.
@@ -197,6 +197,12 @@ flutter test
 cd supabase/functions && deno test
 ```
 
+To look every screen over without a phone, draw them on the demo data, with Penny's own fonts, into `build/screenshots/`:
+
+```bash
+flutter test tool/screenshots_test.dart
+```
+
 ## Layout
 
 ```
@@ -210,9 +216,11 @@ lib/
   features/   home, add_txn, import, transactions, analysis, report, needs,
               chat, budget, goals, calendar, settings, welcome
   widgets/    brutal card/button/chip/pill, keypad, pill nav bar, split bar,
-              Penny
+              meter bar, progress ring, speech bubble, page header, card
+              titles and stat tiles, first-look motion, Penny
 assets/icon/  the icon and launch images Penny's painter draws
-tool/         render_icons_test.dart, which draws them
+tool/         render_icons_test.dart, which draws them, and screenshots_test.dart,
+              which draws every screen
 android/      Kotlin: the notification listener, SMS receiver and inbox,
               money filter, capture queue, hidden background reader and
               Penny's own notification
