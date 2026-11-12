@@ -14,6 +14,7 @@ import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/speech_bubble.dart';
 import 'package:penny/widgets/page_header.dart';
 
 /// Talk to Penny: ask her anything about your money, in English, Hindi or
@@ -232,17 +233,48 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mine = message.role == ChatRole.user;
-    final bubble = _BubbleBox(
-      color: mine ? AppColors.yellow : AppColors.white,
-      child: Text(message.body, style: AppText.body),
-    );
-    if (mine) return Align(alignment: Alignment.centerRight, child: bubble);
+    final text = Text(message.body, style: AppText.body);
+    if (mine) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: _BubbleBox(color: AppColors.yellow, child: text),
+      );
+    }
+    return _FromPenny(child: text);
+  }
+}
+
+/// Something Penny says: her face, and a bubble pointing at it.
+class _FromPenny extends StatelessWidget {
+  const _FromPenny({
+    super.key,
+    required this.child,
+    this.mood = PennyMood.neutral,
+    this.color = AppColors.white,
+  });
+
+  final Widget child;
+  final PennyMood mood;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PennyMascot(size: 34, bob: false),
-        const SizedBox(width: 8),
-        Flexible(child: bubble),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: PennyMascot(mood: mood, size: 36, bob: false),
+        ),
+        const SizedBox(width: 2),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.8,
+            ),
+            child: SpeechBubble(color: color, child: child),
+          ),
+        ),
       ],
     );
   }
@@ -306,30 +338,22 @@ class _Problem extends StatelessWidget {
             'Try again tomorrow.',
       _ => failure.message,
     };
-    return Row(
+    return _FromPenny(
       key: const ValueKey('chat-problem'),
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        const PennyMascot(mood: PennyMood.worried, size: 34, bob: false),
-        const SizedBox(width: 8),
-        Flexible(
-          child: _BubbleBox(
-            color: AppColors.pink,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(text, style: AppText.bodyStrong),
-                const SizedBox(height: 8),
-                BrutalChip(
-                  label: 'Try again',
-                  icon: Icons.refresh_rounded,
-                  onTap: onRetry,
-                ),
-              ],
-            ),
+      mood: PennyMood.worried,
+      color: AppColors.pink,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(text, style: AppText.bodyStrong),
+          const SizedBox(height: 8),
+          BrutalChip(
+            label: 'Try again',
+            icon: Icons.refresh_rounded,
+            onTap: onRetry,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

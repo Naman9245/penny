@@ -13,6 +13,7 @@ import 'package:penny/services/csv_export.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/icon_badge.dart';
 
 /// Penny's settings, in a bottom sheet: backing up with Google, demo data
 /// to try every part of the app on, and the welcome again.
@@ -98,6 +99,12 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
               children: [
                 Row(
                   children: [
+                    const IconBadge(
+                      icon: Icons.science_outlined,
+                      color: AppColors.white,
+                      size: 32,
+                    ),
+                    const SizedBox(width: 10),
                     const Expanded(child: Text('Demo data', style: AppText.h3)),
                     Switch(
                       key: const ValueKey('demo-switch'),

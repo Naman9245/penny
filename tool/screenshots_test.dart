@@ -14,6 +14,7 @@ import 'package:penny/core/router/app_router.dart';
 import 'package:penny/core/theme/app_theme.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/capture_repository.dart';
+import 'package:penny/data/chat_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/demo_data.dart';
 import 'package:penny/data/providers.dart';
@@ -21,6 +22,7 @@ import 'package:penny/data/txn_repository.dart';
 import 'package:penny/data/upcoming_repository.dart';
 import 'package:penny/features/lock/lock_gate.dart';
 import 'package:penny/features/welcome/welcome_screen.dart';
+import 'package:penny/models/chat.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/captures.dart';
 import 'package:penny/services/penny_ai.dart';
@@ -49,7 +51,16 @@ void main() {
         closeStreamsSynchronously: true,
       ),
     );
-    await tester.runAsync(() => fillDemoData(db, DateTime.now()));
+    await tester.runAsync(() async {
+      await fillDemoData(db, DateTime.now());
+      final chat = ChatRepository(db);
+      await chat.add(ChatRole.user, 'Where did my money go this month?');
+      await chat.add(
+        ChatRole.penny,
+        'Mostly rent, about ₹8,500. Food came next at about ₹2,300, much of '
+        'it Zomato. Cooking two dinners a week could save you around ₹600.',
+      );
+    });
     await _pump(tester, db);
     final router = _router(tester);
 

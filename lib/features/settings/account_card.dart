@@ -8,6 +8,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/data/sync/sync_controller.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/icon_badge.dart';
 
 /// Backing up with Google, in Settings: sign in, see how the backup stands,
 /// sync now, sign out, or delete the account.
@@ -111,8 +112,12 @@ class _AccountCardState extends ConsumerState<AccountCard> {
         children: [
           Row(
             children: [
-              const Icon(Icons.cloud_outlined, color: AppColors.ink),
-              const SizedBox(width: 8),
+              IconBadge(
+                icon: Icons.cloud_outlined,
+                color: account == null ? AppColors.yellow : AppColors.white,
+                size: 32,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   account == null ? 'Back up with Google' : 'Backed up',

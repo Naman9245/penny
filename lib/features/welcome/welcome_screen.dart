@@ -77,6 +77,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 children: [
                   const _Page(
                     penny: PennyMascot(mood: PennyMood.happy, size: 150),
+                    stage: AppColors.sky,
                     title: "Hi, I'm Penny!",
                     children: [
                       Text(
@@ -89,6 +90,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   ),
                   const _Page(
                     penny: PennyMascot(pose: PennyPose.analyzing, size: 150),
+                    stage: AppColors.mint,
                     title: 'Your money stays yours',
                     children: [
                       _Point(
@@ -113,6 +115,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                   ),
                   _Page(
                     penny: const PennyMascot(pose: PennyPose.idea, size: 150),
+                    stage: AppColors.lavender,
                     title: 'Where shall we start?',
                     children: [
                       BrutalButton(
@@ -190,11 +193,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 class _Page extends StatelessWidget {
   const _Page({
     required this.penny,
+    required this.stage,
     required this.title,
     required this.children,
   });
 
   final Widget penny;
+
+  /// The colour of the round stage Penny stands on.
+  final Color stage;
   final String title;
   final List<Widget> children;
 
@@ -209,7 +216,22 @@ class _Page extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: penny),
+              Center(
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: stage,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.ink, width: 2.5),
+                    boxShadow: const [
+                      BoxShadow(color: AppColors.ink, offset: Offset(4, 4)),
+                    ],
+                  ),
+                  child: penny,
+                ),
+              ),
               const SizedBox(height: 24),
               Text(title, style: AppText.h1, textAlign: TextAlign.center),
               const SizedBox(height: 16),

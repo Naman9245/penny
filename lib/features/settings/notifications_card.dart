@@ -18,6 +18,7 @@ import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_pill.dart';
 import 'package:penny/widgets/sliding_toggle.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
+import 'package:penny/widgets/icon_badge.dart';
 
 /// "What Penny read", newest first.
 final captureLogProvider = StreamProvider.autoDispose<List<CaptureLogEntry>>(
@@ -153,6 +154,12 @@ class _NotificationsCardState extends ConsumerState<NotificationsCard>
         children: [
           Row(
             children: [
+              const IconBadge(
+                icon: Icons.notifications_active_outlined,
+                color: AppColors.sky,
+                size: 32,
+              ),
+              const SizedBox(width: 10),
               const Expanded(
                 child: Text('Read payment notifications', style: AppText.h3),
               ),

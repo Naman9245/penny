@@ -6,6 +6,7 @@ import 'package:penny/services/app_lock.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_pill.dart';
+import 'package:penny/widgets/icon_badge.dart';
 
 /// Settings → Lock Penny: her own lock, on the phone's fingerprint or
 /// screen lock.
@@ -47,7 +48,13 @@ class _LockCardState extends ConsumerState<LockCard> {
         children: [
           Row(
             children: [
-              const Expanded(child: Text('Lock Penny', style: AppText.label)),
+              const IconBadge(
+                icon: Icons.fingerprint_rounded,
+                color: AppColors.lavender,
+                size: 32,
+              ),
+              const SizedBox(width: 10),
+              const Expanded(child: Text('Lock Penny', style: AppText.h3)),
               if (on)
                 const BrutalPill(
                   key: ValueKey('app-lock-on'),
