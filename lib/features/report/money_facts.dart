@@ -8,6 +8,7 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/services/report_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
 
 // The Money report's own sections: where the money went, the months
@@ -276,7 +277,8 @@ class SpendingPatterns extends StatelessWidget {
                   label: _days[i],
                   paise: paise,
                   of: dayMax,
-                  color: i >= 5 ? AppColors.lavender : AppColors.sky,
+                  // The weekend stands out from the week.
+                  color: i >= 5 ? AppColors.headphones : AppColors.ink,
                 ),
               const SizedBox(height: 14),
               const Text('By time of day', style: AppText.bodyStrong),
@@ -287,9 +289,10 @@ class SpendingPatterns extends StatelessWidget {
                   detail: part.hours,
                   paise: p.byPartPaise[part] ?? 0,
                   of: partMax,
+                  // Late nights stand out: it's when small spends slip by.
                   color: part == DayPart.lateNight
-                      ? AppColors.pink
-                      : AppColors.yellow,
+                      ? AppColors.chartSpent
+                      : AppColors.ink,
                 ),
             ],
           ),
@@ -392,8 +395,8 @@ class _CategoryRow extends StatelessWidget {
             MoneyText(share.spentPaise, style: AppText.bodyStrong),
           ],
         ),
-        const SizedBox(height: 4),
-        _Bar(fraction: share.share, color: category.color),
+        const SizedBox(height: 6),
+        MeterBar(value: share.share),
         const SizedBox(height: 2),
         Text(detail, style: AppText.small),
       ],
@@ -515,13 +518,12 @@ class _BarRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: AppText.body),
-                if (detail case final hours?)
-                  Text(hours, style: AppText.small),
+                if (detail case final hours?) Text(hours, style: AppText.small),
               ],
             ),
           ),
           Expanded(
-            child: _Bar(fraction: of <= 0 ? 0 : paise / of, color: color),
+            child: MeterBar(value: of <= 0 ? 0 : paise / of, color: color),
           ),
           SizedBox(
             width: 84,
@@ -532,33 +534,6 @@ class _BarRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// A flat bar, filled to [fraction].
-class _Bar extends StatelessWidget {
-  const _Bar({required this.fraction, required this.color});
-
-  final double fraction;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 12,
-      decoration: BoxDecoration(
-        color: AppColors.cream,
-        border: Border.all(color: AppColors.ink, width: 1.5),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      clipBehavior: Clip.antiAlias,
-      alignment: Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: fraction.clamp(0, 1).toDouble(),
-        heightFactor: 1,
-        child: ColoredBox(color: color),
       ),
     );
   }

@@ -11,7 +11,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/widgets/amount_sheet.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
-import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/page_header.dart';
 
 /// Makes a new goal, or changes [goalId]: what it's for, how much, and by
 /// when.
@@ -122,21 +122,9 @@ class _GoalEditorScreenState extends ConsumerState<GoalEditorScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Row(
-              children: [
-                BrutalIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  semanticLabel: 'Back',
-                  onPressed: () => context.pop(),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    widget.goalId == null ? 'New goal' : 'Edit goal',
-                    style: AppText.h2,
-                  ),
-                ),
-              ],
+            PageHeader(
+              title: widget.goalId == null ? 'New goal' : 'Edit goal',
+              subtitle: "What you're saving for, how much, and by when.",
             ),
             const SizedBox(height: 22),
             const Text("What you're saving for", style: AppText.label),

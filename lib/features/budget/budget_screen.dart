@@ -1,20 +1,17 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
-import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/amount_sheet.dart';
 import 'package:penny/widgets/brutal_card.dart';
-import 'package:penny/widgets/brutal_icon_button.dart';
+import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/pressable_area.dart';
+import 'package:penny/widgets/page_header.dart';
 
 /// The budget: what the user means to spend on each category a month. The
 /// monthly budget is their total; Penny's mood and the calendar go by its
@@ -42,27 +39,9 @@ class BudgetScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Row(
-              children: [
-                BrutalIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  semanticLabel: 'Back',
-                  onPressed: () => context.pop(),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Budget', style: AppText.h2),
-                      Text(
-                        'Penny keeps an eye on it for you.',
-                        style: AppText.bodyMuted,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            const PageHeader(
+              title: 'Budget',
+              subtitle: 'Penny keeps an eye on it for you.',
             ),
             const SizedBox(height: 22),
             _Total(status: status),
@@ -146,14 +125,37 @@ class _Total extends StatelessWidget {
                 style: AppText.small.copyWith(color: AppColors.ink),
               ),
               const SizedBox(height: 8),
-              _UsedBar(used: spent / everyday),
+              MeterBar(value: spent / everyday, chunky: true),
             ],
           ],
-          const SizedBox(height: 10),
-          Text(
-            oneGoLine,
-            key: const ValueKey('budget-one-go'),
-            style: AppText.small,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.fromLTRB(10, 8, 12, 9),
+            decoration: BoxDecoration(
+              color: AppColors.wash,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 1),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 16,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    oneGoLine,
+                    key: const ValueKey('budget-one-go'),
+                    style: AppText.small.copyWith(color: AppColors.ink),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -204,46 +206,20 @@ class _CategoryRow extends StatelessWidget {
                               'this month',
                     style: AppText.small,
                   ),
+                  if (amount != null && amount > 0) ...[
+                    const SizedBox(height: 6),
+                    MeterBar(value: spentPaise / amount, height: 6),
+                  ],
                 ],
               ),
             ),
+            const SizedBox(width: 10),
             Text(
               amount == null ? 'Add' : formatPaise(amount),
               style: AppText.chip,
             ),
             const Icon(Icons.chevron_right_rounded, color: AppColors.ink),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// How much of a budget is used, as a chunky bar. Past it, the bar is full
-/// and pink.
-class _UsedBar extends StatelessWidget {
-  const _UsedBar({required this.used});
-
-  final double used;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 14,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(kPillRadius),
-        border: Border.all(color: AppColors.ink, width: 2),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: math.min(1.0, used),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: used > 1 ? AppColors.pink : AppColors.ink,
-            borderRadius: const BorderRadius.all(Radius.circular(kPillRadius)),
-          ),
         ),
       ),
     );

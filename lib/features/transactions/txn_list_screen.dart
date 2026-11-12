@@ -19,6 +19,7 @@ import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
+import 'package:penny/widgets/page_header.dart';
 
 enum _Filter {
   all('All'),
@@ -89,22 +90,10 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  BrutalIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      'Transactions',
-                      style: AppText.h1,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+              child: PageHeader(
+                title: 'Transactions',
+                subtitle: 'Swipe left to delete, tap to edit.',
+                actions: [
                   BrutalIconButton(
                     key: const ValueKey('search-toggle'),
                     icon: _searching

@@ -24,13 +24,13 @@ import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
-import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/brutal_pill.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/tag_split_bar.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 import 'package:penny/widgets/waiting_bar.dart';
+import 'package:penny/widgets/page_header.dart';
 
 /// The Money report for one month: where every rupee went, the months
 /// before, when the money goes, and Penny's look at it: what's wasteful and
@@ -139,25 +139,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        BrutalIconButton(
-          icon: Icons.arrow_back_rounded,
-          semanticLabel: 'Back',
-          onPressed: () => context.pop(),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Money report', style: AppText.h2),
-              Text(monthLabel(month), style: AppText.bodyMuted),
-            ],
-          ),
-        ),
-      ],
-    );
+    return PageHeader(title: 'Money report', subtitle: monthLabel(month));
   }
 }
 
@@ -704,9 +686,7 @@ class _WastefulItemCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(item.names.join(' · '), style: AppText.h3),
-              ),
+              Expanded(child: Text(item.names.join(' · '), style: AppText.h3)),
               const SizedBox(width: 8),
               MoneyText(item.spentPaise, style: AppText.h3),
             ],

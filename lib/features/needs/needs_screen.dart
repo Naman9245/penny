@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -11,8 +10,8 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/models/your_rules.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
-import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/sliding_toggle.dart';
+import 'package:penny/widgets/page_header.dart';
 
 /// My needs: the user's own calls on what is necessary for their living and
 /// what is wasteful, by category and by shop, and a note about their life
@@ -31,27 +30,9 @@ class NeedsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
-            Row(
-              children: [
-                BrutalIconButton(
-                  icon: Icons.arrow_back_rounded,
-                  semanticLabel: 'Back',
-                  onPressed: () => context.pop(),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('My needs', style: AppText.h2),
-                      Text(
-                        'Your calls come first. Penny sorts the rest.',
-                        style: AppText.bodyMuted,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            const PageHeader(
+              title: 'My needs',
+              subtitle: 'Your calls come first. Penny sorts the rest.',
             ),
             const SizedBox(height: 22),
             const Text('Categories', style: AppText.h2),

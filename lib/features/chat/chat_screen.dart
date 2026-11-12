@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/theme/brutal_theme.dart';
@@ -15,6 +14,7 @@ import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/page_header.dart';
 
 /// Talk to Penny: ask her anything about your money, in English, Hindi or
 /// Hinglish. She sees this month's totals, your My needs rules and note,
@@ -104,23 +104,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  BrutalIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    semanticLabel: 'Back',
-                    onPressed: () => context.pop(),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Talk to Penny', style: AppText.h2),
-                        Text('Your money buddy', style: AppText.bodyMuted),
-                      ],
-                    ),
-                  ),
+              child: PageHeader(
+                title: 'Talk to Penny',
+                subtitle: 'Your money buddy',
+                actions: [
                   // Not while she's answering: her reply would land in an
                   // empty chat.
                   if (messages.isNotEmpty && !chat.sending)
