@@ -31,6 +31,7 @@ import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/speech_bubble.dart';
+import 'package:penny/widgets/stat_tile.dart';
 
 /// Penny's mood and what's safe to spend today, this month at a glance, and
 /// the latest entries.
@@ -733,7 +734,7 @@ class _MonthCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _StatLabel(
+                  StatLabel(
                     icon: Icons.north_east_rounded,
                     color: AppColors.pink,
                     label: 'Spent in ${DateFormat('MMMM').format(month)}',
@@ -758,7 +759,7 @@ class _MonthCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _Stat(
+                  child: StatTile(
                     key: const ValueKey('stat-got'),
                     icon: Icons.south_west_rounded,
                     color: AppColors.mint,
@@ -766,12 +767,9 @@ class _MonthCard extends StatelessWidget {
                     value: MoneyText(summary.gotPaise, style: AppText.amount),
                   ),
                 ),
-                const ColoredBox(
-                  color: AppColors.hairline,
-                  child: SizedBox(width: 1.5),
-                ),
+                const StatDivider(),
                 Expanded(
-                  child: _Stat(
+                  child: StatTile(
                     key: const ValueKey('stat-left'),
                     icon: Icons.account_balance_wallet_outlined,
                     color: AppColors.yellow,
@@ -789,77 +787,6 @@ class _MonthCard extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatLabel extends StatelessWidget {
-  const _StatLabel({
-    required this.icon,
-    required this.color,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconBadge(icon: icon, color: color, size: 26),
-        const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            style: AppText.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({
-    super.key,
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-    this.hint,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String label;
-  final Widget value;
-  final String? hint;
-
-  @override
-  Widget build(BuildContext context) {
-    final hint = this.hint;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 14, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StatLabel(icon: icon, color: color, label: label),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: value,
-          ),
-          if (hint != null) ...[
-            const SizedBox(height: 2),
-            Text(hint, style: AppText.small),
-          ],
         ],
       ),
     );

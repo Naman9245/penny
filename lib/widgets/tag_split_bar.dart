@@ -5,8 +5,9 @@ import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/services/insight_math.dart';
 
-/// A month's spending as one chunky bar: necessary in mint, wasteful in
-/// pink, not sorted yet in white.
+/// A month's spending as one bar: necessary in green, wasteful in pink, not
+/// sorted yet in grey, each part as long as its share, with a gap between
+/// them rather than a line.
 class TagSplitBar extends StatelessWidget {
   const TagSplitBar({super.key, required this.split});
 
@@ -16,9 +17,9 @@ class TagSplitBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = [
       for (final (paise, color) in [
-        (split.necessaryPaise, AppColors.mint),
-        (split.wastefulPaise, AppColors.pink),
-        (split.unsortedPaise, AppColors.white),
+        (split.necessaryPaise, AppColors.chartGot),
+        (split.wastefulPaise, AppColors.chartSpent),
+        (split.unsortedPaise, AppColors.chartNeutral),
       ])
         if (paise > 0) (paise, color),
     ];
@@ -27,32 +28,26 @@ class TagSplitBar extends StatelessWidget {
           'Necessary ${formatPaise(split.necessaryPaise)}, '
           'wasteful ${formatPaise(split.wastefulPaise)}, '
           'not sorted ${formatPaise(split.unsortedPaise)}',
-      child: Container(
-        height: 24,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(kPillRadius),
-          border: Border.all(color: AppColors.ink, width: 2),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(kPillRadius),
-          child: Row(
-            // The segments are plain colour, so they take the bar's height.
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final (i, (paise, color)) in parts.indexed) ...[
-                if (i > 0)
-                  const SizedBox(
-                    width: 2,
-                    child: ColoredBox(color: AppColors.ink),
-                  ),
-                Expanded(
-                  flex: paise,
-                  child: ColoredBox(color: color),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kPillRadius),
+        child: SizedBox(
+          height: 16,
+          child: parts.isEmpty
+              ? const ColoredBox(color: AppColors.track)
+              : Row(
+                  // The parts are plain colour, so they take the bar's
+                  // height.
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (i, (paise, color)) in parts.indexed) ...[
+                      if (i > 0) const SizedBox(width: 2),
+                      Expanded(
+                        flex: paise,
+                        child: ColoredBox(color: color),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
         ),
       ),
     );
@@ -69,9 +64,9 @@ class TagSplitKey extends StatelessWidget {
   Widget build(BuildContext context) {
     final rows = [
       for (final row in [
-        ('Necessary', split.necessaryPaise, AppColors.mint),
-        ('Wasteful', split.wastefulPaise, AppColors.pink),
-        ('Not sorted yet', split.unsortedPaise, AppColors.white),
+        ('Necessary', split.necessaryPaise, AppColors.chartGot),
+        ('Wasteful', split.wastefulPaise, AppColors.chartSpent),
+        ('Not sorted yet', split.unsortedPaise, AppColors.chartNeutral),
       ])
         if (row.$2 > 0) row,
     ];
@@ -103,12 +98,11 @@ class TagSplitKey extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 14,
-                  height: 14,
+                  width: 12,
+                  height: 12,
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.ink, width: 1.5),
                   ),
                 ),
                 const SizedBox(width: 8),

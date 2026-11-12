@@ -120,7 +120,7 @@ void main() {
       find.descendant(of: card, matching: find.text('₹1,000 over budget')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('budget-bar-food')), findsOneWidget);
+    expect(find.byKey(const ValueKey('budget-status-food')), findsOneWidget);
 
     // Clearing it takes it off the page's total.
     routerOf(tester).push('/budget');

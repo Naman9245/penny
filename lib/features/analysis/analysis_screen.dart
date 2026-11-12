@@ -9,7 +9,6 @@ import 'package:penny/core/router/app_router.dart';
 import 'package:penny/core/router/tab_months.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
-import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/analysis_totals.dart';
@@ -19,13 +18,19 @@ import 'package:penny/services/money_kinds.dart';
 import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/card_title.dart';
+import 'package:penny/widgets/category_avatar.dart';
+import 'package:penny/widgets/first_show.dart';
+import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/pressable_area.dart';
+import 'package:penny/widgets/stat_tile.dart';
 import 'package:penny/widgets/tag_split_bar.dart';
 
-/// Where a month's money went and came from, one card per category, and the
-/// six months up to it side by side.
+/// Where a month's money went and came from, category by category, biggest
+/// first, and the six months up to it side by side.
 class AnalysisScreen extends ConsumerStatefulWidget {
   const AnalysisScreen({super.key});
 
@@ -70,60 +75,70 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          const Text('Analysis', style: AppText.h1),
-          const SizedBox(height: 14),
-          MonthSwitcher(
-            month: month,
-            onChanged: ref.read(analysisMonthProvider.notifier).show,
-          ),
-          const SizedBox(height: 18),
-          if (totals.isEmpty)
-            const _NothingYet()
-          else ...[
-            _Totals(summary: summary),
-            if (spent.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _SplitCard(month: month),
-              const SizedBox(height: 28),
-              const Text('Where it went', style: AppText.h2),
-              const SizedBox(height: 12),
-              _CategoryCards(
-                totals: spent,
-                outOf: summary.spentPaise,
-                month: month,
-                budgets: budgets,
+      child: FirstShowScope(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            const Text('Analysis', style: AppText.h1),
+            const SizedBox(height: 14),
+            MonthSwitcher(
+              month: month,
+              onChanged: ref.read(analysisMonthProvider.notifier).show,
+            ),
+            const SizedBox(height: 18),
+            if (totals.isEmpty)
+              const _NothingYet()
+            else ...[
+              Entrance(
+                id: 'totals',
+                child: _Totals(summary: summary),
               ),
+              if (spent.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Entrance(
+                  id: 'split',
+                  index: 1,
+                  child: _SplitCard(month: month),
+                ),
+                const SizedBox(height: 28),
+                Entrance(
+                  id: 'spent',
+                  index: 2,
+                  child: _Ranked(
+                    title: 'Where it went',
+                    totals: spent,
+                    outOf: summary.spentPaise,
+                    month: month,
+                    budgets: budgets,
+                  ),
+                ),
+              ],
+              if (got.isNotEmpty) ...[
+                const SizedBox(height: 28),
+                _Ranked(
+                  title: 'Where it came from',
+                  totals: got,
+                  outOf: summary.gotPaise,
+                  month: month,
+                ),
+              ],
+              if (invested.isNotEmpty) ...[
+                const SizedBox(height: 28),
+                // As a share of what came in, when anything did.
+                _Ranked(
+                  title: 'Put away',
+                  totals: invested,
+                  outOf: summary.gotPaise,
+                  month: month,
+                ),
+              ],
             ],
-            if (got.isNotEmpty) ...[
-              const SizedBox(height: 28),
-              const Text('Where it came from', style: AppText.h2),
-              const SizedBox(height: 12),
-              _CategoryCards(
-                totals: got,
-                outOf: summary.gotPaise,
-                month: month,
-              ),
-            ],
-            if (invested.isNotEmpty) ...[
-              const SizedBox(height: 28),
-              const Text('Put away', style: AppText.h2),
-              const SizedBox(height: 12),
-              // As a share of what came in, when anything did.
-              _CategoryCards(
-                totals: invested,
-                outOf: summary.gotPaise,
-                month: month,
-              ),
-            ],
+            const SizedBox(height: 28),
+            const Text('Last 6 months', style: AppText.h2),
+            const SizedBox(height: 12),
+            _MonthsChart(months: months),
           ],
-          const SizedBox(height: 28),
-          const Text('Last 6 months', style: AppText.h2),
-          const SizedBox(height: 12),
-          _MonthsChart(months: months),
-        ],
+        ),
       ),
     );
   }
@@ -153,6 +168,7 @@ class _NothingYet extends StatelessWidget {
   }
 }
 
+/// The month's money out, in and left, side by side in one card.
 class _Totals extends StatelessWidget {
   const _Totals({required this.summary});
 
@@ -160,30 +176,47 @@ class _Totals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget stat(String label, int paise, Color color) => Expanded(
-      child: BrutalCard(
-        color: color,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    const padding = EdgeInsets.fromLTRB(14, 12, 10, 14);
+    return BrutalCard(
+      padding: EdgeInsets.zero,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(label, style: AppText.label),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: MoneyText(paise, style: AppText.amount),
+            Expanded(
+              child: StatTile(
+                icon: Icons.north_east_rounded,
+                color: AppColors.pink,
+                label: 'Spent',
+                padding: padding,
+                value: MoneyText(summary.spentPaise, style: AppText.amount),
+              ),
+            ),
+            const StatDivider(),
+            Expanded(
+              child: StatTile(
+                icon: Icons.south_west_rounded,
+                color: AppColors.mint,
+                label: 'Got',
+                padding: padding,
+                value: MoneyText(summary.gotPaise, style: AppText.amount),
+              ),
+            ),
+            const StatDivider(),
+            Expanded(
+              child: StatTile(
+                icon: Icons.account_balance_wallet_outlined,
+                color: AppColors.yellow,
+                label: 'Left',
+                padding: padding,
+                value: summary.hasIncome
+                    ? MoneyText(summary.leftPaise, style: AppText.amount)
+                    : const Text('—', style: AppText.amount),
+              ),
             ),
           ],
         ),
       ),
-    );
-    return Row(
-      children: [
-        stat('Spent', summary.spentPaise, AppColors.pink),
-        const SizedBox(width: 14),
-        stat('Got', summary.gotPaise, AppColors.mint),
-      ],
     );
   }
 }
@@ -203,10 +236,14 @@ class _SplitCard extends ConsumerWidget {
     return BrutalCard(
       key: const ValueKey('split-card'),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Necessary vs wasteful', style: AppText.h3),
-          const SizedBox(height: 12),
+          const CardTitle(
+            icon: Icons.balance_rounded,
+            color: AppColors.lavender,
+            title: 'Necessary vs wasteful',
+          ),
+          const SizedBox(height: 14),
           TagSplitBar(split: split),
           const SizedBox(height: 10),
           TagSplitKey(split: split),
@@ -246,15 +283,18 @@ class _SplitCard extends ConsumerWidget {
   }
 }
 
-/// Category cards, two to a row, biggest first.
-class _CategoryCards extends StatelessWidget {
-  const _CategoryCards({
+/// Categories biggest first, each with its share of [outOf] as a bar, in
+/// one card. A row opens that category's entries.
+class _Ranked extends StatelessWidget {
+  const _Ranked({
+    required this.title,
     required this.totals,
     required this.outOf,
     required this.month,
     this.budgets = const {},
   });
 
+  final String title;
   final List<CategoryTotal> totals;
 
   /// The month's total the shares are taken of.
@@ -267,129 +307,152 @@ class _CategoryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < totals.length; i += 2) ...[
-          if (i > 0) const SizedBox(height: 14),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: _card(context, totals[i])),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: i + 1 < totals.length
-                      ? _card(context, totals[i + 1])
-                      : const SizedBox.shrink(),
+        Text(title, style: AppText.h2),
+        const SizedBox(height: 12),
+        BrutalCard(
+          padding: EdgeInsets.zero,
+          clipChild: true,
+          child: Column(
+            children: [
+              for (final (i, total) in totals.indexed) ...[
+                if (i > 0) const RowDivider(),
+                _CategoryRow(
+                  total: total,
+                  outOf: outOf,
+                  month: month,
+                  budget: budgets[total.categoryId],
                 ),
               ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _card(BuildContext context, CategoryTotal total) {
-    final category = categoryById(total.categoryId);
-    final share = outOf <= 0 ? 0.0 : total.totalPaise / outOf;
-    final budget = budgets[category.id];
-    final cameBack = total.paidBackPaise;
-    return BrutalCard(
-      key: ValueKey('category-card-${category.id}'),
-      color: category.color,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-      onTap: () => context.push(txnsLocation(month, categoryId: category.id)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ExcludeSemantics(
-                child: Text(
-                  category.emoji,
-                  textScaler: TextScaler.noScaling,
-                  style: const TextStyle(fontSize: 30, height: 1.15),
-                ),
-              ),
-              const Spacer(),
-              if (outOf > 0)
-                Text('${(share * 100).round()}%', style: AppText.chip),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            category.label,
-            style: AppText.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: MoneyText(total.totalPaise, style: AppText.amount),
-          ),
-          Text(switch (budget) {
-            null when total.count == 1 => '1 entry',
-            null => '${total.count} entries',
-            final limit when total.totalPaise > limit =>
-              '${formatPaise(total.totalPaise - limit)} over budget',
-            final limit => 'of ${formatPaise(limit)}',
-          }, style: AppText.small.copyWith(color: AppColors.ink)),
-          if (cameBack > 0)
-            Text(
-              '${formatPaise(cameBack)} came back',
-              key: ValueKey('came-back-${category.id}'),
-              style: AppText.small.copyWith(color: AppColors.ink),
-            ),
-          const Spacer(),
-          const SizedBox(height: 10),
-          // With a budget, the bar shows how much of it is used.
-          if (budget != null)
-            _ShareBar(
-              key: ValueKey('budget-bar-${category.id}'),
-              share: total.totalPaise / budget,
-            )
-          else
-            _ShareBar(share: share),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// How much of the month, or of its budget, this category is, as a chunky
-/// bar. Past its budget the bar is full and pink.
-class _ShareBar extends StatelessWidget {
-  const _ShareBar({super.key, required this.share});
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({
+    required this.total,
+    required this.outOf,
+    required this.month,
+    this.budget,
+  });
 
-  final double share;
+  final CategoryTotal total;
+  final int outOf;
+  final DateTime month;
+
+  /// What the user means to spend on it a month, if anything.
+  final int? budget;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      // The whole card's width, so the empty part of the track shows.
-      width: double.infinity,
-      height: 12,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(kPillRadius),
-        border: Border.all(color: AppColors.ink, width: 1.5),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: math.min(1.0, share),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: share > 1 ? AppColors.pink : AppColors.ink,
-            borderRadius: const BorderRadius.all(Radius.circular(kPillRadius)),
-          ),
+    final category = categoryById(total.categoryId);
+    final share = outOf <= 0 ? 0.0 : total.totalPaise / outOf;
+    final budget = this.budget;
+    final over = budget != null && total.totalPaise > budget;
+    final cameBack = total.paidBackPaise;
+    final detail = switch (budget) {
+      null when total.count == 1 => '1 entry',
+      null => '${total.count} entries',
+      final limit when total.totalPaise > limit =>
+        '${formatPaise(total.totalPaise - limit)} over budget',
+      final limit =>
+        '${formatPaise(limit - total.totalPaise)} left of '
+            '${formatPaise(limit)}',
+    };
+    return PressableArea(
+      key: ValueKey('category-card-${category.id}'),
+      onTap: () => context.push(txnsLocation(month, categoryId: category.id)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          children: [
+            CategoryAvatar(category: category, size: 40),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          category.label,
+                          style: AppText.bodyStrong,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      MoneyText(
+                        total.totalPaise,
+                        style: AppText.h3,
+                        tabular: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(child: MeterBar(value: share)),
+                      SizedBox(
+                        width: 44,
+                        child: Text(
+                          '${(share * 100).round()}%',
+                          style: AppText.chip,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (over)
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 15,
+                          color: AppColors.negative,
+                        ),
+                      Text(
+                        detail,
+                        key: budget == null
+                            ? null
+                            : ValueKey('budget-status-${category.id}'),
+                        style: over
+                            ? AppText.small.copyWith(
+                                color: AppColors.negative,
+                                fontWeight: FontWeight.w700,
+                              )
+                            : AppText.small,
+                      ),
+                      if (cameBack > 0) ...[
+                        const Text('·', style: AppText.small),
+                        Text(
+                          '${formatPaise(cameBack)} came back',
+                          key: ValueKey('came-back-${category.id}'),
+                          style: AppText.small,
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Got and spent for six months, as pairs of bordered bars.
+/// Got and spent for six months, as pairs of bars.
 class _MonthsChart extends StatelessWidget {
   const _MonthsChart({required this.months});
 
@@ -420,9 +483,9 @@ class _MonthsChart extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _Legend(color: AppColors.mint, label: 'Got'),
+              _Legend(color: AppColors.chartGot, label: 'Got'),
               SizedBox(width: 18),
-              _Legend(color: AppColors.pink, label: 'Spent'),
+              _Legend(color: AppColors.chartSpent, label: 'Spent'),
             ],
           ),
         ],
@@ -436,7 +499,12 @@ class _MonthsChart extends StatelessWidget {
     return BarChartData(
       maxY: maxY,
       alignment: BarChartAlignment.spaceAround,
-      borderData: FlBorderData(show: false),
+      borderData: FlBorderData(
+        show: true,
+        border: const Border(
+          bottom: BorderSide(color: AppColors.hairline, width: 1.5),
+        ),
+      ),
       gridData: FlGridData(
         drawVerticalLine: false,
         horizontalInterval: step,
@@ -449,7 +517,7 @@ class _MonthsChart extends StatelessWidget {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 48,
+            reservedSize: 58,
             interval: step,
             getTitlesWidget: (value, meta) => SideTitleWidget(
               meta: meta,
@@ -465,7 +533,13 @@ class _MonthsChart extends StatelessWidget {
               meta: meta,
               child: Text(
                 DateFormat('MMM').format(months[value.toInt()].month),
-                style: AppText.small,
+                // The month on show stands out from the ones before.
+                style: value.toInt() == months.length - 1
+                    ? AppText.small.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w700,
+                      )
+                    : AppText.small,
               ),
             ),
           ),
@@ -484,10 +558,10 @@ class _MonthsChart extends StatelessWidget {
         for (var i = 0; i < months.length; i++)
           BarChartGroupData(
             x: i,
-            barsSpace: 4,
+            barsSpace: 3,
             barRods: [
-              _rod(months[i].gotPaise, AppColors.mint),
-              _rod(months[i].spentPaise, AppColors.pink),
+              _rod(months[i].gotPaise, AppColors.chartGot),
+              _rod(months[i].spentPaise, AppColors.chartSpent),
             ],
           ),
       ],
@@ -498,8 +572,7 @@ class _MonthsChart extends StatelessWidget {
     toY: paise.toDouble(),
     color: color,
     width: 12,
-    borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-    borderSide: const BorderSide(color: AppColors.ink, width: 1.5),
+    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
   );
 
   /// The next round figure at or above [value]: 1, 2, 2.5 or 5 times a
@@ -527,12 +600,11 @@ class _Legend extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.ink, width: 1.5),
           ),
         ),
         const SizedBox(width: 6),
