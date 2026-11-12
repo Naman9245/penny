@@ -316,17 +316,19 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                             const SizedBox(width: 48),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 14),
                       if (widget.args.sms case final sms?) ...[
                         SmsCard(preview: sms.preview),
                         const SizedBox(height: 18),
                       ],
-                      Text(_prompt(state), style: AppText.bodyMuted),
-                      const SizedBox(height: 2),
-                      _AmountDisplay(
-                        text: state.amountText,
-                        split: state.split,
-                        shake: _shakeAmount,
+                      _AmountPanel(
+                        prompt: _prompt(state),
+                        spent: state.type == TxnType.debit,
+                        child: _AmountDisplay(
+                          text: state.amountText,
+                          split: state.split,
+                          shake: _shakeAmount,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       _DayAndWhere(
@@ -483,6 +485,44 @@ class _PaidBackSheetState extends State<_PaidBackSheet> {
   }
 }
 
+/// The amount being typed, on a panel in the colour of the money's way:
+/// pink for spent, mint for got, so it's plain which is being logged.
+class _AmountPanel extends StatelessWidget {
+  const _AmountPanel({
+    required this.prompt,
+    required this.spent,
+    required this.child,
+  });
+
+  /// What to do next.
+  final String prompt;
+  final bool spent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 220),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      decoration: BoxDecoration(
+        color: spent ? AppColors.pink : AppColors.mint,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.ink, width: 2.5),
+      ),
+      child: Column(
+        children: [
+          Text(prompt, style: AppText.label, textAlign: TextAlign.center),
+          const SizedBox(height: 2),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
 class _AmountDisplay extends StatelessWidget {
   const _AmountDisplay({required this.text, required this.shake, this.split});
 
@@ -518,7 +558,7 @@ class _AmountDisplay extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 22,
+            height: 20,
             child: working == null
                 ? null
                 : FittedBox(
@@ -531,12 +571,13 @@ class _AmountDisplay extends StatelessWidget {
                   ),
           ),
           SizedBox(
-            height: 64,
+            height: 62,
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 shown,
                 style: AppText.hero.copyWith(
+                  fontSize: 50,
                   color: total > 0 ? AppColors.ink : AppColors.inkMuted,
                 ),
               ),
