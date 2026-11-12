@@ -9,11 +9,21 @@ import 'package:penny/models/txn_enums.dart';
 /// With [type] set it is signed: "−₹250" for money out, a green "+₹5,000"
 /// for money in. Without it, a negative amount turns red.
 class MoneyText extends StatelessWidget {
-  const MoneyText(this.paise, {super.key, this.type, this.style = AppText.h3});
+  const MoneyText(
+    this.paise, {
+    super.key,
+    this.type,
+    this.style = AppText.h3,
+    this.tabular = false,
+  });
 
   final int paise;
   final TxnType? type;
   final TextStyle style;
+
+  /// Every digit as wide as the next, for amounts in a column that should
+  /// line up. A big amount on its own reads better without.
+  final bool tabular;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +39,10 @@ class MoneyText extends StatelessWidget {
       text,
       maxLines: 1,
       softWrap: false,
-      style: style.copyWith(color: color),
+      style: style.copyWith(
+        color: color,
+        fontFeatures: tabular ? const [FontFeature.tabularFigures()] : null,
+      ),
     );
   }
 }

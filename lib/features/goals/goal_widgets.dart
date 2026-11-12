@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_colors.dart';
-import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/services/goal_math.dart';
 import 'package:penny/widgets/brutal_pill.dart';
+import 'package:penny/widgets/meter_bar.dart';
 
 /// Penny's cheer for a goal just reached, naming it.
 String celebrationLine(GoalProgress progress) =>
@@ -42,25 +42,5 @@ class GoalProgressBar extends StatelessWidget {
   final double progress;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 16,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(kPillRadius),
-        border: Border.all(color: AppColors.ink, width: 2),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: progress,
-        child: const DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.ink,
-            borderRadius: BorderRadius.all(Radius.circular(kPillRadius)),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => MeterBar(value: progress, chunky: true);
 }

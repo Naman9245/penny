@@ -16,6 +16,7 @@ import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/card_title.dart';
 import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
@@ -27,10 +28,9 @@ final waitingCapturesProvider =
     );
 
 /// Notifications Penny couldn't read yet, oldest first.
-final unreadCapturesProvider =
-    StreamProvider.autoDispose<List<UnreadCapture>>(
-      (ref) => ref.watch(prefsRepositoryProvider).watchUnread(),
-    );
+final unreadCapturesProvider = StreamProvider.autoDispose<List<UnreadCapture>>(
+  (ref) => ref.watch(prefsRepositoryProvider).watchUnread(),
+);
 
 /// The most shown at once; the rest come up as these are done.
 const _shown = 5;
@@ -55,29 +55,26 @@ class ToCheckCard extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 16),
       child: BrutalCard(
         key: const ValueKey('to-check'),
-        color: AppColors.sky,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              switch ((waiting.length, unread.length)) {
+            CardTitle(
+              icon: Icons.notifications_active_outlined,
+              color: AppColors.sky,
+              title: switch ((waiting.length, unread.length)) {
                 (0, 1) => '1 message to read',
                 (0, final n) => '$n messages to read',
                 (1, _) => '1 payment to check',
                 (final n, _) => '$n payments to check',
               },
-              style: AppText.h3,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              waiting.isEmpty
+              subtitle: waiting.isEmpty
                   ? "Penny couldn't read these yet. She'll try again when "
                         "you're online."
                   : 'Read from your notifications. Add each, or skip it.',
-              style: AppText.small,
             ),
             for (final (i, capture) in waiting.take(_shown).indexed) ...[
               const SizedBox(height: 12),
+              if (i > 0) ...[const RowDivider(), const SizedBox(height: 12)],
               _CaptureRow(index: i, capture: capture),
             ],
             if (more > 0) ...[
@@ -87,9 +84,8 @@ class ToCheckCard extends ConsumerWidget {
                 style: AppText.small,
               ),
             ],
-            for (final (i, capture) in unread.reversed
-                .take(_unreadShown)
-                .indexed) ...[
+            for (final (i, capture)
+                in unread.reversed.take(_unreadShown).indexed) ...[
               const SizedBox(height: 12),
               _UnreadRow(index: i, capture: capture),
             ],

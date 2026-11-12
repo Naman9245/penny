@@ -12,6 +12,7 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
+import 'package:penny/widgets/card_title.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
 /// The days of a month the card shows on.
@@ -108,15 +109,14 @@ class FixedBillsCard extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 16),
       child: BrutalCard(
         key: const ValueKey('fixed-bills'),
-        color: AppColors.cream,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Same fixed bills as last month?', style: AppText.h3),
-            const SizedBox(height: 2),
-            const Text(
-              'Log one to add it today, or skip it for this month.',
-              style: AppText.small,
+            const CardTitle(
+              icon: Icons.receipt_long_rounded,
+              color: AppColors.yellow,
+              title: 'Same fixed bills as last month?',
+              subtitle: 'Log one to add it today, or skip it for this month.',
             ),
             for (final (i, bill) in bills.indexed) ...[
               const SizedBox(height: 10),

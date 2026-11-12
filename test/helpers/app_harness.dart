@@ -81,18 +81,21 @@ Future<void> pumpPenny(
   await tester.pumpAndSettle();
 }
 
-/// Scrolls Home down to Recent, which starts below Penny's cards on a
-/// phone-sized screen.
-Future<void> scrollToRecent(WidgetTester tester) => _dragHome(tester, -400);
-
-/// Scrolls Home back up to the top.
-Future<void> scrollToTop(WidgetTester tester) => _dragHome(tester, 400);
-
-Future<void> _dragHome(WidgetTester tester, double dy) async {
-  // Home's own list comes before the cards' pager inside it.
-  await tester.drag(find.byType(Scrollable).first, Offset(0, dy));
+/// Scrolls Home down until Recent is in view, below Penny's cards and the
+/// month on a phone-sized screen.
+Future<void> scrollToRecent(WidgetTester tester) async {
+  await tester.scrollUntilVisible(find.text('Recent'), 200, scrollable: _home);
   await tester.pumpAndSettle();
 }
+
+/// Scrolls Home back up to the top.
+Future<void> scrollToTop(WidgetTester tester) async {
+  await tester.drag(_home, const Offset(0, 3000));
+  await tester.pumpAndSettle();
+}
+
+// Home's own list comes before the cards' pager inside it.
+final _home = find.byType(Scrollable).first;
 
 /// Taps [target], scrolling the topmost list only when it isn't in view:
 /// Settings is taller than the screen and builds as it scrolls. (Scrolling

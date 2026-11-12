@@ -24,11 +24,16 @@ import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/card_pager.dart';
+import 'package:penny/widgets/first_show.dart';
+import 'package:penny/widgets/icon_badge.dart';
+import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/pressable_area.dart';
+import 'package:penny/widgets/speech_bubble.dart';
 
-/// Penny's mood, this month at a glance, and the latest entries.
+/// Penny's mood and what's safe to spend today, this month at a glance, and
+/// the latest entries.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -58,130 +63,143 @@ class HomeScreen extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_greeting(DateTime.now()), style: AppText.h1),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat('EEEE, d MMMM').format(today),
-                      style: AppText.bodyMuted,
-                    ),
-                  ],
+      child: FirstShowScope(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_greeting(DateTime.now()), style: AppText.h1),
+                      const SizedBox(height: 2),
+                      Text(
+                        DateFormat('EEEE, d MMMM').format(today),
+                        style: AppText.bodyMuted,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              BrutalIconButton(
-                icon: Icons.settings_outlined,
-                semanticLabel: 'Settings',
-                size: 44,
-                onPressed: () => showSettingsSheet(context),
-              ),
+                BrutalIconButton(
+                  icon: Icons.settings_outlined,
+                  semanticLabel: 'Settings',
+                  size: 44,
+                  onPressed: () => showSettingsSheet(context),
+                ),
+              ],
+            ),
+            // Made-up money must never pass for the user's own.
+            if (demo) ...[
+              const SizedBox(height: 14),
+              _DemoBanner(onTap: () => showSettingsSheet(context)),
             ],
-          ),
-          // Made-up money must never pass for the user's own.
-          if (demo) ...[
-            const SizedBox(height: 14),
-            _DemoBanner(onTap: () => showSettingsSheet(context)),
-          ],
-          const SizedBox(height: 18),
-          // Slide Penny aside for the goals still to reach, then the ones
-          // reached.
-          CardPager(
-            key: const ValueKey('home-cards'),
-            labels: const ['Penny', 'Goals to reach', 'Goals reached'],
-            pages: [
-              _PennyCard(
-                mood: mood,
-                status: status,
-                celebrated: ref.watch(celebratedGoalProvider),
-              ),
-              _GoalsCard(
-                goals: [
-                  for (final goal in goals)
-                    if (!goal.reached) goal,
+            const SizedBox(height: 18),
+            // Slide Penny aside for the goals still to reach, then the ones
+            // reached.
+            Entrance(
+              id: 'cards',
+              child: CardPager(
+                key: const ValueKey('home-cards'),
+                labels: const ['Penny', 'Goals to reach', 'Goals reached'],
+                pages: [
+                  _PennyCard(
+                    mood: mood,
+                    status: status,
+                    celebrated: ref.watch(celebratedGoalProvider),
+                  ),
+                  _GoalsCard(
+                    goals: [
+                      for (final goal in goals)
+                        if (!goal.reached) goal,
+                    ],
+                    today: today,
+                  ),
+                  _GoalsCard(goals: reached, today: today, reached: true),
                 ],
-                today: today,
               ),
-              _GoalsCard(goals: reached, today: today, reached: true),
-            ],
-          ),
-          if (status.budget.isEmpty) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: BrutalChip(
-                key: const ValueKey('set-budget'),
-                label: 'Set a budget',
-                icon: Icons.savings_outlined,
-                onTap: () => context.push('/budget'),
+            ),
+            // Payments read from notifications, waiting to be checked.
+            const Entrance(id: 'to-check', index: 1, child: ToCheckCard()),
+            // Payments messages said are coming, like an autopay or an EMI.
+            const Entrance(id: 'coming-up', index: 1, child: ComingUpCard()),
+            // Last month's rent and bills, in a month's first week.
+            const Entrance(
+              id: 'fixed-bills',
+              index: 1,
+              child: FixedBillsCard(),
+            ),
+            const SizedBox(height: 16),
+            Entrance(
+              id: 'month',
+              index: 2,
+              child: _MonthCard(month: month, summary: summary),
+            ),
+            const SizedBox(height: 28),
+            Entrance(
+              id: 'recent',
+              index: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(child: Text('Recent', style: AppText.h2)),
+                      BrutalChip(
+                        label: 'See all',
+                        icon: Icons.receipt_long_rounded,
+                        onTap: () => context.push('/txns'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  recent.when(
+                    data: (txns) => txns.isEmpty
+                        ? const BrutalCard(
+                            child: Row(
+                              children: [
+                                PennyMascot(pose: PennyPose.sleepy, size: 56),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Nothing logged yet. Tap Add, type the '
+                                    'amount, then tap a category.',
+                                    style: AppText.body,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : BrutalCard(
+                            padding: EdgeInsets.zero,
+                            clipChild: true,
+                            child: Column(
+                              children: [
+                                for (var i = 0; i < txns.length; i++) ...[
+                                  if (i > 0) const RowDivider(),
+                                  TxnTile(
+                                    txn: txns[i],
+                                    showDay: true,
+                                    onTap: () =>
+                                        context.push('/txns/${txns[i].id}'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                    loading: () => const SizedBox(height: 72),
+                    error: (error, stackTrace) => Text(
+                      "Couldn't load entries: $error",
+                      style: AppText.body,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-          // Payments read from notifications, waiting to be checked.
-          const ToCheckCard(),
-          // Payments messages said are coming, like an autopay or an EMI.
-          const ComingUpCard(),
-          // Last month's rent and bills, in a month's first week.
-          const FixedBillsCard(),
-          const SizedBox(height: 16),
-          _MonthBento(month: month, summary: summary),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              const Expanded(child: Text('Recent', style: AppText.h2)),
-              BrutalChip(
-                label: 'See all',
-                icon: Icons.receipt_long_rounded,
-                onTap: () => context.push('/txns'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          recent.when(
-            data: (txns) => txns.isEmpty
-                ? const BrutalCard(
-                    child: Row(
-                      children: [
-                        PennyMascot(pose: PennyPose.sleepy, size: 56),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Nothing logged yet. Tap Add, type the amount, '
-                            'then tap a category.',
-                            style: AppText.body,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : BrutalCard(
-                    padding: EdgeInsets.zero,
-                    clipChild: true,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < txns.length; i++) ...[
-                          if (i > 0) const RowDivider(),
-                          TxnTile(
-                            txn: txns[i],
-                            showDay: true,
-                            onTap: () => context.push('/txns/${txns[i].id}'),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-            loading: () => const SizedBox(height: 72),
-            error: (error, stackTrace) =>
-                Text("Couldn't load entries: $error", style: AppText.body),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -203,11 +221,15 @@ class _DemoBanner extends StatelessWidget {
     return BrutalCard(
       key: const ValueKey('demo-banner'),
       color: AppColors.sky,
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
       onTap: onTap,
       child: const Row(
         children: [
-          Icon(Icons.science_outlined, color: AppColors.ink),
+          IconBadge(
+            icon: Icons.science_outlined,
+            color: AppColors.white,
+            size: 32,
+          ),
           SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -216,7 +238,7 @@ class _DemoBanner extends StatelessWidget {
                 Text('Demo data', style: AppText.label),
                 Text(
                   'Made-up money to try Penny on. Yours is safe.',
-                  style: AppText.body,
+                  style: AppText.small,
                 ),
               ],
             ),
@@ -228,6 +250,8 @@ class _DemoBanner extends StatelessWidget {
   }
 }
 
+/// Penny, saying how today is going, over what's safe to spend. The whole
+/// card opens the chat.
 class _PennyCard extends StatelessWidget {
   const _PennyCard({
     required this.mood,
@@ -244,77 +268,78 @@ class _PennyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final celebrated = this.celebrated;
-    final budget =
-        status.budget.everydayPaise > 0 ||
-        status.oneGoNote != null ||
-        status.forecast != null;
+    final budgeted =
+        status.budget.everydayPaise > 0 || status.oneGoNote != null;
     return BrutalCard(
       key: const ValueKey('penny-card'),
       color: mood.color,
-      padding: const EdgeInsets.fromLTRB(10, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(10, 14, 14, 14),
       onTap: () => context.push('/chat'),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PennyMascot(mood: mood),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(kPillRadius),
-                    border: Border.all(color: AppColors.ink, width: 2),
-                  ),
-                  child: Text(mood.label, style: AppText.chip),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  celebrated == null
-                      ? homeLine(mood, todaySpentPaise: status.todaySpentPaise)
-                      : celebrationLine(celebrated),
-                  style: AppText.h3,
-                ),
-                if (budget) ...[
-                  const SizedBox(height: 10),
-                  _BudgetBox(status: status),
-                ],
-                const SizedBox(height: 10),
-                // The whole card opens the chat; this says so.
-                Container(
-                  padding: const EdgeInsets.fromLTRB(10, 5, 12, 5),
-                  decoration: brutalDecoration(
-                    color: AppColors.yellow,
-                    radius: kPillRadius,
-                    borderWidth: 2,
-                    shadow: const Offset(2, 2),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+          Row(
+            children: [
+              PennyMascot(mood: mood, size: 84),
+              const SizedBox(width: 2),
+              Expanded(
+                child: SpeechBubble(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        size: 16,
-                        color: AppColors.ink,
-                      ),
-                      SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          'Talk to Penny',
-                          style: AppText.chip,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      _MoodTag(mood: mood),
+                      const SizedBox(height: 6),
+                      Text(
+                        celebrated == null
+                            ? homeLine(
+                                mood,
+                                todaySpentPaise: status.todaySpentPaise,
+                              )
+                            : celebrationLine(celebrated),
+                        style: AppText.h3,
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (budgeted)
+            _BudgetWell(status: status)
+          else
+            _NoBudgetWell(status: status),
+          const SizedBox(height: 12),
+          // The whole card opens the chat; this says so.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
+              decoration: brutalDecoration(
+                color: AppColors.yellow,
+                radius: kPillRadius,
+                borderWidth: 2,
+                shadow: const Offset(2, 2),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 18,
+                    color: AppColors.ink,
+                  ),
+                  SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Talk to Penny',
+                      style: AppText.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -323,64 +348,186 @@ class _PennyCard extends StatelessWidget {
   }
 }
 
-/// Where the month and today stand against the budget, boxed off from
-/// Penny's line so it can't be read as a goal. Today's line is the one the
-/// mood calendar colours today by.
-class _BudgetBox extends StatelessWidget {
-  const _BudgetBox({required this.status});
+/// Penny's mood in a word, in its own colour.
+class _MoodTag extends StatelessWidget {
+  const _MoodTag({required this.mood});
+
+  final PennyMood mood;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 2, 10, 3),
+      decoration: BoxDecoration(
+        color: mood.color,
+        borderRadius: BorderRadius.circular(kPillRadius),
+        border: Border.all(color: AppColors.ink, width: 1.5),
+      ),
+      child: Text(mood.label, style: AppText.chip),
+    );
+  }
+}
+
+/// A well inside Penny's card: lighter than the card, with no outline of
+/// its own, so it reads as part of her card rather than a card in a card.
+class _Well extends StatelessWidget {
+  const _Well({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('budget-box'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.wash,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// What's left of today's share, and where the month stands against the
+/// budget. Today's line is the one the mood calendar colours today by.
+class _BudgetWell extends StatelessWidget {
+  const _BudgetWell({required this.status});
 
   final BudgetStatus status;
 
   @override
   Widget build(BuildContext context) {
     final everyday = status.budget.everydayPaise;
-    final forecast = status.forecast;
-    final days = daysLeftLabel(status.daysLeft);
-    return Container(
-      key: const ValueKey('budget-box'),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.ink, width: 2),
-      ),
+    final share = status.sharePaise;
+    final todaySpent = status.todaySpentPaise;
+    final left = share - todaySpent;
+    return _Well(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            everyday > 0
-                ? 'Everyday budget · $days'
-                : status.budget.isEmpty
-                ? 'This month · $days'
-                : 'Budget',
-            style: AppText.small,
-          ),
           if (everyday > 0) ...[
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                left >= 0
+                    ? '${formatPaise(left)} left today'
+                    : "${formatPaise(-left)} over today's share",
+                key: const ValueKey('today-left'),
+                style: AppText.h2,
+              ),
+            ),
+            const SizedBox(height: 6),
+            MeterBar(value: share == 0 ? 0 : todaySpent / share),
+            const SizedBox(height: 4),
+            Text(
+              'Today ${formatPaise(todaySpent)} of your '
+              '${formatPaise(share)} share',
+              key: const ValueKey('today-line'),
+              style: AppText.small,
+            ),
+            const SizedBox(height: 14),
             Text(
               '${formatPaise(status.everydaySpentPaise)} of '
               '${formatPaise(everyday)}',
               key: const ValueKey('budget-line'),
               style: AppText.bodyStrong,
             ),
+            const SizedBox(height: 6),
+            MeterBar(value: status.everydaySpentPaise / everyday),
+            const SizedBox(height: 4),
             Text(
-              'Today ${formatPaise(status.todaySpentPaise)} of your '
-              '${formatPaise(status.sharePaise)} share',
-              key: const ValueKey('today-line'),
-              style: AppText.body,
+              'Everyday budget · ${daysLeftLabel(status.daysLeft)}',
+              style: AppText.small,
             ),
-          ],
+          ] else
+            const Text('Budget', style: AppText.small),
           for (final note in [?status.categoryNote, ?status.oneGoNote])
-            Text(note, style: AppText.body),
-          if (forecast != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                forecast,
-                key: const ValueKey('forecast-line'),
-                style: AppText.small.copyWith(color: AppColors.ink),
-              ),
+            _Note(icon: Icons.error_outline_rounded, text: note),
+          if (status.forecast case final forecast?)
+            _Note(
+              key: const ValueKey('forecast-line'),
+              icon: Icons.trending_up_rounded,
+              text: forecast,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// With no budget yet: where the month is heading, and a way to set one.
+class _NoBudgetWell extends StatelessWidget {
+  const _NoBudgetWell({required this.status});
+
+  final BudgetStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final forecast = status.forecast;
+    return _Well(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (forecast != null) ...[
+            Text(
+              'This month · ${daysLeftLabel(status.daysLeft)}',
+              style: AppText.small,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              forecast,
+              key: const ValueKey('forecast-line'),
+              style: AppText.bodyStrong,
+            ),
+            const SizedBox(height: 10),
+          ],
+          const Text(
+            "Give your everyday spending a budget, and I'll show what's safe "
+            'to spend each day.',
+            style: AppText.body,
+          ),
+          const SizedBox(height: 10),
+          BrutalChip(
+            key: const ValueKey('set-budget'),
+            label: 'Set a budget',
+            icon: Icons.savings_outlined,
+            onTap: () => context.push('/budget'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A line in the well about why Penny feels as she does, or where the
+/// month is heading.
+class _Note extends StatelessWidget {
+  const _Note({super.key, required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, size: 16, color: AppColors.ink),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: AppText.small.copyWith(color: AppColors.ink),
+            ),
+          ),
         ],
       ),
     );
@@ -415,7 +562,22 @@ class _GoalsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(reached ? 'Goals reached' : 'Goals to reach', style: AppText.h3),
+          Row(
+            children: [
+              IconBadge(
+                icon: reached
+                    ? Icons.emoji_events_outlined
+                    : Icons.flag_rounded,
+                color: AppColors.white,
+                size: 32,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                reached ? 'Goals reached' : 'Goals to reach',
+                style: AppText.h3,
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: goals.isEmpty
@@ -443,7 +605,7 @@ class _GoalsCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (final (i, goal) in goals.take(_shown).indexed) ...[
-                        if (i > 0) const SizedBox(height: 12),
+                        if (i > 0) const SizedBox(height: 14),
                         _GoalRow(progress: goal, today: today),
                       ],
                       if (more > 0) ...[
@@ -549,53 +711,113 @@ class _GoalRow extends StatelessWidget {
   }
 }
 
-class _MonthBento extends StatelessWidget {
-  const _MonthBento({required this.month, required this.summary});
+/// The month so far in one card: what went out, big, and what came in and
+/// is left beside each other under it.
+class _MonthCard extends StatelessWidget {
+  const _MonthCard({required this.month, required this.summary});
 
   final DateTime month;
   final MonthSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return BrutalCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          KeyedSubtree(
+            key: const ValueKey('stat-spent'),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StatLabel(
+                    icon: Icons.north_east_rounded,
+                    color: AppColors.pink,
+                    label: 'Spent in ${DateFormat('MMMM').format(month)}',
+                  ),
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: AnimatedMoney(
+                      summary.spentPaise,
+                      id: 'spent',
+                      style: AppText.hero,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const RowDivider(),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _Stat(
+                    key: const ValueKey('stat-got'),
+                    icon: Icons.south_west_rounded,
+                    color: AppColors.mint,
+                    label: 'Got',
+                    value: MoneyText(summary.gotPaise, style: AppText.amount),
+                  ),
+                ),
+                const ColoredBox(
+                  color: AppColors.hairline,
+                  child: SizedBox(width: 1.5),
+                ),
+                Expanded(
+                  child: _Stat(
+                    key: const ValueKey('stat-left'),
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: AppColors.yellow,
+                    label: 'Left',
+                    value: summary.hasIncome
+                        ? MoneyText(summary.leftPaise, style: AppText.amount)
+                        : const Text('—', style: AppText.amount),
+                    hint: !summary.hasIncome
+                        ? 'Log income to see this'
+                        : summary.investedPaise > 0
+                        ? '${formatPaise(summary.investedPaise)} invested'
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatLabel extends StatelessWidget {
+  const _StatLabel({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        _StatCard(
-          key: const ValueKey('stat-spent'),
-          label: 'Spent in ${DateFormat('MMMM').format(month)}',
-          color: AppColors.pink,
-          value: MoneyText(summary.spentPaise, style: AppText.hero),
-        ),
-        const SizedBox(height: 14),
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _StatCard(
-                  key: const ValueKey('stat-got'),
-                  label: 'Got',
-                  color: AppColors.mint,
-                  value: MoneyText(summary.gotPaise, style: AppText.amount),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _StatCard(
-                  key: const ValueKey('stat-left'),
-                  label: 'Left',
-                  color: AppColors.yellow,
-                  value: summary.hasIncome
-                      ? MoneyText(summary.leftPaise, style: AppText.amount)
-                      : const Text('—', style: AppText.amount),
-                  hint: !summary.hasIncome
-                      ? 'Log income to see this'
-                      : summary.investedPaise > 0
-                      ? '${formatPaise(summary.investedPaise)} invested'
-                      : null,
-                ),
-              ),
-            ],
+        IconBadge(icon: icon, color: color, size: 26),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            style: AppText.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -603,32 +825,32 @@ class _MonthBento extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+class _Stat extends StatelessWidget {
+  const _Stat({
     super.key,
-    required this.label,
+    required this.icon,
     required this.color,
+    required this.label,
     required this.value,
     this.hint,
   });
 
-  final String label;
+  final IconData icon;
   final Color color;
+  final String label;
   final Widget value;
   final String? hint;
 
   @override
   Widget build(BuildContext context) {
     final hint = this.hint;
-    return BrutalCard(
-      color: color,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: AppText.label),
-          const SizedBox(height: 4),
+          _StatLabel(icon: icon, color: color, label: label),
+          const SizedBox(height: 6),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -636,7 +858,7 @@ class _StatCard extends StatelessWidget {
           ),
           if (hint != null) ...[
             const SizedBox(height: 2),
-            Text(hint, style: AppText.small.copyWith(color: AppColors.ink)),
+            Text(hint, style: AppText.small),
           ],
         ],
       ),

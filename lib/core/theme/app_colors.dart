@@ -30,4 +30,25 @@ abstract final class AppColors {
   /// Penny's headphones: deeper than lavender, so they stand out on her
   /// lavender (neutral) card.
   static const headphones = Color(0xFF8E78F0);
+
+  /// A step darker than the page: wells and empty tracks inside white
+  /// cards.
+  static const sand = Color(0xFFF3EADB);
+
+  /// A well inside a coloured card: white, letting the card's colour
+  /// through.
+  static const wash = Color(0x99FFFFFF);
+
+  /// The empty part of a meter, on any card: ink, faint.
+  static const track = Color(0x1F1A1A1A);
+
+  /// Money in and money out as marks in a chart. Mint and pink are too
+  /// pale to show on white, so charts use these deeper steps; side by side
+  /// they stay apart for colour-blind eyes (checked: ΔE 15 under protanopia
+  /// and deuteranopia) and clear 3:1 on white.
+  static const chartGot = Color(0xFF146C3F);
+  static const chartSpent = Color(0xFFE2669E);
+
+  /// What isn't sorted yet, in a split bar: no colour of its own.
+  static const chartNeutral = Color(0xFFCFC6B6);
 }

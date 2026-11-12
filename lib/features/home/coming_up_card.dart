@@ -7,6 +7,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/card_title.dart';
 import 'package:penny/widgets/money_text.dart';
 
 /// Payments messages said are coming, like an autopay or an EMI, soonest
@@ -24,24 +25,17 @@ class ComingUpCard extends ConsumerWidget {
     final today = ref.watch(todayProvider);
     final card = BrutalCard(
       key: const ValueKey('coming-up'),
-      color: AppColors.sky,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.event_rounded, size: 20, color: AppColors.ink),
-              SizedBox(width: 8),
-              Text('Coming up', style: AppText.h3),
-            ],
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Payments your messages say are on their way.',
-            style: AppText.small,
+          const CardTitle(
+            icon: Icons.event_rounded,
+            color: AppColors.lavender,
+            title: 'Coming up',
+            subtitle: 'Payments your messages say are on their way.',
           ),
           for (final (i, payment) in due.take(_most).indexed) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: i == 0 ? 8 : 2),
             _Row(
               index: i,
               payment: payment,
