@@ -11,12 +11,16 @@ class PressableArea extends StatefulWidget {
     super.key,
     required this.onTap,
     required this.child,
+    this.onLongPress,
     this.pressedScale = 1,
     this.radius = 0,
   });
 
   final VoidCallback? onTap;
   final Widget child;
+
+  /// Runs on a long press, as picking entries does.
+  final VoidCallback? onLongPress;
 
   /// Its size while pressed; 1 keeps its size and only darkens it.
   final double pressedScale;
@@ -41,6 +45,7 @@ class _PressableAreaState extends State<PressableArea>
       onTapUp: onTap == null ? null : (_) => pressUp(),
       onTapCancel: pressCancel,
       onTap: onTap == null ? null : () => actAfterPress(onTap),
+      onLongPress: widget.onLongPress,
       child: AnimatedScale(
         scale: pressed ? widget.pressedScale : 1,
         duration: _tween,

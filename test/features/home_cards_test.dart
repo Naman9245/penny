@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/goal_repository.dart';
+import 'package:penny/data/txn_repository.dart';
 import 'package:penny/data/upcoming_repository.dart';
 import 'package:penny/features/goals/goal_editor_screen.dart';
 import 'package:penny/features/goals/goal_screen.dart';
+import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/budget_math.dart';
 
 import '../helpers/app_harness.dart';
@@ -185,6 +187,77 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('coming-up-dismiss-0')));
     await tester.pumpAndSettle();
     expect(card, findsNothing);
+    await closeApp(tester, db);
+  });
+
+  testWidgets("Penny offers to make one payee's payments on a day one", (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    Future<void> twoPayments(TxnRepository repo) async {
+      for (final (paise, hour) in [(667, 1), (1167, 2)]) {
+        await repo.add(
+          amountPaise: paise,
+          type: TxnType.debit,
+          categoryId: 'people',
+          occurredAt: DateTime(now.year, now.month, now.day, hour),
+          merchant: 'Ravi Kumar',
+          payeeIsPerson: true,
+        );
+      }
+    }
+
+    final db = await pumpApp(tester, seed: twoPayments);
+    final offer = find.byKey(const ValueKey('combine-offer'));
+    await tester.scrollUntilVisible(
+      offer,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: offer,
+        matching: find.text('2 payments to Ravi Kumar · Today · ₹18.34'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('combine-offer-yes')));
+    await tester.pumpAndSettle();
+    expect(offer, findsNothing);
+    final live = await tester.runAsync(
+      () => (db.select(db.txns)..where((t) => t.deletedAt.isNull())).get(),
+    );
+    expect(live!.single.amountPaise, 1834);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('Not now hides the offer for good', (tester) async {
+    final now = DateTime.now();
+    final db = await pumpApp(
+      tester,
+      seed: (repo) async {
+        for (final hour in [1, 2]) {
+          await repo.add(
+            amountPaise: 1000,
+            type: TxnType.debit,
+            categoryId: 'food',
+            occurredAt: DateTime(now.year, now.month, now.day, hour),
+            merchant: 'Chai Point',
+          );
+        }
+      },
+    );
+    final offer = find.byKey(const ValueKey('combine-offer'));
+    await tester.scrollUntilVisible(
+      offer,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('combine-offer-no')));
+    await tester.pumpAndSettle();
+    expect(offer, findsNothing);
     await closeApp(tester, db);
   });
 }

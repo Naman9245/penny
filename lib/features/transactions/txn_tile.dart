@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:penny/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -17,11 +18,17 @@ class TxnTile extends StatelessWidget {
     super.key,
     required this.txn,
     this.onTap,
+    this.onLongPress,
+    this.picked,
     this.showDay = false,
   });
 
   final Txn txn;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  /// While entries are being picked: whether this one is. Null otherwise.
+  final bool? picked;
 
   /// Show the day instead of the time, for lists not grouped by day.
   final bool showDay;
@@ -49,14 +56,19 @@ class TxnTile extends StatelessWidget {
     return MergeSemantics(
       child: Semantics(
         button: onTap != null,
+        selected: picked,
         child: PressableArea(
           onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: LayoutBuilder(
               builder: (context, constraints) => Row(
                 children: [
-                  CategoryAvatar(category: category),
+                  switch (picked) {
+                    null => CategoryAvatar(category: category),
+                    final on => _PickMark(picked: on),
+                  },
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -96,6 +108,29 @@ class TxnTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A round tick in the avatar's place while entries are being picked.
+class _PickMark extends StatelessWidget {
+  const _PickMark({required this.picked});
+
+  final bool picked;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: picked ? AppColors.yellow : AppColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.ink, width: 2),
+      ),
+      child: picked
+          ? const Icon(Icons.check_rounded, color: AppColors.ink)
+          : null,
     );
   }
 }

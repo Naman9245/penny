@@ -11,8 +11,10 @@ import 'package:penny/features/transactions/txn_tile.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/penny_pose.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/combine_math.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/txn_search.dart';
+import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
@@ -78,92 +80,139 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
   // them out of the tree on the very next frame.
   final _dismissed = <String>{};
 
+  /// Entries picked to combine, after a long press. Empty when not picking.
+  final _picked = <String>{};
+
+  bool get _picking => _picked.isNotEmpty;
+
+  void _togglePick(Txn txn) => setState(() {
+    if (!_picked.remove(txn.id)) _picked.add(txn.id);
+  });
+
+  /// Makes the picked entries one, with Undo.
+  Future<void> _combine(List<Txn> picked) async {
+    final repo = ref.read(txnRepositoryProvider);
+    final ids = [for (final txn in picked) txn.id];
+    final total = picked.fold(0, (sum, txn) => sum + txn.amountPaise);
+    final combined = await repo.combine(ids);
+    if (!mounted || combined == null) return;
+    setState(_picked.clear);
+    showUndoSnackBar(
+      context,
+      message: 'Combined ${ids.length} into ${formatPaise(total)}',
+      onUndo: () => repo.uncombine(combined, ids),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final txns = ref.watch(monthTxnsProvider(_month));
     final categoryId = _categoryId;
+    final picked = [
+      for (final txn in txns.value ?? const <Txn>[])
+        if (_picked.contains(txn.id)) txn,
+    ];
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: PageHeader(
-                title: 'Transactions',
-                subtitle: 'Swipe left to delete, tap to edit.',
-                actions: [
-                  BrutalIconButton(
-                    key: const ValueKey('search-toggle'),
-                    icon: _searching
-                        ? Icons.close_rounded
-                        : Icons.search_rounded,
-                    semanticLabel: _searching ? 'Close search' : 'Search',
-                    onPressed: _toggleSearch,
-                  ),
-                ],
-              ),
-            ),
-            if (_searching)
+    return PopScope(
+      // Back while picking stops picking.
+      canPop: !_picking,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(_picked.clear);
+      },
+      child: Scaffold(
+        bottomNavigationBar: _picking
+            ? _CombineBar(
+                picked: picked,
+                onCombine: () => _combine(picked),
+                onCancel: () => setState(_picked.clear),
+              )
+            : null,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                child: _SearchField(
-                  controller: _search,
-                  onChanged: (text) => setState(() => _query = text),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: PageHeader(
+                  title: 'Transactions',
+                  subtitle: _picking
+                      ? 'Tap the others to combine with it.'
+                      : 'Tap to edit, hold to combine, swipe left to delete.',
+                  actions: [
+                    BrutalIconButton(
+                      key: const ValueKey('search-toggle'),
+                      icon: _searching
+                          ? Icons.close_rounded
+                          : Icons.search_rounded,
+                      semanticLabel: _searching ? 'Close search' : 'Search',
+                      onPressed: _toggleSearch,
+                    ),
+                  ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-              child: MonthSwitcher(
-                month: _month,
-                onChanged: (month) => setState(() => _month = month),
+              if (_searching)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                  child: _SearchField(
+                    controller: _search,
+                    onChanged: (text) => setState(() => _query = text),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                child: MonthSwitcher(
+                  month: _month,
+                  onChanged: (month) => setState(() {
+                    _month = month;
+                    _picked.clear();
+                  }),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final filter in _Filter.values)
-                    BrutalChip(
-                      label: filter.label,
-                      selected: filter == _filter,
-                      onTap: () => setState(() => _filter = filter),
-                    ),
-                  if (categoryId != null)
-                    BrutalChip(
-                      key: const ValueKey('category-filter'),
-                      label: categoryById(categoryId).label,
-                      icon: Icons.close_rounded,
-                      selected: true,
-                      selectedColor: categoryById(categoryId).color,
-                      onTap: () => setState(() => _categoryId = null),
-                    )
-                  else if (txns.value?.isNotEmpty ?? false)
-                    BrutalChip(
-                      key: const ValueKey('category-pick'),
-                      label: 'Category',
-                      icon: Icons.tune_rounded,
-                      onTap: () => _pickCategory(txns.value!),
-                    ),
-                ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final filter in _Filter.values)
+                      BrutalChip(
+                        label: filter.label,
+                        selected: filter == _filter,
+                        onTap: () => setState(() => _filter = filter),
+                      ),
+                    if (categoryId != null)
+                      BrutalChip(
+                        key: const ValueKey('category-filter'),
+                        label: categoryById(categoryId).label,
+                        icon: Icons.close_rounded,
+                        selected: true,
+                        selectedColor: categoryById(categoryId).color,
+                        onTap: () => setState(() => _categoryId = null),
+                      )
+                    else if (txns.value?.isNotEmpty ?? false)
+                      BrutalChip(
+                        key: const ValueKey('category-pick'),
+                        label: 'Category',
+                        icon: Icons.tune_rounded,
+                        onTap: () => _pickCategory(txns.value!),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: txns.when(
-                data: _days,
-                loading: () => const SizedBox.shrink(),
-                error: (error, stackTrace) => Center(
-                  child: Text(
-                    "Couldn't load entries: $error",
-                    style: AppText.body,
+              Expanded(
+                child: txns.when(
+                  data: _days,
+                  loading: () => const SizedBox.shrink(),
+                  error: (error, stackTrace) => Center(
+                    child: Text(
+                      "Couldn't load entries: $error",
+                      style: AppText.body,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -251,7 +300,20 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
               children: [
                 for (var i = 0; i < txns.length; i++) ...[
                   if (i > 0) const RowDivider(),
-                  _Swipeable(txn: txns[i], onDelete: _delete),
+                  if (_picking)
+                    TxnTile(
+                      key: ValueKey('pick-${txns[i].id}'),
+                      txn: txns[i],
+                      picked: _picked.contains(txns[i].id),
+                      onTap: () => _togglePick(txns[i]),
+                      onLongPress: () => _togglePick(txns[i]),
+                    )
+                  else
+                    _Swipeable(
+                      txn: txns[i],
+                      onDelete: _delete,
+                      onLongPress: _togglePick,
+                    ),
                 ],
               ],
             ),
@@ -280,10 +342,15 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
 }
 
 class _Swipeable extends StatelessWidget {
-  const _Swipeable({required this.txn, required this.onDelete});
+  const _Swipeable({
+    required this.txn,
+    required this.onDelete,
+    required this.onLongPress,
+  });
 
   final Txn txn;
   final ValueChanged<Txn> onDelete;
+  final ValueChanged<Txn> onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +371,11 @@ class _Swipeable extends StatelessWidget {
           ],
         ),
       ),
-      child: TxnTile(txn: txn, onTap: () => context.push('/txns/${txn.id}')),
+      child: TxnTile(
+        txn: txn,
+        onTap: () => context.push('/txns/${txn.id}'),
+        onLongPress: () => onLongPress(txn),
+      ),
     );
   }
 }
@@ -430,6 +501,56 @@ class _SearchField extends StatelessWidget {
         border: border,
         enabledBorder: border,
         focusedBorder: border,
+      ),
+    );
+  }
+}
+
+/// The bar while entries are picked: what combining them makes, or why it
+/// can't yet, and a way out.
+class _CombineBar extends StatelessWidget {
+  const _CombineBar({
+    required this.picked,
+    required this.onCombine,
+    required this.onCancel,
+  });
+
+  final List<Txn> picked;
+  final VoidCallback onCombine;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final combined = combinationOf(picked);
+    final label = switch (picked.length) {
+      < 2 => 'Pick one more to combine',
+      final n when combined != null =>
+        'Combine $n · ${formatPaise(combined.amountPaise)}',
+      _ => 'Pick only money out, or only money in',
+    };
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: BrutalButton(
+                key: const ValueKey('combine'),
+                label: label,
+                icon: Icons.merge_rounded,
+                expand: true,
+                onPressed: combined == null ? null : onCombine,
+              ),
+            ),
+            const SizedBox(width: 10),
+            BrutalIconButton(
+              key: const ValueKey('combine-cancel'),
+              icon: Icons.close_rounded,
+              semanticLabel: 'Stop picking',
+              onPressed: onCancel,
+            ),
+          ],
+        ),
       ),
     );
   }

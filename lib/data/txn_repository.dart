@@ -4,6 +4,7 @@ import 'package:penny/data/db/app_database.dart';
 import 'package:penny/models/analysis_totals.dart';
 import 'package:penny/models/month_summary.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/services/combine_math.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:uuid/uuid.dart';
 
@@ -109,6 +110,44 @@ class TxnRepository {
   }
 
   Future<void> softDelete(String id) => _setDeletedAt(id, _clock());
+
+  /// Makes the live entries [ids] one entry for their total
+  /// ([combinationOf]), and deletes them the usual way, so backup carries
+  /// it and [uncombine] can bring them back. Their SMS stay known, so one
+  /// read again never brings an entry back. The new entry's id, or null
+  /// when they can't be combined.
+  Future<String?> combine(List<String> ids) => _db.transaction(() async {
+    final txns = await (_db.select(
+      _txns,
+    )..where((t) => t.id.isIn(ids) & t.deletedAt.isNull())).get();
+    if (txns.length != ids.length) return null;
+    final combined = combinationOf(txns);
+    if (combined == null) return null;
+    final id = await add(
+      amountPaise: combined.amountPaise,
+      type: combined.type,
+      categoryId: combined.categoryId,
+      occurredAt: combined.occurredAt,
+      merchant: combined.merchant,
+      source: combined.source,
+      payeeIsPerson: combined.payeeIsPerson,
+    );
+    final now = _clock();
+    for (final txn in txns) {
+      await _setDeletedAt(txn.id, now);
+    }
+    return id;
+  });
+
+  /// Undoes [combine]: deletes the entry [combinedId] and brings back
+  /// [ids].
+  Future<void> uncombine(String combinedId, List<String> ids) =>
+      _db.transaction(() async {
+        await softDelete(combinedId);
+        for (final id in ids) {
+          await restore(id);
+        }
+      });
 
   Future<void> restore(String id) {
     return _db.transaction(() async {
