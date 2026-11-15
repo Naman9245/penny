@@ -426,6 +426,80 @@ void main() {
       },
     );
 
+    test("PayZapp's notice of loading the wallet isn't spending", () async {
+      source.waiting.add(
+        app(
+          'payzapp',
+          'Payment sent successfully',
+          'Your payment of Rs.2567 to PayZapp Wallet was successful.',
+        ),
+      );
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.outcome, CaptureOutcome.letGo);
+      expect(read.what, 'a move between your own accounts');
+      expect(await entries(), isEmpty);
+    });
+
+    test(
+      "an autopay's bank SMS and GPay's notice hours apart are one",
+      () async {
+        source.waiting.addAll([
+          // The bank's SMS doesn't say it's investing; GPay's notice does.
+          sms(
+            'JD-HDFCBK-S',
+            'Rs.500.00 debited from A/c XX4821 towards UPI Mandate ABCD. '
+                'UPI Ref 631900000002.',
+          ),
+          app(
+            'gpay',
+            'Payment to MUTUAL FUNDS ICCL AUTOPAY was successful',
+            'Payment for Autopay of ₹500.00 to MUTUAL FUNDS ICCL AUTOPAY was '
+                'successful. Tap to view.',
+            when: at.add(const Duration(hours: 2)),
+          ),
+        ]);
+        final reads = await take(CaptureMode.save);
+        expect(
+          [for (final r in reads) r.outcome],
+          [CaptureOutcome.saved, CaptureOutcome.letGo],
+        );
+        expect(await entries(), hasLength(1));
+      },
+    );
+
+    test(
+      'an autopay seen from the bank and from GPay the same day is one',
+      () async {
+        source.waiting.addAll([
+          sms(
+            'JD-HDFCBK-S',
+            'Rs.299.00 debited from A/c XX4821 for NETFLIX autopay. '
+                'UPI Ref 631900000003.',
+          ),
+          app(
+            'gpay',
+            'Payment to NETFLIX was successful',
+            'Payment for Autopay of ₹299.00 to NETFLIX was successful.',
+            when: at.add(const Duration(hours: 6)),
+          ),
+        ]);
+        await take(CaptureMode.save);
+        expect(await entries(), hasLength(1));
+      },
+    );
+
+    test('two autopays of one amount from one app stay two', () async {
+      Capture autopay(int minutes) => app(
+        'gpay',
+        'Payment to NETFLIX was successful',
+        'Payment for Autopay of ₹299.00 to NETFLIX was successful.',
+        when: at.add(Duration(minutes: minutes)),
+      );
+      source.waiting.addAll([autopay(0), autopay(40)]);
+      await take(CaptureMode.save);
+      expect(await entries(), hasLength(2));
+    });
+
     test(
       'two payments of one amount from one place are two payments',
       () async {

@@ -262,6 +262,16 @@ String _time(DateTime at) => DateFormat('h:mm a').format(at);
 /// confirmation of it can come.
 const _sameInvestment = Duration(days: 3);
 
+/// How far apart a bank's SMS for an autopay and the app's notice of it can
+/// come: the bank may send its message hours before or after.
+const _sameAutopay = Duration(days: 1);
+
+/// Words that come with an autopay or a mandate.
+final _autopayWords = RegExp(
+  r'\b(?:auto[\s-]?pay|mandate|nach)\b',
+  caseSensitive: false,
+);
+
 /// Where a payment was read: an app, or for an SMS, who sent it. A sender
 /// code's route prefix and suffix don't count: "JM-HDFCBK-S" is "HDFCBK".
 String _sourceOf(String app, String? sender) {
@@ -290,9 +300,11 @@ Future<({String what, String? entryId})?> repeatOf(
   DateTime at, {
   required String app,
   String? sender,
+  String text = '',
 }) async {
   final investing = isInvestCategory(sms.suggestedCategoryId);
-  final window = investing ? _sameInvestment : _sameMoment;
+  // The widest window; each one found is held to its own below.
+  const window = _sameInvestment;
   final source = _sourceOf(app, sender);
   final rows =
       await (db.select(db.pendingCaptures)..where(
@@ -311,9 +323,22 @@ Future<({String what, String? entryId})?> repeatOf(
     if (row.app == 'sms' && row.sender == null) continue;
     final from = _sourceOf(row.app, row.sender);
     if (from == source) continue;
+    // Investing on either side is enough: the bank's SMS may not say what
+    // the fund's or the app's notice does.
+    final eitherInvests =
+        investing || isInvestCategory(row.suggestedCategoryId);
+    final autopay =
+        _autopayWords.hasMatch(text) || _autopayWords.hasMatch(row.preview);
+    final gap = row.occurredAt.difference(at).abs();
+    final near = eitherInvests
+        ? gap <= _sameInvestment
+        : autopay
+        ? gap <= _sameAutopay
+        : gap <= _sameMoment;
+    if (!near) continue;
     // One payment is an SMS and an app's notice, never two of either; an
     // investment and its confirmation can be any two places.
-    if (!investing && (row.app == 'sms') == (app == 'sms')) continue;
+    if (!eitherInvests && (row.app == 'sms') == (app == 'sms')) continue;
     final entryId = row.savedAs;
     if (entryId != null) {
       final copies =
@@ -835,6 +860,7 @@ Future<List<CaptureRead>> takeCaptures({
                   at,
                   app: capture.app,
                   sender: sender,
+                  text: _textOf(capture),
                 )
               : null) ??
           await sameEntryOf(db, payment, at, app: capture.app, sender: sender);

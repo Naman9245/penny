@@ -262,5 +262,11 @@
   {"bank": "HDFC", "case": "a credit card bill through BillDesk", "sms": "Rs.12,000.00 debited from A/c XX4821 to BILLDESK CREDIT CARD on 05-11-26.",
    "ignored": "cardBill"},
   {"bank": "HDFC", "case": "a credit card bill by UPI to CRED", "sms": "Rs.12,000.00 debited from A/c XX4821 to CRED CLUB on 05-11-26. UPI Ref 630512340016.",
-   "ignored": "cardBill"}
+   "ignored": "cardBill"},
+  {"bank": "PayZapp", "case": "money into your own wallet", "sms": "Rs.2567\ncredited to your PayZapp Wallet\nOn 15-11-2026 14:18:20\nBal:Rs.2575.88\nNot you? Report:https://1.hdfc.bank.in/HDFCBK/s/AbCdEf12 -HDFC Bank",
+   "ignored": "ownTransfer"},
+  {"bank": "HDFC", "case": "the bank paying your own wallet", "sms": "Rs.2,567.00 debited from A/c XX4821 to PayZapp Wallet on 15-11-26. UPI Ref 631900000004.",
+   "ignored": "ownTransfer"},
+  {"bank": "Paytm", "case": "cashback into the wallet is still money in", "sms": "Rs.25 cashback credited to your Paytm Wallet for your recharge.",
+   "expect": {"type": "credit", "paise": 2500, "payee": null, "date": null, "category": "refund"}}
 ]

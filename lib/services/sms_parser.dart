@@ -226,6 +226,13 @@ final _paidFromWallet = _rx(
 final _notALoad = _rx(
   r'\b(?:cashback|refund(?:ed)?|reward|rewards|reversal|reversed)\b',
 );
+// Your own money into your own wallet, as the bank or the wallet says it:
+// a debit "to PayZapp Wallet", PayZapp's "payment of Rs.2567 to PayZapp
+// Wallet", or "Rs.2567 credited to your PayZapp Wallet".
+final _toWallet = _rx(r'\bto\s+(?:your\s+)?(?:[a-z]+\s+){0,2}wallet\b');
+final _intoWallet = _rx(
+  r'\b(?:credited|added|deposited|loaded)\s+(?:to|in|into)\s+(?:your\s+)?(?:[a-z]+\s+){0,2}wallet\b',
+);
 // Money put into investing, even when the message never says "invested":
 // a SIP processed, units allotted, a contribution or units credited to an
 // investment, funds added to a broker, a deposit booked.
@@ -500,6 +507,9 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   }
 
   final payee = _payee(text, type);
+  if (_intoOwnWallet(text, type, payee)) {
+    return const SmsIgnored(IgnoreReason.ownTransfer);
+  }
   final date = _date(text, now);
   // A person's name can hold a brand's word, like "Zara Khan", and the
   // message other words, like the bank's own "Airtel Payments Bank": for a
@@ -808,6 +818,19 @@ String? _cleanName(String raw) {
   if (name.length < 2 || _notAPayee.hasMatch(name)) return null;
   if (!RegExp('[A-Za-z]{2}').hasMatch(name)) return null;
   return _titleCase(name.length > 40 ? name.substring(0, 40).trim() : name);
+}
+
+/// Whether [text] moves your own money into your own wallet. Paying out of
+/// the wallet, cashback or a refund into it, and money a person sent to it
+/// are money moving, as before.
+bool _intoOwnWallet(String text, TxnType type, _Payee? payee) {
+  if (_notALoad.hasMatch(text) || _paidFromWallet.hasMatch(text)) {
+    return false;
+  }
+  return switch (type) {
+    TxnType.debit => _toWallet.hasMatch(text),
+    TxnType.credit => _intoWallet.hasMatch(text) && !(payee?.isPerson ?? false),
+  };
 }
 
 /// Brands named like people: in a name of two or more words they're more
