@@ -76,6 +76,8 @@ void main() {
     );
     await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-lock')));
+    await tester.pumpAndSettle();
     await tapInView(tester, find.byKey(const ValueKey('app-lock')));
     expect(find.byKey(const ValueKey('app-lock-problem')), findsOneWidget);
     expect(find.byKey(const ValueKey('app-lock-on')), findsNothing);
@@ -91,6 +93,8 @@ void main() {
       overrides: [authenticatorProvider.overrideWithValue(auth)],
     );
     await tester.tap(find.bySemanticsLabel('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-lock')));
     await tester.pumpAndSettle();
     await tapInView(tester, find.byKey(const ValueKey('app-lock')));
     expect(auth.asked, ['Turn on the lock']);

@@ -52,12 +52,19 @@ void main() {
     Future<void> openSettings() async {
       await tester.tap(find.bySemanticsLabel('Settings'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-demo')));
+      await tester.pumpAndSettle();
     }
 
     Future<void> closeSettings() async {
-      // Above the sheet.
-      await tester.tapAt(const Offset(200, 30));
+      // Back from the Demo data page, then away from the list, if it's
+      // open, by tapping above the sheet.
+      Navigator.of(tester.element(find.byType(ListView).last)).pop();
       await tester.pumpAndSettle();
+      if (find.byType(BottomSheet).evaluate().isNotEmpty) {
+        await tester.tapAt(const Offset(200, 30));
+        await tester.pumpAndSettle();
+      }
     }
 
     final demoSwitch = find.byKey(const ValueKey('demo-switch'));

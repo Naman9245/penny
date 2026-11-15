@@ -4,6 +4,7 @@ import 'package:penny/data/txn_repository.dart';
 import 'package:penny/features/add_txn/category_grid.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
+import 'package:penny/widgets/amount_keypad.dart';
 
 import '../helpers/app_harness.dart';
 
@@ -110,6 +111,24 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('key-done')));
     await tester.pumpAndSettle();
     expect(find.text('How much did you spend?'), findsOneWidget);
+    await closeApp(tester, db);
+  });
+
+  testWidgets('with an amount in, the keypad gets smaller for the categories', (
+    tester,
+  ) async {
+    final db = await pumpApp(tester);
+    await openAdd(tester);
+    final pad = find.byType(AmountKeypad);
+    final roomy = tester.getSize(pad).height;
+
+    await typeKeys(tester, '25');
+    await tester.pumpAndSettle();
+    final compact = tester.getSize(pad).height;
+    expect(compact, lessThan(roomy - 30));
+    // Its keys still work.
+    await typeKeys(tester, '0');
+    expect(find.text('₹250'), findsOneWidget);
     await closeApp(tester, db);
   });
 

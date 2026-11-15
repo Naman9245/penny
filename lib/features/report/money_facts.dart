@@ -64,12 +64,20 @@ class WhereMoneyWent extends StatelessWidget {
           key: const ValueKey('facts-totals'),
           child: Column(
             children: [
-              _AmountRow('Money in', totals.gotPaise, type: TxnType.credit),
-              _AmountRow('Spent', totals.spentPaise, type: TxnType.debit),
+              _AmountRow(
+                'Money in',
+                wholeRupees(totals.gotPaise),
+                type: TxnType.credit,
+              ),
+              _AmountRow(
+                'Spent',
+                wholeRupees(totals.spentPaise),
+                type: TxnType.debit,
+              ),
               if (totals.investedPaise > 0)
-                _AmountRow('Invested', totals.investedPaise),
+                _AmountRow('Invested', wholeRupees(totals.investedPaise)),
               const Divider(height: 18, color: AppColors.hairline),
-              _AmountRow('Left', totals.leftPaise, strong: true),
+              _AmountRow('Left', wholeRupees(totals.leftPaise), strong: true),
             ],
           ),
         ),

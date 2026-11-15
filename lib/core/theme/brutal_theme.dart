@@ -4,6 +4,15 @@ import 'package:penny/core/theme/app_colors.dart';
 /// Radius that turns any box into a pill.
 const double kPillRadius = 999;
 
+/// Every ink outline's width: bold, but not heavy.
+const double kBorderWidth = 2;
+
+/// The hard shadow under cards and buttons.
+const Offset kCardShadow = Offset(2, 2);
+
+/// The smaller shadow under chips, keys and icon buttons.
+const Offset kSmallShadow = Offset(1.5, 1.5);
+
 /// Neobrutalism tokens: thick ink borders and hard shadows with no blur.
 @immutable
 class BrutalTheme extends ThemeExtension<BrutalTheme> {
@@ -15,8 +24,8 @@ class BrutalTheme extends ThemeExtension<BrutalTheme> {
   });
 
   static const standard = BrutalTheme(
-    borderWidth: 2.5,
-    shadowOffset: Offset(4, 4),
+    borderWidth: kBorderWidth,
+    shadowOffset: kCardShadow,
     cardRadius: 24,
     inputRadius: 16,
   );
@@ -59,7 +68,7 @@ extension BrutalThemeContext on BuildContext {
 BoxDecoration brutalDecoration({
   required Color color,
   required double radius,
-  double borderWidth = 2.5,
+  double borderWidth = kBorderWidth,
   Offset shadow = Offset.zero,
 }) {
   return BoxDecoration(

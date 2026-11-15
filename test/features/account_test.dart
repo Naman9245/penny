@@ -21,7 +21,15 @@ void main() {
   Future<void> openSettings(WidgetTester tester) async {
     await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-backup')));
+    await tester.pumpAndSettle();
   }
+
+  // What the backup card says; the Settings list under it names it too.
+  Finder inCard(String text) => find.descendant(
+    of: find.byKey(const ValueKey('account-card')),
+    matching: find.text(text),
+  );
 
   Future<void> tap(WidgetTester tester, String key) =>
       tapInView(tester, find.byKey(ValueKey(key)));
@@ -38,7 +46,7 @@ void main() {
       ],
     );
     await openSettings(tester);
-    expect(find.text('Back up with Google'), findsOneWidget);
+    expect(inCard('Back up with Google'), findsOneWidget);
     expect(find.text("Backup isn't set up in this build."), findsOneWidget);
     expect(find.byKey(const ValueKey('google-sign-in')), findsNothing);
     await closeApp(tester, db);
@@ -59,12 +67,12 @@ void main() {
     await tap(tester, 'google-sign-in');
 
     expect(find.text('Backed up'), findsOneWidget);
-    expect(find.text('me@example.com'), findsOneWidget);
+    expect(inCard('me@example.com'), findsOneWidget);
     expect(find.text('Synced just now'), findsOneWidget);
     expect(remote.rows('txns').values.single['merchant'], 'Chai point');
 
     await tap(tester, 'sign-out');
-    expect(find.text('Back up with Google'), findsOneWidget);
+    expect(inCard('Back up with Google'), findsOneWidget);
     expect(await db.select(db.txns).get(), hasLength(1));
     await closeApp(tester, db);
   });
@@ -81,7 +89,7 @@ void main() {
     await openSettings(tester);
     await tap(tester, 'google-sign-in');
     expect(find.byKey(const ValueKey('account-problem')), findsOneWidget);
-    expect(find.text('Back up with Google'), findsOneWidget);
+    expect(inCard('Back up with Google'), findsOneWidget);
     await closeApp(tester, db);
   });
 
@@ -106,7 +114,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(accounts.deleted, 1);
-    expect(find.text('Back up with Google'), findsOneWidget);
+    expect(inCard('Back up with Google'), findsOneWidget);
     expect(await db.select(db.txns).get(), isEmpty);
     await closeApp(tester, db);
   });

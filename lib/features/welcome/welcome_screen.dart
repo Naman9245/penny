@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/data/providers.dart';
@@ -224,9 +225,12 @@ class _Page extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: stage,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.ink, width: 2.5),
+                    border: Border.all(
+                      color: AppColors.ink,
+                      width: kBorderWidth,
+                    ),
                     boxShadow: const [
-                      BoxShadow(color: AppColors.ink, offset: Offset(4, 4)),
+                      BoxShadow(color: AppColors.ink, offset: kCardShadow),
                     ],
                   ),
                   child: penny,

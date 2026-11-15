@@ -109,7 +109,10 @@ class _Total extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: MoneyText(budget.totalPaise, style: AppText.hero),
+              child: MoneyText(
+                wholeRupees(budget.totalPaise),
+                style: AppText.hero,
+              ),
             ),
             Text(
               'Everyday ${formatPaise(everyday)} · Paid in one go '

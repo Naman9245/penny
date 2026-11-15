@@ -379,7 +379,7 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     const border = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(kPillRadius)),
-      borderSide: BorderSide(color: AppColors.ink, width: 2.5),
+      borderSide: BorderSide(color: AppColors.ink, width: kBorderWidth),
     );
     final left = this.left;
     return Container(

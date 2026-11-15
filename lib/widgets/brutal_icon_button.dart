@@ -29,7 +29,7 @@ class BrutalIconButton extends StatelessWidget {
       onPressed: onPressed,
       semanticLabel: semanticLabel,
       color: color,
-      shadowOffset: const Offset(3, 3),
+      shadowOffset: kSmallShadow,
       child: SizedBox.square(
         dimension: size - border * 2,
         child: Icon(icon, size: 24, color: AppColors.ink),

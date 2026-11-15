@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/widgets/brutal_pressable.dart';
@@ -32,7 +33,7 @@ class BrutalChip extends StatelessWidget {
       selected: selected,
       color: selected ? selectedColor : AppColors.white,
       borderWidth: 2,
-      shadowOffset: const Offset(2, 2),
+      shadowOffset: kSmallShadow,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       semanticLabel: semanticLabel,
       child: ExcludeSemantics(

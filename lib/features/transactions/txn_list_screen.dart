@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -481,7 +482,7 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     const border = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(16)),
-      borderSide: BorderSide(color: AppColors.ink, width: 2.5),
+      borderSide: BorderSide(color: AppColors.ink, width: kBorderWidth),
     );
     return TextField(
       key: const ValueKey('txn-search'),

@@ -96,7 +96,7 @@ class HomeScreen extends ConsumerWidget {
             // Made-up money must never pass for the user's own.
             if (demo) ...[
               const SizedBox(height: 14),
-              _DemoBanner(onTap: () => showSettingsSheet(context)),
+              _DemoBanner(onTap: () => showDemoSettings(context)),
             ],
             const SizedBox(height: 18),
             // Slide Penny aside for the goals still to reach, then the ones
@@ -434,7 +434,7 @@ class _BudgetWell extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              '${formatPaise(status.everydaySpentPaise)} of '
+              '${formatPaise(wholeRupees(status.everydaySpentPaise))} of '
               '${formatPaise(everyday)}',
               key: const ValueKey('budget-line'),
               style: AppText.bodyStrong,
@@ -747,7 +747,7 @@ class _MonthCard extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: AnimatedMoney(
-                      summary.spentPaise,
+                      wholeRupees(summary.spentPaise),
                       id: 'spent',
                       style: AppText.hero,
                     ),
@@ -767,7 +767,10 @@ class _MonthCard extends StatelessWidget {
                     icon: Icons.south_west_rounded,
                     color: AppColors.mint,
                     label: 'Got',
-                    value: MoneyText(summary.gotPaise, style: AppText.amount),
+                    value: MoneyText(
+                      wholeRupees(summary.gotPaise),
+                      style: AppText.amount,
+                    ),
                   ),
                 ),
                 const StatDivider(),
@@ -778,7 +781,10 @@ class _MonthCard extends StatelessWidget {
                     color: AppColors.yellow,
                     label: 'Left',
                     value: summary.hasIncome
-                        ? MoneyText(summary.leftPaise, style: AppText.amount)
+                        ? MoneyText(
+                            wholeRupees(summary.leftPaise),
+                            style: AppText.amount,
+                          )
                         : const Text('—', style: AppText.amount),
                     hint: !summary.hasIncome
                         ? 'Log income to see this'

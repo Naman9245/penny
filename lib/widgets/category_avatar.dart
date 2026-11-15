@@ -28,7 +28,7 @@ class CategoryAvatar extends StatelessWidget {
           color: category.color,
           radius: size * 0.3,
           borderWidth: 2,
-          shadow: raised ? const Offset(3, 3) : Offset.zero,
+          shadow: raised ? kSmallShadow : Offset.zero,
         ),
         // An icon, not text: it must not grow past its tile.
         child: Text(

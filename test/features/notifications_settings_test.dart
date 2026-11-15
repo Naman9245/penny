@@ -54,6 +54,8 @@ void main() {
   Future<void> openSettings(WidgetTester tester) async {
     await tester.tap(find.bySemanticsLabel('Settings'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-reading')));
+    await tester.pumpAndSettle();
   }
 
   Finder status(String label) => find.descendant(

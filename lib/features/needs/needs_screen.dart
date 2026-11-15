@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -191,7 +192,7 @@ class _NoteEditorState extends ConsumerState<_NoteEditor> {
     }
     const border = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(16)),
-      borderSide: BorderSide(color: AppColors.ink, width: 2.5),
+      borderSide: BorderSide(color: AppColors.ink, width: kBorderWidth),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

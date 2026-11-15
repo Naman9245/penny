@@ -10,7 +10,7 @@ class BrutalCard extends StatelessWidget {
     super.key,
     required this.child,
     this.color = AppColors.white,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(18),
     this.onTap,
     this.clipChild = false,
   });

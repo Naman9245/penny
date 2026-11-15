@@ -21,7 +21,7 @@ ThemeData buildAppTheme() {
     outline: AppColors.ink,
     surfaceTint: Colors.transparent,
   );
-  const inkBorder = BorderSide(color: AppColors.ink, width: 2.5);
+  const inkBorder = BorderSide(color: AppColors.ink, width: kBorderWidth);
 
   return ThemeData(
     useMaterial3: true,

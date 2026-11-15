@@ -19,6 +19,10 @@ String formatPaise(int paise) {
   return '$sign₹$rupees.${rest.toString().padLeft(2, '0')}';
 }
 
+/// [paise] to the nearest rupee, for totals: a month's Spent reads ₹17,172,
+/// and paise stay on single entries.
+int wholeRupees(int paise) => (paise / 100).round() * 100;
+
 /// Short ₹ for chart axes: ₹950, ₹12.5K, ₹1.2L, ₹3.4Cr.
 String compactRupees(int paise) {
   final rupees = paise / 100;

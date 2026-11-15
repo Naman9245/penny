@@ -189,7 +189,10 @@ class _Totals extends StatelessWidget {
                 color: AppColors.pink,
                 label: 'Spent',
                 padding: padding,
-                value: MoneyText(summary.spentPaise, style: AppText.amount),
+                value: MoneyText(
+                  wholeRupees(summary.spentPaise),
+                  style: AppText.amount,
+                ),
               ),
             ),
             const StatDivider(),
@@ -199,7 +202,10 @@ class _Totals extends StatelessWidget {
                 color: AppColors.mint,
                 label: 'Got',
                 padding: padding,
-                value: MoneyText(summary.gotPaise, style: AppText.amount),
+                value: MoneyText(
+                  wholeRupees(summary.gotPaise),
+                  style: AppText.amount,
+                ),
               ),
             ),
             const StatDivider(),
@@ -210,7 +216,10 @@ class _Totals extends StatelessWidget {
                 label: 'Left',
                 padding: padding,
                 value: summary.hasIncome
-                    ? MoneyText(summary.leftPaise, style: AppText.amount)
+                    ? MoneyText(
+                        wholeRupees(summary.leftPaise),
+                        style: AppText.amount,
+                      )
                     : const Text('—', style: AppText.amount),
               ),
             ),

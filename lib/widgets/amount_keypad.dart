@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/widgets/brutal_pressable.dart';
@@ -15,6 +16,7 @@ class AmountKeypad extends StatelessWidget {
     required this.onClear,
     required this.onDone,
     required this.ready,
+    this.compact = false,
   });
 
   /// A digit, ".", "+" or "−".
@@ -30,7 +32,12 @@ class AmountKeypad extends StatelessWidget {
   /// There is something to save, so ✓ lights up.
   final bool ready;
 
+  /// Smaller keys, once an amount is typed, so the categories above get the
+  /// room. Still easy to tap.
+  final bool compact;
+
   static const _rowHeight = 58.0;
+  static const _compactRowHeight = 48.0;
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +67,10 @@ class AmountKeypad extends StatelessWidget {
       maxScaleFactor: 1.3,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-        child: SizedBox(
-          height: 4 * _rowHeight,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: 4 * (compact ? _compactRowHeight : _rowHeight),
           child: Column(
             children: [
               row([
@@ -154,7 +163,7 @@ class _Key extends StatelessWidget {
       waitForPress: !types,
       color: color,
       radius: 16,
-      shadowOffset: const Offset(3, 3),
+      shadowOffset: kSmallShadow,
       semanticLabel: semanticLabel,
       child: SizedBox.expand(child: Center(child: child)),
     );

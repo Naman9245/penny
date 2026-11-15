@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
@@ -402,6 +403,8 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
               onClear: _controller.clear,
               onDone: _save,
               ready: state.canSave,
+              // With an amount in, the categories need the room more.
+              compact: state.amountPaise > 0,
             ),
           ],
         ),
@@ -510,7 +513,7 @@ class _AmountPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: spent ? AppColors.pink : AppColors.mint,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.ink, width: 2.5),
+        border: Border.all(color: AppColors.ink, width: kBorderWidth),
       ),
       child: Column(
         children: [
@@ -894,7 +897,7 @@ class _WhereSheetState extends State<_WhereSheet> {
   Widget build(BuildContext context) {
     const border = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(16)),
-      borderSide: BorderSide(color: AppColors.ink, width: 2.5),
+      borderSide: BorderSide(color: AppColors.ink, width: kBorderWidth),
     );
     final typed = _typed;
     return Padding(
