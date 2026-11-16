@@ -234,7 +234,9 @@ android/      Kotlin: the notification listener, SMS receiver and inbox,
               Penny's own notification
 supabase/     migrations, and the analyze-month, penny-chat, plan-goal,
               read-sms and delete-account Edge Functions
-docs/         Penny-App-Overview.pdf, the app explained for anyone
+docs/         Penny-App-Overview.pdf, the app explained for anyone, and
+              Penny-Product-and-Technology.pdf, every screen, the design
+              system and how Penny is built
 ```
 
 ## Roadmap

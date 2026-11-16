@@ -326,6 +326,14 @@ Future<void> _loadFonts() async {
   await family('MaterialIcons', [
     '${artifacts.path}/material_fonts/MaterialIcons-Regular.otf',
   ]);
-  const emoji = '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf';
-  if (File(emoji).existsSync()) await family('NotoColorEmoji', [emoji]);
+  // Noto Color Emoji on Linux, Segoe UI Emoji on Windows.
+  for (final emoji in [
+    '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
+    r'C:\Windows\Fonts\seguiemj.ttf',
+  ]) {
+    if (File(emoji).existsSync()) {
+      await family('NotoColorEmoji', [emoji]);
+      break;
+    }
+  }
 }
