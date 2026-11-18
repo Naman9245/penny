@@ -87,6 +87,10 @@ class MainActivity : FlutterFragmentActivity() {
                         )
                         result.success(null)
                     }
+                    "scheduleReminders" -> {
+                        ReminderScheduler.schedule(this@MainActivity, call.arguments as? String ?: "[]")
+                        result.success(null)
+                    }
                     "canNotify" -> result.success(PennyNotifier.allowed(this@MainActivity))
                     "askToNotify" -> askToNotify(call.arguments as? Boolean ?: true, result)
                     else -> result.notImplemented()

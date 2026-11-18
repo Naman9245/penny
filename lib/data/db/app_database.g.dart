@@ -2931,6 +2931,839 @@ class TagRulesCompanion extends UpdateCompanion<TagRule> {
   }
 }
 
+class $AutopaysTable extends Autopays with TableInfo<$AutopaysTable, Autopay> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AutopaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountPaiseMeta = const VerificationMeta(
+    'amountPaise',
+  );
+  @override
+  late final GeneratedColumn<int> amountPaise = GeneratedColumn<int>(
+    'amount_paise',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AutopayEvery, String> every =
+      GeneratedColumn<String>(
+        'every',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AutopayEvery>($AutopaysTable.$converterevery);
+  static const VerificationMeta _nextOnMeta = const VerificationMeta('nextOn');
+  @override
+  late final GeneratedColumn<DateTime> nextOn = GeneratedColumn<DateTime>(
+    'next_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastPaidOnMeta = const VerificationMeta(
+    'lastPaidOn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastPaidOn = GeneratedColumn<DateTime>(
+    'last_paid_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pausedMeta = const VerificationMeta('paused');
+  @override
+  late final GeneratedColumn<bool> paused = GeneratedColumn<bool>(
+    'paused',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("paused" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fromMessageMeta = const VerificationMeta(
+    'fromMessage',
+  );
+  @override
+  late final GeneratedColumn<bool> fromMessage = GeneratedColumn<bool>(
+    'from_message',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("from_message" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    dirty,
+    id,
+    name,
+    amountPaise,
+    categoryId,
+    every,
+    nextOn,
+    lastPaidOn,
+    paused,
+    endedAt,
+    fromMessage,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'autopays';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Autopay> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('amount_paise')) {
+      context.handle(
+        _amountPaiseMeta,
+        amountPaise.isAcceptableOrUnknown(
+          data['amount_paise']!,
+          _amountPaiseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaiseMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('next_on')) {
+      context.handle(
+        _nextOnMeta,
+        nextOn.isAcceptableOrUnknown(data['next_on']!, _nextOnMeta),
+      );
+    }
+    if (data.containsKey('last_paid_on')) {
+      context.handle(
+        _lastPaidOnMeta,
+        lastPaidOn.isAcceptableOrUnknown(
+          data['last_paid_on']!,
+          _lastPaidOnMeta,
+        ),
+      );
+    }
+    if (data.containsKey('paused')) {
+      context.handle(
+        _pausedMeta,
+        paused.isAcceptableOrUnknown(data['paused']!, _pausedMeta),
+      );
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    }
+    if (data.containsKey('from_message')) {
+      context.handle(
+        _fromMessageMeta,
+        fromMessage.isAcceptableOrUnknown(
+          data['from_message']!,
+          _fromMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Autopay map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Autopay(
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      amountPaise: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_paise'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
+      every: $AutopaysTable.$converterevery.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}every'],
+        )!,
+      ),
+      nextOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_on'],
+      ),
+      lastPaidOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_paid_on'],
+      ),
+      paused: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}paused'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      ),
+      fromMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}from_message'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+    );
+  }
+
+  @override
+  $AutopaysTable createAlias(String alias) {
+    return $AutopaysTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AutopayEvery, String, String> $converterevery =
+      const EnumNameConverter<AutopayEvery>(AutopayEvery.values);
+}
+
+class Autopay extends DataClass implements Insertable<Autopay> {
+  /// Changed on this phone since it was last sent to the account's copy.
+  /// New rows are; rows that came from the copy aren't. Every save sets it.
+  final bool dirty;
+  final String id;
+
+  /// Who it goes to, like "Spotify".
+  final String name;
+  final int amountPaise;
+  final String? categoryId;
+  final AutopayEvery every;
+
+  /// The next day it goes out, when known.
+  final DateTime? nextOn;
+
+  /// The last day Penny saw it go out.
+  final DateTime? lastPaidOn;
+  final bool paused;
+
+  /// When it was cancelled. An ended one still shows, and never reminds.
+  final DateTime? endedAt;
+
+  /// Found from a message, rather than added by hand.
+  final bool fromMessage;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const Autopay({
+    required this.dirty,
+    required this.id,
+    required this.name,
+    required this.amountPaise,
+    this.categoryId,
+    required this.every,
+    this.nextOn,
+    this.lastPaidOn,
+    required this.paused,
+    this.endedAt,
+    required this.fromMessage,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dirty'] = Variable<bool>(dirty);
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['amount_paise'] = Variable<int>(amountPaise);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    {
+      map['every'] = Variable<String>(
+        $AutopaysTable.$converterevery.toSql(every),
+      );
+    }
+    if (!nullToAbsent || nextOn != null) {
+      map['next_on'] = Variable<DateTime>(nextOn);
+    }
+    if (!nullToAbsent || lastPaidOn != null) {
+      map['last_paid_on'] = Variable<DateTime>(lastPaidOn);
+    }
+    map['paused'] = Variable<bool>(paused);
+    if (!nullToAbsent || endedAt != null) {
+      map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    map['from_message'] = Variable<bool>(fromMessage);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  AutopaysCompanion toCompanion(bool nullToAbsent) {
+    return AutopaysCompanion(
+      dirty: Value(dirty),
+      id: Value(id),
+      name: Value(name),
+      amountPaise: Value(amountPaise),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      every: Value(every),
+      nextOn: nextOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextOn),
+      lastPaidOn: lastPaidOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastPaidOn),
+      paused: Value(paused),
+      endedAt: endedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAt),
+      fromMessage: Value(fromMessage),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory Autopay.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Autopay(
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      amountPaise: serializer.fromJson<int>(json['amountPaise']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      every: $AutopaysTable.$converterevery.fromJson(
+        serializer.fromJson<String>(json['every']),
+      ),
+      nextOn: serializer.fromJson<DateTime?>(json['nextOn']),
+      lastPaidOn: serializer.fromJson<DateTime?>(json['lastPaidOn']),
+      paused: serializer.fromJson<bool>(json['paused']),
+      endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+      fromMessage: serializer.fromJson<bool>(json['fromMessage']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dirty': serializer.toJson<bool>(dirty),
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'amountPaise': serializer.toJson<int>(amountPaise),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'every': serializer.toJson<String>(
+        $AutopaysTable.$converterevery.toJson(every),
+      ),
+      'nextOn': serializer.toJson<DateTime?>(nextOn),
+      'lastPaidOn': serializer.toJson<DateTime?>(lastPaidOn),
+      'paused': serializer.toJson<bool>(paused),
+      'endedAt': serializer.toJson<DateTime?>(endedAt),
+      'fromMessage': serializer.toJson<bool>(fromMessage),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  Autopay copyWith({
+    bool? dirty,
+    String? id,
+    String? name,
+    int? amountPaise,
+    Value<String?> categoryId = const Value.absent(),
+    AutopayEvery? every,
+    Value<DateTime?> nextOn = const Value.absent(),
+    Value<DateTime?> lastPaidOn = const Value.absent(),
+    bool? paused,
+    Value<DateTime?> endedAt = const Value.absent(),
+    bool? fromMessage,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+  }) => Autopay(
+    dirty: dirty ?? this.dirty,
+    id: id ?? this.id,
+    name: name ?? this.name,
+    amountPaise: amountPaise ?? this.amountPaise,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    every: every ?? this.every,
+    nextOn: nextOn.present ? nextOn.value : this.nextOn,
+    lastPaidOn: lastPaidOn.present ? lastPaidOn.value : this.lastPaidOn,
+    paused: paused ?? this.paused,
+    endedAt: endedAt.present ? endedAt.value : this.endedAt,
+    fromMessage: fromMessage ?? this.fromMessage,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+  );
+  Autopay copyWithCompanion(AutopaysCompanion data) {
+    return Autopay(
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      amountPaise: data.amountPaise.present
+          ? data.amountPaise.value
+          : this.amountPaise,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      every: data.every.present ? data.every.value : this.every,
+      nextOn: data.nextOn.present ? data.nextOn.value : this.nextOn,
+      lastPaidOn: data.lastPaidOn.present
+          ? data.lastPaidOn.value
+          : this.lastPaidOn,
+      paused: data.paused.present ? data.paused.value : this.paused,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+      fromMessage: data.fromMessage.present
+          ? data.fromMessage.value
+          : this.fromMessage,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Autopay(')
+          ..write('dirty: $dirty, ')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('every: $every, ')
+          ..write('nextOn: $nextOn, ')
+          ..write('lastPaidOn: $lastPaidOn, ')
+          ..write('paused: $paused, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('fromMessage: $fromMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    dirty,
+    id,
+    name,
+    amountPaise,
+    categoryId,
+    every,
+    nextOn,
+    lastPaidOn,
+    paused,
+    endedAt,
+    fromMessage,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Autopay &&
+          other.dirty == this.dirty &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.amountPaise == this.amountPaise &&
+          other.categoryId == this.categoryId &&
+          other.every == this.every &&
+          other.nextOn == this.nextOn &&
+          other.lastPaidOn == this.lastPaidOn &&
+          other.paused == this.paused &&
+          other.endedAt == this.endedAt &&
+          other.fromMessage == this.fromMessage &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class AutopaysCompanion extends UpdateCompanion<Autopay> {
+  final Value<bool> dirty;
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> amountPaise;
+  final Value<String?> categoryId;
+  final Value<AutopayEvery> every;
+  final Value<DateTime?> nextOn;
+  final Value<DateTime?> lastPaidOn;
+  final Value<bool> paused;
+  final Value<DateTime?> endedAt;
+  final Value<bool> fromMessage;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const AutopaysCompanion({
+    this.dirty = const Value.absent(),
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountPaise = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.every = const Value.absent(),
+    this.nextOn = const Value.absent(),
+    this.lastPaidOn = const Value.absent(),
+    this.paused = const Value.absent(),
+    this.endedAt = const Value.absent(),
+    this.fromMessage = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AutopaysCompanion.insert({
+    this.dirty = const Value.absent(),
+    required String id,
+    required String name,
+    required int amountPaise,
+    this.categoryId = const Value.absent(),
+    required AutopayEvery every,
+    this.nextOn = const Value.absent(),
+    this.lastPaidOn = const Value.absent(),
+    this.paused = const Value.absent(),
+    this.endedAt = const Value.absent(),
+    this.fromMessage = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       amountPaise = Value(amountPaise),
+       every = Value(every),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Autopay> custom({
+    Expression<bool>? dirty,
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? amountPaise,
+    Expression<String>? categoryId,
+    Expression<String>? every,
+    Expression<DateTime>? nextOn,
+    Expression<DateTime>? lastPaidOn,
+    Expression<bool>? paused,
+    Expression<DateTime>? endedAt,
+    Expression<bool>? fromMessage,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dirty != null) 'dirty': dirty,
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (amountPaise != null) 'amount_paise': amountPaise,
+      if (categoryId != null) 'category_id': categoryId,
+      if (every != null) 'every': every,
+      if (nextOn != null) 'next_on': nextOn,
+      if (lastPaidOn != null) 'last_paid_on': lastPaidOn,
+      if (paused != null) 'paused': paused,
+      if (endedAt != null) 'ended_at': endedAt,
+      if (fromMessage != null) 'from_message': fromMessage,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AutopaysCompanion copyWith({
+    Value<bool>? dirty,
+    Value<String>? id,
+    Value<String>? name,
+    Value<int>? amountPaise,
+    Value<String?>? categoryId,
+    Value<AutopayEvery>? every,
+    Value<DateTime?>? nextOn,
+    Value<DateTime?>? lastPaidOn,
+    Value<bool>? paused,
+    Value<DateTime?>? endedAt,
+    Value<bool>? fromMessage,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? rowid,
+  }) {
+    return AutopaysCompanion(
+      dirty: dirty ?? this.dirty,
+      id: id ?? this.id,
+      name: name ?? this.name,
+      amountPaise: amountPaise ?? this.amountPaise,
+      categoryId: categoryId ?? this.categoryId,
+      every: every ?? this.every,
+      nextOn: nextOn ?? this.nextOn,
+      lastPaidOn: lastPaidOn ?? this.lastPaidOn,
+      paused: paused ?? this.paused,
+      endedAt: endedAt ?? this.endedAt,
+      fromMessage: fromMessage ?? this.fromMessage,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (amountPaise.present) {
+      map['amount_paise'] = Variable<int>(amountPaise.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (every.present) {
+      map['every'] = Variable<String>(
+        $AutopaysTable.$converterevery.toSql(every.value),
+      );
+    }
+    if (nextOn.present) {
+      map['next_on'] = Variable<DateTime>(nextOn.value);
+    }
+    if (lastPaidOn.present) {
+      map['last_paid_on'] = Variable<DateTime>(lastPaidOn.value);
+    }
+    if (paused.present) {
+      map['paused'] = Variable<bool>(paused.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    if (fromMessage.present) {
+      map['from_message'] = Variable<bool>(fromMessage.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AutopaysCompanion(')
+          ..write('dirty: $dirty, ')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('every: $every, ')
+          ..write('nextOn: $nextOn, ')
+          ..write('lastPaidOn: $lastPaidOn, ')
+          ..write('paused: $paused, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('fromMessage: $fromMessage, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PrefsTable extends Prefs with TableInfo<$PrefsTable, Pref> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -6785,6 +7618,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'CREATE TRIGGER tag_rules_stamp_forward AFTER UPDATE OF updated_at ON tag_rules WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE tag_rules SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
     'tag_rules_stamp_forward',
   );
+  late final $AutopaysTable autopays = $AutopaysTable(this);
+  late final Trigger autopaysStampForward = Trigger(
+    'CREATE TRIGGER autopays_stamp_forward AFTER UPDATE OF updated_at ON autopays WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE autopays SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;END',
+    'autopays_stamp_forward',
+  );
   late final $PrefsTable prefs = $PrefsTable(this);
   late final Trigger prefsStampForward = Trigger(
     'CREATE TRIGGER prefs_stamp_forward AFTER UPDATE OF updated_at ON prefs WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at BEGIN UPDATE prefs SET updated_at = OLD.updated_at + 1 WHERE name = NEW.name;END',
@@ -6840,6 +7678,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goalDepositsStampForward,
     tagRules,
     tagRulesStampForward,
+    autopays,
+    autopaysStampForward,
     prefs,
     prefsStampForward,
     insights,
@@ -6892,6 +7732,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.update,
       ),
       result: [TableUpdate('tag_rules', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'autopays',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('autopays', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -8329,6 +9176,387 @@ typedef $$TagRulesTableProcessedTableManager =
       $$TagRulesTableUpdateCompanionBuilder,
       (TagRule, BaseReferences<_$AppDatabase, $TagRulesTable, TagRule>),
       TagRule,
+      PrefetchHooks Function()
+    >;
+typedef $$AutopaysTableCreateCompanionBuilder = AutopaysCompanion Function({
+  Value<bool> dirty,
+  required String id,
+  required String name,
+  required int amountPaise,
+  Value<String?> categoryId,
+  required AutopayEvery every,
+  Value<DateTime?> nextOn,
+  Value<DateTime?> lastPaidOn,
+  Value<bool> paused,
+  Value<DateTime?> endedAt,
+  Value<bool> fromMessage,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$AutopaysTableUpdateCompanionBuilder = AutopaysCompanion Function({
+  Value<bool> dirty,
+  Value<String> id,
+  Value<String> name,
+  Value<int> amountPaise,
+  Value<String?> categoryId,
+  Value<AutopayEvery> every,
+  Value<DateTime?> nextOn,
+  Value<DateTime?> lastPaidOn,
+  Value<bool> paused,
+  Value<DateTime?> endedAt,
+  Value<bool> fromMessage,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+
+class $$AutopaysTableFilterComposer
+    extends Composer<_$AppDatabase, $AutopaysTable> {
+  $$AutopaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AutopayEvery, AutopayEvery, String>
+  get every => $composableBuilder(
+    column: $table.every,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextOn => $composableBuilder(
+    column: $table.nextOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastPaidOn => $composableBuilder(
+    column: $table.lastPaidOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get paused => $composableBuilder(
+    column: $table.paused,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get fromMessage => $composableBuilder(
+    column: $table.fromMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AutopaysTableOrderingComposer
+    extends Composer<_$AppDatabase, $AutopaysTable> {
+  $$AutopaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get every => $composableBuilder(
+    column: $table.every,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextOn => $composableBuilder(
+    column: $table.nextOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastPaidOn => $composableBuilder(
+    column: $table.lastPaidOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get paused => $composableBuilder(
+    column: $table.paused,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get fromMessage => $composableBuilder(
+    column: $table.fromMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AutopaysTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AutopaysTable> {
+  $$AutopaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<AutopayEvery, String> get every =>
+      $composableBuilder(column: $table.every, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextOn =>
+      $composableBuilder(column: $table.nextOn, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastPaidOn => $composableBuilder(
+    column: $table.lastPaidOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get paused =>
+      $composableBuilder(column: $table.paused, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get fromMessage => $composableBuilder(
+    column: $table.fromMessage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+}
+
+class $$AutopaysTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AutopaysTable,
+          Autopay,
+          $$AutopaysTableFilterComposer,
+          $$AutopaysTableOrderingComposer,
+          $$AutopaysTableAnnotationComposer,
+          $$AutopaysTableCreateCompanionBuilder,
+          $$AutopaysTableUpdateCompanionBuilder,
+          (Autopay, BaseReferences<_$AppDatabase, $AutopaysTable, Autopay>),
+          Autopay,
+          PrefetchHooks Function()
+        > {
+  $$AutopaysTableTableManager(_$AppDatabase db, $AutopaysTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AutopaysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AutopaysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AutopaysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> amountPaise = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
+                Value<AutopayEvery> every = const Value.absent(),
+                Value<DateTime?> nextOn = const Value.absent(),
+                Value<DateTime?> lastPaidOn = const Value.absent(),
+                Value<bool> paused = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<bool> fromMessage = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AutopaysCompanion(
+                dirty: dirty,
+                id: id,
+                name: name,
+                amountPaise: amountPaise,
+                categoryId: categoryId,
+                every: every,
+                nextOn: nextOn,
+                lastPaidOn: lastPaidOn,
+                paused: paused,
+                endedAt: endedAt,
+                fromMessage: fromMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<bool> dirty = const Value.absent(),
+                required String id,
+                required String name,
+                required int amountPaise,
+                Value<String?> categoryId = const Value.absent(),
+                required AutopayEvery every,
+                Value<DateTime?> nextOn = const Value.absent(),
+                Value<DateTime?> lastPaidOn = const Value.absent(),
+                Value<bool> paused = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<bool> fromMessage = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AutopaysCompanion.insert(
+                dirty: dirty,
+                id: id,
+                name: name,
+                amountPaise: amountPaise,
+                categoryId: categoryId,
+                every: every,
+                nextOn: nextOn,
+                lastPaidOn: lastPaidOn,
+                paused: paused,
+                endedAt: endedAt,
+                fromMessage: fromMessage,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AutopaysTable, Autopay>(table),
+                  BaseReferences<_$AppDatabase, $AutopaysTable, Autopay>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AutopaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AutopaysTable,
+      Autopay,
+      $$AutopaysTableFilterComposer,
+      $$AutopaysTableOrderingComposer,
+      $$AutopaysTableAnnotationComposer,
+      $$AutopaysTableCreateCompanionBuilder,
+      $$AutopaysTableUpdateCompanionBuilder,
+      (Autopay, BaseReferences<_$AppDatabase, $AutopaysTable, Autopay>),
+      Autopay,
       PrefetchHooks Function()
     >;
 typedef $$PrefsTableCreateCompanionBuilder = PrefsCompanion Function({
@@ -10344,6 +11572,8 @@ class $AppDatabaseManager {
       $$GoalDepositsTableTableManager(_db, _db.goalDeposits);
   $$TagRulesTableTableManager get tagRules =>
       $$TagRulesTableTableManager(_db, _db.tagRules);
+  $$AutopaysTableTableManager get autopays =>
+      $$AutopaysTableTableManager(_db, _db.autopays);
   $$PrefsTableTableManager get prefs =>
       $$PrefsTableTableManager(_db, _db.prefs);
   $$InsightsTableTableManager get insights =>

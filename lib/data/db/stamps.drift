@@ -37,6 +37,12 @@ BEGIN
   UPDATE tag_rules SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
 END;
 
+CREATE TRIGGER autopays_stamp_forward AFTER UPDATE OF updated_at ON autopays
+  WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
+BEGIN
+  UPDATE autopays SET updated_at = OLD.updated_at + 1 WHERE id = NEW.id;
+END;
+
 CREATE TRIGGER prefs_stamp_forward AFTER UPDATE OF updated_at ON prefs
   WHEN NEW.dirty = 1 AND NEW.updated_at <= OLD.updated_at
 BEGIN

@@ -23,6 +23,7 @@ part 'app_database.g.dart';
     PendingCaptures,
     UpcomingPayments,
     OwnMoves,
+    Autopays,
   ],
   // Edits here always move a row's stamp forward.
   include: {'stamps.drift'},
@@ -53,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -145,6 +146,12 @@ class AppDatabase extends _$AppDatabase {
       // split apart again.
       from11To12: (m, schema) async {
         await m.addColumn(schema.txns, schema.txns.combinedInto);
+      },
+      // v13: autopays, found from messages or added by hand, to remind
+      // before each goes out.
+      from12To13: (m, schema) async {
+        await m.createTable(schema.autopays);
+        await m.createTrigger(schema.autopaysStampForward);
       },
     ),
   );

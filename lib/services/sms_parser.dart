@@ -572,6 +572,46 @@ typedef UpcomingRead = ({
 /// 15-11-26 for NETFLIX": how much, the day it's due, and to whom. Null
 /// unless it says how much and a day from [now] to two months on. A mandate
 /// set up with no day is none.
+/// News about an autopay or a mandate that isn't a payment.
+enum MandateEvent { setUp, cancelled, paused }
+
+/// An autopay or mandate set up, cancelled or paused, as a message tells
+/// it: "Rs. 139.00 UPI mandate to SPOTIFY INDIA PVT LTD has been
+/// cancelled". How much and who it's to, when it says.
+typedef MandateRead = ({MandateEvent event, int? amountPaise, String? payee});
+
+final _mandateWord = _rx(
+  r'\b(?:mandate|auto[\s-]?pay|standing\s+instruction|e-?nach|nach)\b',
+);
+final _mandateCancelled = _rx(
+  r'\b(?:cancel(?:l)?ed|revoked|deleted|terminated|deactivated)\b',
+);
+final _mandatePaused = _rx(r'\b(?:paused|suspended|on\s+hold)\b');
+final _mandateSetUp = _rx(
+  r'\b(?:created|registered|set\s*up|activated|approved|enabled)\b',
+);
+
+/// What [raw] says about an autopay or a mandate, when it says one was set
+/// up, cancelled or paused. Null for anything else, a payment under one
+/// included.
+MandateRead? parseMandate(String raw) {
+  final text = _normalise(raw);
+  if (!_mandateWord.hasMatch(text)) return null;
+  final event = _mandateCancelled.hasMatch(text)
+      ? MandateEvent.cancelled
+      : _mandatePaused.hasMatch(text)
+      ? MandateEvent.paused
+      : _mandateSetUp.hasMatch(text)
+      ? MandateEvent.setUp
+      : null;
+  if (event == null) return null;
+  return (
+    event: event,
+    amountPaise: _amount(text)?.paise,
+    payee: _payee(text, TxnType.debit)?.name,
+  );
+}
+
 UpcomingRead? parseUpcoming(String raw, {required DateTime now}) {
   final text = _normalise(raw);
   if (text.isEmpty || !_upcoming.hasMatch(text)) return null;

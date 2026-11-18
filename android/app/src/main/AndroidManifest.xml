@@ -14,6 +14,9 @@
     <!-- Penny's own lock, when you turn it on: your fingerprint or the
          phone's screen lock. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Autopay reminders come back after the phone restarts. Android grants
+         it without asking. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Android's own backup is off: Penny's money reaches the cloud only
          through her own backup, when you sign in for it. -->
     <application
@@ -62,6 +65,19 @@
             android:permission="android.permission.BROADCAST_SMS">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+        <!-- Shows an autopay reminder when its alarm goes off. -->
+        <receiver
+            android:name=".ReminderReceiver"
+            android:exported="false" />
+        <!-- Sets the autopay reminders again after a restart or an update. -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
         <service

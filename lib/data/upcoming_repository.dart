@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/services/autopay_math.dart';
 import 'package:penny/services/sms_parser.dart';
 
 /// Payments a message said are coming, for Home's Coming up card. They stay
@@ -38,6 +39,17 @@ class UpcomingRepository {
   }
 
   /// Takes one off the card.
+  /// Takes every payment to [name] off the card, as when its autopay is
+  /// cancelled.
+  Future<void> dismissFor(String name) async {
+    final rows = await (_db.select(
+      _db.upcomingPayments,
+    )..where((u) => u.dismissedAt.isNull() & u.payee.isNotNull())).get();
+    for (final row in rows) {
+      if (sameAutopay(row.payee!, name)) await dismiss(row.dedupeKey);
+    }
+  }
+
   Future<void> dismiss(String dedupeKey) =>
       (_db.update(_db.upcomingPayments)
             ..where((u) => u.dedupeKey.equals(dedupeKey)))

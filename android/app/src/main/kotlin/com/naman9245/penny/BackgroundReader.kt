@@ -102,6 +102,10 @@ object BackgroundReader {
                         )
                         result.success(null)
                     }
+                    "scheduleReminders" -> {
+                        ReminderScheduler.schedule(context, call.arguments as? String ?: "[]")
+                        result.success(null)
+                    }
                     "again" -> {
                         result.success(again)
                         again = false

@@ -43,6 +43,10 @@ Penny tries the opposite:
   - **What the rules can't read**: a money SMS or notice that says money moved, but that Penny's rules can't read, goes to her AI with names and numbers hidden (see Privacy). When the AI can't answer, it waits on Home as one she couldn't read yet.
 - **Export**: Settings → Export entries sends every entry as a CSV, through the share menu, that opens in Excel or Google Sheets.
 - **Analysis**: spent, got and left, the necessary-vs-wasteful split, every category biggest first with its share as a bar, what's left of its budget and what came back, what you put away, and the last six months as a chart.
+- **Autopays**: Penny keeps a list of payments that go out by themselves, like UPI autopays, mandates and SIPs, with what they come to a month.
+  - **Found from messages**: a mandate set up adds one; the bank's note a day or so before ("will be debited on 23-11-2026 … for UPI Mandate") sets its next day; one paid, like GPay's "Payment for Autopay … was successful", moves it to the next one; "has been cancelled" ends it and takes it off Coming up. Or add one by hand: who it's to, how much, how often and the next day, with Pause and Delete.
+  - **Reminders**: 5 days and 1 day before each one, around 10 AM, in Penny's words ("Psst! Spotify in 5 days"), on their own notification channel. Android alarms show them even with Penny closed, and they come back after a restart.
+  - Home's Coming up shows the next ones beside what messages said; Settings → Autopays lists them all.
 - **Month routines**:
   - **Fixed bills**: in a month's first week, Home offers last month's rent, bills, subscriptions and education not logged yet. Log adds one today, with Undo; Skip hides it for the month.
   - **Forecast**: from the 3rd, Penny's box says where the month is heading at your everyday pace: what will be left of the everyday budget, the day it runs out, or about how much the month comes to without one. Worked out on the phone.
@@ -231,8 +235,8 @@ assets/icon/  the icon and launch images Penny's painter draws
 tool/         render_icons_test.dart, which draws them, and screenshots_test.dart,
               which draws every screen
 android/      Kotlin: the notification listener, SMS receiver and inbox,
-              money filter, capture queue, hidden background reader and
-              Penny's own notification
+              money filter, capture queue, hidden background reader,
+              Penny's own notification and the autopay reminder alarms
 supabase/     migrations, and the analyze-month, penny-chat, plan-goal,
               read-sms and delete-account Edge Functions
 docs/         Penny-App-Overview.pdf, the app explained for anyone, and

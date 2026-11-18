@@ -93,6 +93,10 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
     final signedIn = ref.watch(accountProvider).value != null;
     final locked = ref.watch(appLockProvider);
     final reading = ref.watch(notificationAccessProvider).value ?? false;
+    final autopays = [
+      for (final autopay in ref.watch(autopaysProvider).value ?? const [])
+        if (autopay.endedAt == null) autopay,
+    ].length;
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.85,
@@ -133,6 +137,23 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
                   title: 'Reading payments',
                   status: reading ? 'On' : 'Off',
                   onTap: () => _open(const NotificationsCard()),
+                ),
+                const RowDivider(),
+                _SettingsRow(
+                  key: const ValueKey('settings-autopays'),
+                  icon: Icons.autorenew_rounded,
+                  color: AppColors.pink,
+                  title: 'Autopays',
+                  status: switch (autopays) {
+                    0 => 'None yet',
+                    1 => '1 autopay',
+                    final n => '$n autopays',
+                  },
+                  onTap: () {
+                    final router = GoRouter.of(context);
+                    Navigator.pop(context);
+                    router.push('/autopays');
+                  },
                 ),
                 const RowDivider(),
                 _SettingsRow(

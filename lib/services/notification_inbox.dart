@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:penny/services/autopay_math.dart';
 
 /// One notification Penny read, as the Android listener kept it: from the
 /// SMS app ("sms"), a payment app ("gpay", "phonepe", "paytm"), or a wallet
@@ -108,6 +109,21 @@ class NotificationInbox implements CaptureSource {
       count: items.length,
     );
   }
+
+  /// Hands Android Penny's autopay reminders, replacing the ones before, so
+  /// each comes at its time even with her closed or the phone restarted.
+  Future<void> scheduleReminders(List<Reminder> reminders) => _call<void>(
+    'scheduleReminders',
+    jsonEncode([
+      for (final reminder in reminders)
+        {
+          'id': reminder.id,
+          'at': reminder.at.millisecondsSinceEpoch,
+          'title': reminder.title,
+          'text': reminder.text,
+        },
+    ]),
+  );
 
   @override
   Future<void> drop(int count) => _call<void>('drop', count);

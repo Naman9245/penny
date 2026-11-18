@@ -1,11 +1,13 @@
 import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:flutter/widgets.dart';
+import 'package:penny/data/autopay_repository.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
+import 'package:penny/services/autopay_math.dart';
 import 'package:penny/services/captures.dart';
 import 'package:penny/services/notification_inbox.dart';
 import 'package:penny/services/penny_ai.dart';
@@ -64,6 +66,9 @@ Future<List<CaptureRead>> readWaiting({
       await noteReads(PrefsRepository(db), round);
       reads.addAll(round);
     } while (await inbox.again());
+    // A message about an autopay may have changed when it goes out.
+    final autopays = await AutopayRepository(db).all();
+    await inbox.scheduleReminders(remindersFor(autopays, DateTime.now()));
   } finally {
     await db.close();
   }

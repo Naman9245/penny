@@ -4,6 +4,7 @@ import 'package:penny/core/router/app_shell.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
+import 'package:penny/features/autopays/autopays_screen.dart';
 import 'package:penny/features/add_txn/add_txn_controller.dart';
 import 'package:penny/features/add_txn/add_txn_screen.dart';
 import 'package:penny/features/analysis/analysis_screen.dart';
@@ -119,6 +120,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             AddTxnScreen(editId: state.pathParameters['id']),
       ),
       GoRoute(path: '/needs', builder: (context, state) => const NeedsScreen()),
+      GoRoute(
+        path: '/autopays',
+        builder: (context, state) => const AutopaysScreen(),
+      ),
       GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
       GoRoute(
         path: '/budget',

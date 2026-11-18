@@ -6,8 +6,10 @@ import 'package:penny/features/lock/lock_gate.dart';
 import 'package:penny/core/router/app_router.dart';
 import 'package:penny/core/theme/app_theme.dart';
 import 'package:penny/core/utils/money.dart';
+import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/sync/sync_controller.dart';
+import 'package:penny/services/autopay_math.dart';
 import 'package:penny/services/captures.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
@@ -53,6 +55,13 @@ class _PennyAppState extends ConsumerState<PennyApp> {
     ref.listenManual(demoModeProvider, (was, demo) {
       if (!demo) _takeCaptures();
     });
+    // Autopay reminders follow every change, so Android always has the
+    // next ones.
+    ref.listenManual(
+      autopaysProvider,
+      (was, autopays) => _remind(autopays.value),
+      fireImmediately: true,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _takeCaptures();
       final text = await inbox.takeLaunchShare();
@@ -71,8 +80,17 @@ class _PennyAppState extends ConsumerState<PennyApp> {
         ref.read(todayProvider.notifier).check();
         ref.read(syncControllerProvider.notifier).syncNow();
         _takeCaptures();
+        _remind(ref.read(autopaysProvider).value);
       },
     );
+  }
+
+  /// Hands Android the reminders for [autopays], from now on.
+  Future<void> _remind(List<Autopay>? autopays) async {
+    if (autopays == null) return;
+    await ref
+        .read(notificationInboxProvider)
+        .scheduleReminders(remindersFor(autopays, DateTime.now()));
   }
 
   /// Reads a shared SMS on the phone and opens its review.

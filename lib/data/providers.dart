@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/utils/dates.dart';
+import 'package:penny/data/autopay_repository.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/chat_repository.dart';
@@ -267,6 +268,26 @@ final _recentTxnsProvider = StreamProvider.autoDispose<List<Txn>>((ref) {
         today.add(const Duration(days: 1)),
       );
 });
+
+final autopayRepositoryProvider = Provider<AutopayRepository>(
+  (ref) => AutopayRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// Every autopay not deleted, by name.
+final autopaysProvider = StreamProvider.autoDispose<List<Autopay>>(
+  (ref) => ref.watch(autopayRepositoryProvider).watchAll(),
+);
+
+/// What Home's Coming up card shows: payments messages said are coming and
+/// autopays' next days, soonest first, less the ones paid already.
+final dueSoonProvider = Provider.autoDispose<List<DueItem>>(
+  (ref) => dueSoon(
+    upcoming: ref.watch(_upcomingProvider).value ?? const [],
+    autopays: ref.watch(autopaysProvider).value ?? const [],
+    txns: ref.watch(_recentTxnsProvider).value ?? const [],
+    today: ref.watch(todayProvider),
+  ),
+);
 
 /// What Home's Coming up card shows: payments messages said are coming,
 /// soonest first, less the ones paid already.

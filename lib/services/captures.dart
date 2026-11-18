@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
+import 'package:penny/data/autopay_repository.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -880,7 +881,21 @@ Future<List<CaptureRead>> takeCaptures({
             case final coming?) {
           await UpcomingRepository(db).keep(coming);
           letGo = 'coming up on ${DateFormat('d MMM').format(coming.dueOn)}';
+          // An autopay's note before it goes out gives its next day.
+          if (coming.payee case final name?
+              when _sipWords.hasMatch(_textOf(capture))) {
+            await AutopayRepository(db).noteDue(
+              name: name,
+              amountPaise: coming.amountPaise,
+              dueOn: coming.dueOn,
+              categoryId: coming.categoryId,
+            );
+          }
         }
+      }
+      // News about an autopay: one set up, cancelled or paused.
+      if (payment == null && !(letGo?.startsWith('coming up') ?? false)) {
+        if (await _noteMandate(db, capture) case final said?) letGo = said;
       }
       // Money into a wallet of yours, or out of it to your bank: the other
       // half, the bank's or the wallet's, may already be an entry.
@@ -1012,6 +1027,7 @@ Future<List<CaptureRead>> takeCaptures({
           payeeIsPerson: payment.payeeIsPerson,
         );
         await _cancelEarlierBack(db, txns, payment, at, categoryId);
+        await _notePaidAutopay(db, capture, payment, at, categoryId);
         await captures.recordSaved(
           payment,
           app: capture.app,
@@ -1040,6 +1056,13 @@ Future<List<CaptureRead>> takeCaptures({
         sender: sender,
         lookalike: await lookalikeOf(db, payment, at),
         walletHandle: half?.walletHandle,
+      );
+      await _notePaidAutopay(
+        db,
+        capture,
+        payment,
+        at,
+        payment.suggestedCategoryId,
       );
       reads.add(
         read(
@@ -1074,6 +1097,59 @@ Future<List<CaptureRead>> takeCaptures({
   if (asking != null) await prefs.setUnread([...stillUnread.values]);
   if (waiting.count > 0) await source.drop(waiting.count);
   return reads;
+}
+
+/// What [capture] says about an autopay, noted: one set up is added (or
+/// brought back), one cancelled ends and leaves Coming up, one paused is
+/// paused. Words for "What Penny read", or null when it says none of it.
+Future<String?> _noteMandate(AppDatabase db, Capture capture) async {
+  final text = _textOf(capture);
+  final read = parseMandate(text);
+  if (read == null) return null;
+  final name =
+      read.payee ?? (capture.app == 'sms' ? null : appName(capture.app));
+  if (name == null) return null;
+  final autopays = AutopayRepository(db);
+  switch (read.event) {
+    case MandateEvent.setUp:
+      final id = await autopays.noteSetUp(
+        name: name,
+        amountPaise: read.amountPaise,
+        categoryId: suggestCategory(
+          type: TxnType.debit,
+          text: text,
+          payee: name,
+        ),
+      );
+      return id == null ? null : 'an autopay set up for $name';
+    case MandateEvent.cancelled:
+      await autopays.noteEnded(name, capture.at);
+      await UpcomingRepository(db).dismissFor(name);
+      return 'an autopay cancelled for $name';
+    case MandateEvent.paused:
+      await autopays.notePaused(name);
+      return 'an autopay paused for $name';
+  }
+}
+
+/// [payment], read from [capture], as an autopay that went out, when it
+/// says it was one: its next day moves on, or Penny starts knowing it.
+Future<void> _notePaidAutopay(
+  AppDatabase db,
+  Capture capture,
+  SmsTxn payment,
+  DateTime at,
+  String? categoryId,
+) async {
+  final name = payment.payee;
+  if (name == null || payment.type != TxnType.debit) return;
+  if (!_sipWords.hasMatch(_textOf(capture))) return;
+  await AutopayRepository(db).notePaid(
+    name: name,
+    amountPaise: payment.amountPaise,
+    on: at,
+    categoryId: categoryId,
+  );
 }
 
 /// What Penny's notification says about the payments she just read. Null

@@ -285,6 +285,39 @@ class PendingCaptures extends Table {
   Set<Column<Object>> get primaryKey => {dedupeKey};
 }
 
+/// Payments that go out by themselves: a UPI autopay, a mandate, a SIP or an
+/// EMI. Found from messages or added by the user, so Penny can remind
+/// before each one, 5 days and 1 day ahead.
+@DataClassName('Autopay')
+class Autopays extends Table with Synced {
+  TextColumn get id => text()();
+
+  /// Who it goes to, like "Spotify".
+  TextColumn get name => text()();
+  IntColumn get amountPaise => integer()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get every => textEnum<AutopayEvery>()();
+
+  /// The next day it goes out, when known.
+  DateTimeColumn get nextOn => dateTime().nullable()();
+
+  /// The last day Penny saw it go out.
+  DateTimeColumn get lastPaidOn => dateTime().nullable()();
+  BoolColumn get paused => boolean().withDefault(const Constant(false))();
+
+  /// When it was cancelled. An ended one still shows, and never reminds.
+  DateTimeColumn get endedAt => dateTime().nullable()();
+
+  /// Found from a message, rather than added by hand.
+  BoolColumn get fromMessage => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// Messages that were half of a move between your own accounts, like
 /// PayZapp's "Rs.2000 deducted from PayZapp Wallet" and the bank's "credited
 /// from VPA …@pzw" a minute later: neither is money in or out. Kept so the
