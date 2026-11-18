@@ -259,6 +259,53 @@ void main() {
 
     Future<List<PendingCapture>> waiting() => captures.watchWaiting().first;
 
+    test("Groww's SIP and its autopay notice are one payment", () async {
+      source.waiting.add(
+        app(
+          'groww',
+          'SIP successful',
+          'Your SIP of ₹500 in Parag Parikh Flexi Cap Fund is successful',
+        ),
+      );
+      expect(
+        (await take(CaptureMode.save)).single.outcome,
+        CaptureOutcome.saved,
+      );
+      source.waiting.add(
+        app(
+          'groww',
+          'Autopay',
+          '₹500 debited from your bank account via autopay mandate for your SIP',
+          when: at.add(const Duration(hours: 2)),
+        ),
+      );
+      final read = (await take(CaptureMode.save)).single;
+      expect(read.outcome, CaptureOutcome.letGo);
+      expect(read.what, 'already saved from Groww');
+      expect(await db.select(db.txns).get(), hasLength(1));
+    });
+
+    test('two SIPs of one amount in two funds from Groww stay two', () async {
+      source.waiting
+        ..add(
+          app(
+            'groww',
+            'SIP successful',
+            'Your SIP of ₹500 in Parag Parikh Flexi Cap Fund is successful',
+          ),
+        )
+        ..add(
+          app(
+            'groww',
+            'SIP successful',
+            'Your SIP of ₹500 in HDFC Index Nifty 50 Fund is successful',
+            when: at.add(const Duration(minutes: 2)),
+          ),
+        );
+      await take(CaptureMode.save);
+      expect(await db.select(db.txns).get(), hasLength(2));
+    });
+
     test('a payment still to come is kept for Coming up, not saved', () async {
       source.waiting.add(
         sms(
@@ -1453,6 +1500,48 @@ void main() {
       );
       final found = (await findReadCopies(db)).single;
       expect((found.copy.id, found.of.id), (copy, notice));
+    });
+
+    test(
+      "Groww's two notices of one SIP: the later copies the first",
+      () async {
+        final first = await savedFrom(
+          app(
+            'groww',
+            'SIP successful',
+            'Your SIP of ₹500 in Parag Parikh Flexi Cap Fund is successful',
+          ),
+        );
+        final copy = await savedFrom(
+          app(
+            'groww',
+            'Autopay',
+            '₹500 debited from your bank account via autopay mandate for your SIP',
+            when: at.add(const Duration(hours: 2)),
+          ),
+        );
+        final found = (await findReadCopies(db)).single;
+        expect((found.copy.id, found.of.id), (copy, first));
+      },
+    );
+
+    test('two funds from Groww on one day are no copies', () async {
+      await savedFrom(
+        app(
+          'groww',
+          'SIP successful',
+          'Your SIP of ₹500 in Parag Parikh Flexi Cap Fund is successful',
+        ),
+      );
+      await savedFrom(
+        app(
+          'groww',
+          'SIP successful',
+          'Your SIP of ₹500 in HDFC Index Nifty 50 Fund is successful',
+          when: at.add(const Duration(minutes: 2)),
+        ),
+      );
+      expect(await findReadCopies(db), isEmpty);
     });
   });
 }

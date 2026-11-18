@@ -273,6 +273,39 @@ final _autopayWords = RegExp(
   caseSensitive: false,
 );
 
+/// Words an investing app or a fund confirms an investment with, after the
+/// payment itself: "units allotted", "order placed", "processed".
+final _confirmsInvestment = RegExp(
+  r'\b(?:allott?ed|allotment|units?|nav|processed'
+  r'|order\s+(?:is\s+|has\s+been\s+)?(?:placed|confirmed|executed|successful))\b',
+  caseSensitive: false,
+);
+
+/// Words that come with a SIP, an autopay or a mandate.
+final _sipWords = RegExp(
+  r'\b(?:sip|auto[\s-]?pay|mandate|nach)\b',
+  caseSensitive: false,
+);
+
+/// Whether two messages from one place for one investing amount, [text]
+/// with [payee] and [otherText] with [otherPayee], are one payment: the
+/// payment and then the order or units confirmed, or a SIP's autopay told
+/// twice, as Groww may. Two that name different funds are two.
+bool _oneInvestmentFromOnePlace({
+  required String text,
+  required String? payee,
+  required String otherText,
+  required String? otherPayee,
+}) {
+  final fund = shopKey(payee);
+  final otherFund = shopKey(otherPayee);
+  if (fund != null && otherFund != null && fund != otherFund) return false;
+  return _confirmsInvestment.hasMatch(text) !=
+          _confirmsInvestment.hasMatch(otherText) ||
+      _sipWords.hasMatch(text) ||
+      _sipWords.hasMatch(otherText);
+}
+
 /// Where a payment was read: an app, or for an SMS, who sent it. A sender
 /// code's route prefix and suffix don't count: "JM-HDFCBK-S" is "HDFCBK".
 String _sourceOf(String app, String? sender) {
@@ -323,11 +356,22 @@ Future<({String what, String? entryId})?> repeatOf(
     // Kept before senders were: who sent it isn't known.
     if (row.app == 'sms' && row.sender == null) continue;
     final from = _sourceOf(row.app, row.sender);
-    if (from == source) continue;
     // Investing on either side is enough: the bank's SMS may not say what
     // the fund's or the app's notice does.
     final eitherInvests =
         investing || isInvestCategory(row.suggestedCategoryId);
+    // Two from one place are two payments, unless they're one investment
+    // told twice, like Groww's payment and then its order.
+    if (from == source &&
+        !(eitherInvests &&
+            _oneInvestmentFromOnePlace(
+              text: text,
+              payee: sms.payee,
+              otherText: row.preview,
+              otherPayee: row.payee,
+            ))) {
+      continue;
+    }
     final autopay =
         _autopayWords.hasMatch(text) || _autopayWords.hasMatch(row.preview);
     final gap = row.occurredAt.difference(at).abs();
@@ -489,8 +533,6 @@ Future<List<ReadCopy>> findReadCopies(AppDatabase db) async {
   for (final copy in reads) {
     final record = readAs[copy.id]!;
     final place = _sourceOf(record.app, record.sender);
-    final investing = isInvestCategory(copy.categoryId);
-    final window = investing ? _sameInvestment : _sameMoment;
     Duration apart(Txn other) =>
         other.occurredAt.difference(copy.occurredAt).abs();
     final candidates = [
@@ -500,7 +542,7 @@ Future<List<ReadCopy>> findReadCopies(AppDatabase db) async {
             other.amountPaise == copy.amountPaise &&
             other.type == copy.type &&
             !(matched[other.id]?.contains(place) ?? false) &&
-            _isCopyOf(copy, record, other, readAs[other.id], investing, window))
+            _isCopyOf(copy, record, other, readAs[other.id]))
           other,
     ];
     if (candidates.isEmpty) continue;
@@ -526,12 +568,21 @@ bool _isCopyOf(
   PendingCapture record,
   Txn other,
   PendingCapture? otherRecord,
-  bool investing,
-  Duration window,
 ) {
   if (other.source == TxnSource.manual) {
     return dayStart(other.occurredAt) == dayStart(copy.occurredAt);
   }
+  // Investing on either side is enough, as when the copy was read.
+  final investing =
+      isInvestCategory(copy.categoryId) || isInvestCategory(other.categoryId);
+  final autopay =
+      _autopayWords.hasMatch(record.preview) ||
+      _autopayWords.hasMatch(otherRecord?.preview ?? '');
+  final window = investing
+      ? _sameInvestment
+      : autopay
+      ? _sameAutopay
+      : _sameMoment;
   if (other.occurredAt.difference(copy.occurredAt).abs() > window) {
     return false;
   }
@@ -540,7 +591,13 @@ bool _isCopyOf(
   if (otherRecord == null) return true;
   if (_sourceOf(otherRecord.app, otherRecord.sender) ==
       _sourceOf(record.app, record.sender)) {
-    return false;
+    return investing &&
+        _oneInvestmentFromOnePlace(
+          text: record.preview,
+          payee: record.payee,
+          otherText: otherRecord.preview,
+          otherPayee: otherRecord.payee,
+        );
   }
   // One payment is an SMS and an app's notice, never two of either; an
   // investment and its confirmation can be any two places.
