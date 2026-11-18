@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:penny/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/providers.dart';
 import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/money_kinds.dart';
@@ -12,8 +14,8 @@ import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/pressable_area.dart';
 
 /// One transaction row: category face, what it was, when, and the signed
-/// amount.
-class TxnTile extends StatelessWidget {
+/// amount. A combined entry says how many it was made of: "2 in 1".
+class TxnTile extends ConsumerWidget {
   const TxnTile({
     super.key,
     required this.txn,
@@ -34,8 +36,9 @@ class TxnTile extends StatelessWidget {
   final bool showDay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final category = categoryById(txn.categoryId);
+    final parts = ref.watch(combinedCountsProvider).value?[txn.id] ?? 0;
     // "Food · paid back" for money that came back.
     final what = kindLabel(txn.type, txn.categoryId);
     final merchant = txn.merchant;
@@ -51,6 +54,7 @@ class TxnTile extends StatelessWidget {
         // Read from a notification.
         TxnSource.sms => 'Auto',
       },
+      if (parts > 0) '$parts in 1',
     ].join(' · ');
 
     return MergeSemantics(

@@ -9,6 +9,7 @@ import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/app_text.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
+import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/features/add_txn/add_txn_controller.dart';
 import 'package:penny/widgets/amount_keypad.dart';
@@ -23,9 +24,11 @@ import 'package:penny/services/own_moves.dart';
 import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
+import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/brutal_icon_button.dart';
 import 'package:penny/widgets/edge_fade.dart';
+import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/sliding_toggle.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 
@@ -217,6 +220,26 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
             ? 'Took it out, and its other half: your own money moving'
             : 'Took it out: your own money moving',
         onUndo: () => putBackMove(db, repo, removed),
+      );
+      context.pop();
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// Takes this combined entry apart, back into what it was made of.
+  Future<void> _splitApart() async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      final repo = ref.read(txnRepositoryProvider);
+      final id = widget.args.editing!.id;
+      final ids = await repo.splitApart(id);
+      if (!mounted) return;
+      showUndoSnackBar(
+        context,
+        message: 'Split back into ${ids.length} payments',
+        onUndo: () => repo.recombine(id, ids),
       );
       context.pop();
     } finally {
@@ -421,6 +444,14 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                             autoPlay: false,
                           )
                           .shakeX(hz: 5, amount: 6),
+                      // A combined entry shows what it's made of.
+                      if (widget.args.editing case final txn?)
+                        _MadeOf(
+                          parts:
+                              ref.watch(combinedPartsProvider(txn.id)).value ??
+                              const [],
+                          onSplit: _splitApart,
+                        ),
                       // One Penny read can be money that only moved between
                       // the user's own accounts, like PayZapp and the bank.
                       if (widget.args.editing case final txn?
@@ -447,6 +478,84 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
               ready: state.canSave,
               // With an amount in, the categories need the room more.
               compact: state.amountPaise > 0,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What a combined entry was made of, each with its day, time and where it
+/// came from, and a way to split them apart again. Nothing for an entry
+/// that wasn't combined.
+class _MadeOf extends StatelessWidget {
+  const _MadeOf({required this.parts, required this.onSplit});
+
+  final List<Txn> parts;
+  final VoidCallback onSplit;
+
+  static String _whenAndWhere(Txn part) => [
+    dayLabel(part.occurredAt),
+    DateFormat('h:mm a').format(part.occurredAt),
+    switch (part.source) {
+      TxnSource.manual => 'Typed',
+      TxnSource.share => 'SMS',
+      TxnSource.sms => 'Auto',
+    },
+  ].join(' · ');
+
+  @override
+  Widget build(BuildContext context) {
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 22),
+      child: BrutalCard(
+        key: const ValueKey('made-of'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Made of ${parts.length} payments', style: AppText.h3),
+            const SizedBox(height: 2),
+            const Text(
+              'Combined into this one. Split them apart to get them back.',
+              style: AppText.small,
+            ),
+            const SizedBox(height: 8),
+            for (final (i, part) in parts.indexed) ...[
+              if (i > 0) const Divider(height: 1, color: AppColors.hairline),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            part.merchant ??
+                                kindLabel(part.type, part.categoryId),
+                            style: AppText.bodyStrong,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(_whenAndWhere(part), style: AppText.small),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    MoneyText(part.amountPaise, type: part.type),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            BrutalChip(
+              key: const ValueKey('split-apart'),
+              label: 'Split them apart',
+              icon: Icons.call_split_rounded,
+              onTap: onSplit,
             ),
           ],
         ),

@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -140,6 +140,11 @@ class AppDatabase extends _$AppDatabase {
           schema.pendingCaptures,
           schema.pendingCaptures.walletHandle,
         );
+      },
+      // v12: what a combined entry was made of, so it can be shown and
+      // split apart again.
+      from11To12: (m, schema) async {
+        await m.addColumn(schema.txns, schema.txns.combinedInto);
       },
     ),
   );

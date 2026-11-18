@@ -336,6 +336,7 @@ const _kinds = [
       'source',
       'tag',
       'payee_is_person',
+      'combined_into',
       'created_at',
       'updated_at',
       'deleted_at',

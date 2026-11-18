@@ -160,6 +160,17 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
       'CHECK ("payee_is_person" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _combinedIntoMeta = const VerificationMeta(
+    'combinedInto',
+  );
+  @override
+  late final GeneratedColumn<String> combinedInto = GeneratedColumn<String>(
+    'combined_into',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     dirty,
@@ -176,6 +187,7 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
     deletedAt,
     dedupeKey,
     payeeIsPerson,
+    combinedInto,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -270,6 +282,15 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         ),
       );
     }
+    if (data.containsKey('combined_into')) {
+      context.handle(
+        _combinedIntoMeta,
+        combinedInto.isAcceptableOrUnknown(
+          data['combined_into']!,
+          _combinedIntoMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -341,6 +362,10 @@ class $TxnsTable extends Txns with TableInfo<$TxnsTable, Txn> {
         DriftSqlType.bool,
         data['${effectivePrefix}payee_is_person'],
       ),
+      combinedInto: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}combined_into'],
+      ),
     );
   }
 
@@ -386,6 +411,11 @@ class Txn extends DataClass implements Insertable<Txn> {
   /// for typed entries and older imports, where Penny can only guess.
   /// People's names never reach the AI either way.
   final bool? payeeIsPerson;
+
+  /// For an entry combined into another: that entry's id. Kept on the
+  /// deleted originals, so the combined one can show what it's made of and
+  /// be split apart again.
+  final String? combinedInto;
   const Txn({
     required this.dirty,
     required this.id,
@@ -401,6 +431,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     this.deletedAt,
     this.dedupeKey,
     this.payeeIsPerson,
+    this.combinedInto,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -435,6 +466,9 @@ class Txn extends DataClass implements Insertable<Txn> {
     if (!nullToAbsent || payeeIsPerson != null) {
       map['payee_is_person'] = Variable<bool>(payeeIsPerson);
     }
+    if (!nullToAbsent || combinedInto != null) {
+      map['combined_into'] = Variable<String>(combinedInto);
+    }
     return map;
   }
 
@@ -462,6 +496,9 @@ class Txn extends DataClass implements Insertable<Txn> {
       payeeIsPerson: payeeIsPerson == null && nullToAbsent
           ? const Value.absent()
           : Value(payeeIsPerson),
+      combinedInto: combinedInto == null && nullToAbsent
+          ? const Value.absent()
+          : Value(combinedInto),
     );
   }
 
@@ -491,6 +528,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       dedupeKey: serializer.fromJson<String?>(json['dedupeKey']),
       payeeIsPerson: serializer.fromJson<bool?>(json['payeeIsPerson']),
+      combinedInto: serializer.fromJson<String?>(json['combinedInto']),
     );
   }
   @override
@@ -513,6 +551,7 @@ class Txn extends DataClass implements Insertable<Txn> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'dedupeKey': serializer.toJson<String?>(dedupeKey),
       'payeeIsPerson': serializer.toJson<bool?>(payeeIsPerson),
+      'combinedInto': serializer.toJson<String?>(combinedInto),
     };
   }
 
@@ -531,6 +570,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<String?> dedupeKey = const Value.absent(),
     Value<bool?> payeeIsPerson = const Value.absent(),
+    Value<String?> combinedInto = const Value.absent(),
   }) => Txn(
     dirty: dirty ?? this.dirty,
     id: id ?? this.id,
@@ -548,6 +588,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     payeeIsPerson: payeeIsPerson.present
         ? payeeIsPerson.value
         : this.payeeIsPerson,
+    combinedInto: combinedInto.present ? combinedInto.value : this.combinedInto,
   );
   Txn copyWithCompanion(TxnsCompanion data) {
     return Txn(
@@ -573,6 +614,9 @@ class Txn extends DataClass implements Insertable<Txn> {
       payeeIsPerson: data.payeeIsPerson.present
           ? data.payeeIsPerson.value
           : this.payeeIsPerson,
+      combinedInto: data.combinedInto.present
+          ? data.combinedInto.value
+          : this.combinedInto,
     );
   }
 
@@ -592,7 +636,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('dedupeKey: $dedupeKey, ')
-          ..write('payeeIsPerson: $payeeIsPerson')
+          ..write('payeeIsPerson: $payeeIsPerson, ')
+          ..write('combinedInto: $combinedInto')
           ..write(')'))
         .toString();
   }
@@ -613,6 +658,7 @@ class Txn extends DataClass implements Insertable<Txn> {
     deletedAt,
     dedupeKey,
     payeeIsPerson,
+    combinedInto,
   );
   @override
   bool operator ==(Object other) =>
@@ -631,7 +677,8 @@ class Txn extends DataClass implements Insertable<Txn> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.dedupeKey == this.dedupeKey &&
-          other.payeeIsPerson == this.payeeIsPerson);
+          other.payeeIsPerson == this.payeeIsPerson &&
+          other.combinedInto == this.combinedInto);
 }
 
 class TxnsCompanion extends UpdateCompanion<Txn> {
@@ -649,6 +696,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
   final Value<DateTime?> deletedAt;
   final Value<String?> dedupeKey;
   final Value<bool?> payeeIsPerson;
+  final Value<String?> combinedInto;
   final Value<int> rowid;
   const TxnsCompanion({
     this.dirty = const Value.absent(),
@@ -665,6 +713,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.deletedAt = const Value.absent(),
     this.dedupeKey = const Value.absent(),
     this.payeeIsPerson = const Value.absent(),
+    this.combinedInto = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TxnsCompanion.insert({
@@ -682,6 +731,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     this.deletedAt = const Value.absent(),
     this.dedupeKey = const Value.absent(),
     this.payeeIsPerson = const Value.absent(),
+    this.combinedInto = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        amountPaise = Value(amountPaise),
@@ -706,6 +756,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Expression<DateTime>? deletedAt,
     Expression<String>? dedupeKey,
     Expression<bool>? payeeIsPerson,
+    Expression<String>? combinedInto,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -723,6 +774,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (dedupeKey != null) 'dedupe_key': dedupeKey,
       if (payeeIsPerson != null) 'payee_is_person': payeeIsPerson,
+      if (combinedInto != null) 'combined_into': combinedInto,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -742,6 +794,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     Value<DateTime?>? deletedAt,
     Value<String?>? dedupeKey,
     Value<bool?>? payeeIsPerson,
+    Value<String?>? combinedInto,
     Value<int>? rowid,
   }) {
     return TxnsCompanion(
@@ -759,6 +812,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
       deletedAt: deletedAt ?? this.deletedAt,
       dedupeKey: dedupeKey ?? this.dedupeKey,
       payeeIsPerson: payeeIsPerson ?? this.payeeIsPerson,
+      combinedInto: combinedInto ?? this.combinedInto,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -812,6 +866,9 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
     if (payeeIsPerson.present) {
       map['payee_is_person'] = Variable<bool>(payeeIsPerson.value);
     }
+    if (combinedInto.present) {
+      map['combined_into'] = Variable<String>(combinedInto.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -835,6 +892,7 @@ class TxnsCompanion extends UpdateCompanion<Txn> {
           ..write('deletedAt: $deletedAt, ')
           ..write('dedupeKey: $dedupeKey, ')
           ..write('payeeIsPerson: $payeeIsPerson, ')
+          ..write('combinedInto: $combinedInto, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6860,6 +6918,7 @@ typedef $$TxnsTableCreateCompanionBuilder = TxnsCompanion Function({
   Value<DateTime?> deletedAt,
   Value<String?> dedupeKey,
   Value<bool?> payeeIsPerson,
+  Value<String?> combinedInto,
   Value<int> rowid,
 });
 typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
@@ -6877,6 +6936,7 @@ typedef $$TxnsTableUpdateCompanionBuilder = TxnsCompanion Function({
   Value<DateTime?> deletedAt,
   Value<String?> dedupeKey,
   Value<bool?> payeeIsPerson,
+  Value<String?> combinedInto,
   Value<int> rowid,
 });
 
@@ -6960,6 +7020,11 @@ class $$TxnsTableFilterComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.payeeIsPerson,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get combinedInto => $composableBuilder(
+    column: $table.combinedInto,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
@@ -7039,6 +7104,11 @@ class $$TxnsTableOrderingComposer extends Composer<_$AppDatabase, $TxnsTable> {
     column: $table.payeeIsPerson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get combinedInto => $composableBuilder(
+    column: $table.combinedInto,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TxnsTableAnnotationComposer
@@ -7099,6 +7169,11 @@ class $$TxnsTableAnnotationComposer
     column: $table.payeeIsPerson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get combinedInto => $composableBuilder(
+    column: $table.combinedInto,
+    builder: (column) => column,
+  );
 }
 
 class $$TxnsTableTableManager
@@ -7143,6 +7218,7 @@ class $$TxnsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String?> dedupeKey = const Value.absent(),
                 Value<bool?> payeeIsPerson = const Value.absent(),
+                Value<String?> combinedInto = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion(
                 dirty: dirty,
@@ -7159,6 +7235,7 @@ class $$TxnsTableTableManager
                 deletedAt: deletedAt,
                 dedupeKey: dedupeKey,
                 payeeIsPerson: payeeIsPerson,
+                combinedInto: combinedInto,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7177,6 +7254,7 @@ class $$TxnsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String?> dedupeKey = const Value.absent(),
                 Value<bool?> payeeIsPerson = const Value.absent(),
+                Value<String?> combinedInto = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TxnsCompanion.insert(
                 dirty: dirty,
@@ -7193,6 +7271,7 @@ class $$TxnsTableTableManager
                 deletedAt: deletedAt,
                 dedupeKey: dedupeKey,
                 payeeIsPerson: payeeIsPerson,
+                combinedInto: combinedInto,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

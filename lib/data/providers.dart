@@ -184,6 +184,17 @@ final txnByIdProvider = FutureProvider.autoDispose.family<Txn?, String>(
   (ref, id) => ref.watch(txnRepositoryProvider).findById(id),
 );
 
+/// How many entries each combined entry was made of, by its id.
+final combinedCountsProvider = StreamProvider.autoDispose<Map<String, int>>(
+  (ref) => ref.watch(txnRepositoryProvider).watchCombinedCounts(),
+);
+
+/// The entries a combined entry was made of, oldest first.
+final combinedPartsProvider = StreamProvider.autoDispose
+    .family<List<Txn>, String>(
+      (ref, id) => ref.watch(txnRepositoryProvider).watchParts(id),
+    );
+
 /// The live entry an SMS with this fingerprint was already imported as.
 final txnByDedupeKeyProvider = FutureProvider.autoDispose.family<Txn?, String>(
   (ref, key) => ref.watch(txnRepositoryProvider).findByDedupeKey(key),

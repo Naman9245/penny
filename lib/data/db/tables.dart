@@ -52,6 +52,11 @@ class Txns extends Table with Synced {
   /// People's names never reach the AI either way.
   BoolColumn get payeeIsPerson => boolean().nullable()();
 
+  /// For an entry combined into another: that entry's id. Kept on the
+  /// deleted originals, so the combined one can show what it's made of and
+  /// be split apart again.
+  TextColumn get combinedInto => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }

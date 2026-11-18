@@ -134,7 +134,7 @@ class TxnRepository {
     );
     final now = _clock();
     for (final txn in txns) {
-      await _setDeletedAt(txn.id, now);
+      await _setDeletedAt(txn.id, now, combinedInto: id);
     }
     return id;
   });
@@ -146,6 +146,57 @@ class TxnRepository {
         await softDelete(combinedId);
         for (final id in ids) {
           await restore(id);
+          await (_db.update(_txns)..where((t) => t.id.equals(id))).write(
+            TxnsCompanion(
+              combinedInto: const Value(null),
+              updatedAt: Value(_clock()),
+              dirty: const Value(true),
+            ),
+          );
+        }
+      });
+
+  /// The entries [combinedId] was made of, oldest first. Empty for one
+  /// that wasn't combined, or was before parts were kept.
+  Stream<List<Txn>> watchParts(String combinedId) =>
+      (_db.select(_txns)
+            ..where((t) => t.combinedInto.equals(combinedId))
+            ..orderBy([(t) => OrderingTerm.asc(t.occurredAt)]))
+          .watch();
+
+  /// How many entries each combined entry was made of, by its id.
+  Stream<Map<String, int>> watchCombinedCounts() {
+    final count = _txns.id.count();
+    final query = _db.selectOnly(_txns)
+      ..addColumns([_txns.combinedInto, count])
+      ..where(_txns.combinedInto.isNotNull())
+      ..groupBy([_txns.combinedInto]);
+    return query.watch().map(
+      (rows) => {
+        for (final row in rows) row.read(_txns.combinedInto)!: row.read(count)!,
+      },
+    );
+  }
+
+  /// Takes [combinedId] apart: deletes it and brings back what it was made
+  /// of. Their ids, for [recombine].
+  Future<List<String>> splitApart(String combinedId) =>
+      _db.transaction(() async {
+        final parts = await (_db.select(
+          _txns,
+        )..where((t) => t.combinedInto.equals(combinedId))).get();
+        final ids = [for (final part in parts) part.id];
+        await uncombine(combinedId, ids);
+        return ids;
+      });
+
+  /// Undoes [splitApart]: [combinedId] back, made of [ids] again.
+  Future<void> recombine(String combinedId, List<String> ids) =>
+      _db.transaction(() async {
+        await restore(combinedId);
+        final now = _clock();
+        for (final id in ids) {
+          await _setDeletedAt(id, now, combinedInto: combinedId);
         }
       });
 
@@ -306,12 +357,19 @@ class TxnRepository {
     });
   }
 
-  Future<void> _setDeletedAt(String id, DateTime? at) async {
+  Future<void> _setDeletedAt(
+    String id,
+    DateTime? at, {
+    String? combinedInto,
+  }) async {
     await (_db.update(_txns)..where((t) => t.id.equals(id))).write(
       TxnsCompanion(
         deletedAt: Value(at),
         updatedAt: Value(_clock()),
         dirty: const Value(true),
+        combinedInto: combinedInto == null
+            ? const Value.absent()
+            : Value(combinedInto),
       ),
     );
   }
