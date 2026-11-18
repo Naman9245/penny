@@ -484,6 +484,7 @@ class _LogLine extends StatelessWidget {
     'saved': 'Saved',
     'letGo': 'Let go',
     'unread': "Couldn't read yet",
+    'moved': 'Your own money',
   };
 
   @override

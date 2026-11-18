@@ -11,6 +11,7 @@ import 'package:penny/data/providers.dart';
 import 'package:penny/features/goals/goal_widgets.dart';
 import 'package:penny/features/home/coming_up_card.dart';
 import 'package:penny/features/home/combine_card.dart';
+import 'package:penny/features/home/own_moves_card.dart';
 import 'package:penny/features/home/fixed_bills_card.dart';
 import 'package:penny/features/home/to_check_card.dart';
 import 'package:penny/features/settings/settings_sheet.dart';
@@ -129,6 +130,7 @@ class HomeScreen extends ConsumerWidget {
             const Entrance(id: 'coming-up', index: 1, child: ComingUpCard()),
             // One payee's payments on one day, which Penny offers to make one.
             const Entrance(id: 'combine', index: 1, child: CombineCard()),
+            const Entrance(id: 'own-moves', index: 1, child: OwnMovesCard()),
             // Last month's rent and bills, in a month's first week.
             const Entrance(
               id: 'fixed-bills',

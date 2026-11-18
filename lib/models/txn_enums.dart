@@ -5,6 +5,10 @@ enum TxnType { debit, credit }
 /// Penny. `sms` is kept for reading bank SMS by itself, which comes later.
 enum TxnSource { manual, share, sms }
 
+/// Which side of a move between your own accounts a message tells: the
+/// wallet's (money into or out of it) or the bank's.
+enum MoveSide { wallet, bank }
+
 /// Whether a spend was necessary or wasteful: Penny's pick in her report,
 /// or the user's own, which always wins.
 enum TxnTag { necessary, wasteful }

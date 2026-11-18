@@ -139,9 +139,15 @@ class SmsTxn extends SmsParse {
 }
 
 class SmsIgnored extends SmsParse {
-  const SmsIgnored(this.reason);
+  const SmsIgnored(this.reason, {this.amountPaise, this.type});
 
   final IgnoreReason reason;
+
+  /// For a move between your own accounts, how much moved and which way
+  /// for the account the message is about, so its other half, the bank's
+  /// or the wallet's message, can be found. Null for the rest.
+  final int? amountPaise;
+  final TxnType? type;
 }
 
 RegExp _rx(String pattern) => RegExp(pattern, caseSensitive: false);
@@ -489,7 +495,11 @@ SmsParse parseSms(String raw, {DateTime? now}) {
   if (_walletLoad.hasMatch(text) &&
       !_notALoad.hasMatch(text) &&
       !_paidFromWallet.hasMatch(text)) {
-    return const SmsIgnored(IgnoreReason.ownTransfer);
+    return SmsIgnored(
+      IgnoreReason.ownTransfer,
+      amountPaise: _amount(text)?.paise,
+      type: _direction(text),
+    );
   }
   final accounts = _accountRef.allMatches(text).toList();
   if (accounts.isEmpty && _offer.hasMatch(text)) {
@@ -508,7 +518,11 @@ SmsParse parseSms(String raw, {DateTime? now}) {
 
   final payee = _payee(text, type);
   if (_intoOwnWallet(text, type, payee)) {
-    return const SmsIgnored(IgnoreReason.ownTransfer);
+    return SmsIgnored(
+      IgnoreReason.ownTransfer,
+      amountPaise: amount.paise,
+      type: type,
+    );
   }
   final date = _date(text, now);
   // A person's name can hold a brand's word, like "Zara Khan", and the

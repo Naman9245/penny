@@ -4815,6 +4815,17 @@ class $PendingCapturesTable extends PendingCaptures
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _walletHandleMeta = const VerificationMeta(
+    'walletHandle',
+  );
+  @override
+  late final GeneratedColumn<String> walletHandle = GeneratedColumn<String>(
+    'wallet_handle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     dedupeKey,
@@ -4832,6 +4843,7 @@ class $PendingCapturesTable extends PendingCaptures
     lookalike,
     capturedAt,
     skippedAt,
+    walletHandle,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4957,6 +4969,15 @@ class $PendingCapturesTable extends PendingCaptures
         skippedAt.isAcceptableOrUnknown(data['skipped_at']!, _skippedAtMeta),
       );
     }
+    if (data.containsKey('wallet_handle')) {
+      context.handle(
+        _walletHandleMeta,
+        walletHandle.isAcceptableOrUnknown(
+          data['wallet_handle']!,
+          _walletHandleMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -5028,6 +5049,10 @@ class $PendingCapturesTable extends PendingCaptures
         DriftSqlType.dateTime,
         data['${effectivePrefix}skipped_at'],
       ),
+      walletHandle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wallet_handle'],
+      ),
     );
   }
 
@@ -5073,6 +5098,11 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
 
   /// When it was skipped. A skipped one stays out of sight for a while.
   final DateTime? skippedAt;
+
+  /// For a bank's message naming a wallet's UPI ID ("…@pzw"): a fingerprint
+  /// of that ID, never the ID. When the wallet's own message turns up, the
+  /// move is found and the wallet remembered as yours.
+  final String? walletHandle;
   const PendingCapture({
     required this.dedupeKey,
     required this.app,
@@ -5089,6 +5119,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     this.lookalike,
     required this.capturedAt,
     this.skippedAt,
+    this.walletHandle,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5124,6 +5155,9 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     if (!nullToAbsent || skippedAt != null) {
       map['skipped_at'] = Variable<DateTime>(skippedAt);
     }
+    if (!nullToAbsent || walletHandle != null) {
+      map['wallet_handle'] = Variable<String>(walletHandle);
+    }
     return map;
   }
 
@@ -5156,6 +5190,9 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
       skippedAt: skippedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(skippedAt),
+      walletHandle: walletHandle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(walletHandle),
     );
   }
 
@@ -5184,6 +5221,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
       lookalike: serializer.fromJson<String?>(json['lookalike']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
       skippedAt: serializer.fromJson<DateTime?>(json['skippedAt']),
+      walletHandle: serializer.fromJson<String?>(json['walletHandle']),
     );
   }
   @override
@@ -5207,6 +5245,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
       'lookalike': serializer.toJson<String?>(lookalike),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
       'skippedAt': serializer.toJson<DateTime?>(skippedAt),
+      'walletHandle': serializer.toJson<String?>(walletHandle),
     };
   }
 
@@ -5226,6 +5265,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     Value<String?> lookalike = const Value.absent(),
     DateTime? capturedAt,
     Value<DateTime?> skippedAt = const Value.absent(),
+    Value<String?> walletHandle = const Value.absent(),
   }) => PendingCapture(
     dedupeKey: dedupeKey ?? this.dedupeKey,
     app: app ?? this.app,
@@ -5244,6 +5284,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     lookalike: lookalike.present ? lookalike.value : this.lookalike,
     capturedAt: capturedAt ?? this.capturedAt,
     skippedAt: skippedAt.present ? skippedAt.value : this.skippedAt,
+    walletHandle: walletHandle.present ? walletHandle.value : this.walletHandle,
   );
   PendingCapture copyWithCompanion(PendingCapturesCompanion data) {
     return PendingCapture(
@@ -5274,6 +5315,9 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
           ? data.capturedAt.value
           : this.capturedAt,
       skippedAt: data.skippedAt.present ? data.skippedAt.value : this.skippedAt,
+      walletHandle: data.walletHandle.present
+          ? data.walletHandle.value
+          : this.walletHandle,
     );
   }
 
@@ -5294,7 +5338,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
           ..write('previewSpans: $previewSpans, ')
           ..write('lookalike: $lookalike, ')
           ..write('capturedAt: $capturedAt, ')
-          ..write('skippedAt: $skippedAt')
+          ..write('skippedAt: $skippedAt, ')
+          ..write('walletHandle: $walletHandle')
           ..write(')'))
         .toString();
   }
@@ -5316,6 +5361,7 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
     lookalike,
     capturedAt,
     skippedAt,
+    walletHandle,
   );
   @override
   bool operator ==(Object other) =>
@@ -5335,7 +5381,8 @@ class PendingCapture extends DataClass implements Insertable<PendingCapture> {
           other.previewSpans == this.previewSpans &&
           other.lookalike == this.lookalike &&
           other.capturedAt == this.capturedAt &&
-          other.skippedAt == this.skippedAt);
+          other.skippedAt == this.skippedAt &&
+          other.walletHandle == this.walletHandle);
 }
 
 class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
@@ -5354,6 +5401,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
   final Value<String?> lookalike;
   final Value<DateTime> capturedAt;
   final Value<DateTime?> skippedAt;
+  final Value<String?> walletHandle;
   final Value<int> rowid;
   const PendingCapturesCompanion({
     this.dedupeKey = const Value.absent(),
@@ -5371,6 +5419,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     this.lookalike = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.skippedAt = const Value.absent(),
+    this.walletHandle = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PendingCapturesCompanion.insert({
@@ -5389,6 +5438,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     this.lookalike = const Value.absent(),
     required DateTime capturedAt,
     this.skippedAt = const Value.absent(),
+    this.walletHandle = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : dedupeKey = Value(dedupeKey),
        app = Value(app),
@@ -5415,6 +5465,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     Expression<String>? lookalike,
     Expression<DateTime>? capturedAt,
     Expression<DateTime>? skippedAt,
+    Expression<String>? walletHandle,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5434,6 +5485,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
       if (lookalike != null) 'lookalike': lookalike,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (skippedAt != null) 'skipped_at': skippedAt,
+      if (walletHandle != null) 'wallet_handle': walletHandle,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5454,6 +5506,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     Value<String?>? lookalike,
     Value<DateTime>? capturedAt,
     Value<DateTime?>? skippedAt,
+    Value<String?>? walletHandle,
     Value<int>? rowid,
   }) {
     return PendingCapturesCompanion(
@@ -5472,6 +5525,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
       lookalike: lookalike ?? this.lookalike,
       capturedAt: capturedAt ?? this.capturedAt,
       skippedAt: skippedAt ?? this.skippedAt,
+      walletHandle: walletHandle ?? this.walletHandle,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5528,6 +5582,9 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
     if (skippedAt.present) {
       map['skipped_at'] = Variable<DateTime>(skippedAt.value);
     }
+    if (walletHandle.present) {
+      map['wallet_handle'] = Variable<String>(walletHandle.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5552,6 +5609,7 @@ class PendingCapturesCompanion extends UpdateCompanion<PendingCapture> {
           ..write('lookalike: $lookalike, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('skippedAt: $skippedAt, ')
+          ..write('walletHandle: $walletHandle, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6041,6 +6099,606 @@ class UpcomingPaymentsCompanion extends UpdateCompanion<UpcomingPayment> {
   }
 }
 
+class $OwnMovesTable extends OwnMoves with TableInfo<$OwnMovesTable, OwnMove> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OwnMovesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _messageKeyMeta = const VerificationMeta(
+    'messageKey',
+  );
+  @override
+  late final GeneratedColumn<String> messageKey = GeneratedColumn<String>(
+    'message_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<MoveSide, String> side =
+      GeneratedColumn<String>(
+        'side',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<MoveSide>($OwnMovesTable.$converterside);
+  static const VerificationMeta _amountPaiseMeta = const VerificationMeta(
+    'amountPaise',
+  );
+  @override
+  late final GeneratedColumn<int> amountPaise = GeneratedColumn<int>(
+    'amount_paise',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<TxnType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<TxnType>($OwnMovesTable.$convertertype);
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _walletHandleMeta = const VerificationMeta(
+    'walletHandle',
+  );
+  @override
+  late final GeneratedColumn<String> walletHandle = GeneratedColumn<String>(
+    'wallet_handle',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pairedWithMeta = const VerificationMeta(
+    'pairedWith',
+  );
+  @override
+  late final GeneratedColumn<String> pairedWith = GeneratedColumn<String>(
+    'paired_with',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _removedEntryMeta = const VerificationMeta(
+    'removedEntry',
+  );
+  @override
+  late final GeneratedColumn<String> removedEntry = GeneratedColumn<String>(
+    'removed_entry',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<DateTime> readAt = GeneratedColumn<DateTime>(
+    'read_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    messageKey,
+    side,
+    amountPaise,
+    type,
+    occurredAt,
+    walletHandle,
+    pairedWith,
+    removedEntry,
+    readAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'own_moves';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OwnMove> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('message_key')) {
+      context.handle(
+        _messageKeyMeta,
+        messageKey.isAcceptableOrUnknown(data['message_key']!, _messageKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_messageKeyMeta);
+    }
+    if (data.containsKey('amount_paise')) {
+      context.handle(
+        _amountPaiseMeta,
+        amountPaise.isAcceptableOrUnknown(
+          data['amount_paise']!,
+          _amountPaiseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaiseMeta);
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('wallet_handle')) {
+      context.handle(
+        _walletHandleMeta,
+        walletHandle.isAcceptableOrUnknown(
+          data['wallet_handle']!,
+          _walletHandleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('paired_with')) {
+      context.handle(
+        _pairedWithMeta,
+        pairedWith.isAcceptableOrUnknown(data['paired_with']!, _pairedWithMeta),
+      );
+    }
+    if (data.containsKey('removed_entry')) {
+      context.handle(
+        _removedEntryMeta,
+        removedEntry.isAcceptableOrUnknown(
+          data['removed_entry']!,
+          _removedEntryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(
+        _readAtMeta,
+        readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_readAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {messageKey};
+  @override
+  OwnMove map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OwnMove(
+      messageKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message_key'],
+      )!,
+      side: $OwnMovesTable.$converterside.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}side'],
+        )!,
+      ),
+      amountPaise: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_paise'],
+      )!,
+      type: $OwnMovesTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      )!,
+      walletHandle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wallet_handle'],
+      ),
+      pairedWith: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paired_with'],
+      ),
+      removedEntry: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}removed_entry'],
+      ),
+      readAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}read_at'],
+      )!,
+    );
+  }
+
+  @override
+  $OwnMovesTable createAlias(String alias) {
+    return $OwnMovesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<MoveSide, String, String> $converterside =
+      const EnumNameConverter<MoveSide>(MoveSide.values);
+  static JsonTypeConverter2<TxnType, String, String> $convertertype =
+      const EnumNameConverter<TxnType>(TxnType.values);
+}
+
+class OwnMove extends DataClass implements Insertable<OwnMove> {
+  /// The message's fingerprint, as its entry would keep it.
+  final String messageKey;
+  final MoveSide side;
+  final int amountPaise;
+
+  /// Which way the money went for the account this message is about.
+  final TxnType type;
+  final DateTime occurredAt;
+
+  /// A fingerprint of the wallet's UPI ID, for the bank's side.
+  final String? walletHandle;
+
+  /// The other half's fingerprint, once found.
+  final String? pairedWith;
+
+  /// An entry taken out because it turned out to be this move.
+  final String? removedEntry;
+  final DateTime readAt;
+  const OwnMove({
+    required this.messageKey,
+    required this.side,
+    required this.amountPaise,
+    required this.type,
+    required this.occurredAt,
+    this.walletHandle,
+    this.pairedWith,
+    this.removedEntry,
+    required this.readAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['message_key'] = Variable<String>(messageKey);
+    {
+      map['side'] = Variable<String>($OwnMovesTable.$converterside.toSql(side));
+    }
+    map['amount_paise'] = Variable<int>(amountPaise);
+    {
+      map['type'] = Variable<String>($OwnMovesTable.$convertertype.toSql(type));
+    }
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    if (!nullToAbsent || walletHandle != null) {
+      map['wallet_handle'] = Variable<String>(walletHandle);
+    }
+    if (!nullToAbsent || pairedWith != null) {
+      map['paired_with'] = Variable<String>(pairedWith);
+    }
+    if (!nullToAbsent || removedEntry != null) {
+      map['removed_entry'] = Variable<String>(removedEntry);
+    }
+    map['read_at'] = Variable<DateTime>(readAt);
+    return map;
+  }
+
+  OwnMovesCompanion toCompanion(bool nullToAbsent) {
+    return OwnMovesCompanion(
+      messageKey: Value(messageKey),
+      side: Value(side),
+      amountPaise: Value(amountPaise),
+      type: Value(type),
+      occurredAt: Value(occurredAt),
+      walletHandle: walletHandle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(walletHandle),
+      pairedWith: pairedWith == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pairedWith),
+      removedEntry: removedEntry == null && nullToAbsent
+          ? const Value.absent()
+          : Value(removedEntry),
+      readAt: Value(readAt),
+    );
+  }
+
+  factory OwnMove.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OwnMove(
+      messageKey: serializer.fromJson<String>(json['messageKey']),
+      side: $OwnMovesTable.$converterside.fromJson(
+        serializer.fromJson<String>(json['side']),
+      ),
+      amountPaise: serializer.fromJson<int>(json['amountPaise']),
+      type: $OwnMovesTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      walletHandle: serializer.fromJson<String?>(json['walletHandle']),
+      pairedWith: serializer.fromJson<String?>(json['pairedWith']),
+      removedEntry: serializer.fromJson<String?>(json['removedEntry']),
+      readAt: serializer.fromJson<DateTime>(json['readAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'messageKey': serializer.toJson<String>(messageKey),
+      'side': serializer.toJson<String>(
+        $OwnMovesTable.$converterside.toJson(side),
+      ),
+      'amountPaise': serializer.toJson<int>(amountPaise),
+      'type': serializer.toJson<String>(
+        $OwnMovesTable.$convertertype.toJson(type),
+      ),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'walletHandle': serializer.toJson<String?>(walletHandle),
+      'pairedWith': serializer.toJson<String?>(pairedWith),
+      'removedEntry': serializer.toJson<String?>(removedEntry),
+      'readAt': serializer.toJson<DateTime>(readAt),
+    };
+  }
+
+  OwnMove copyWith({
+    String? messageKey,
+    MoveSide? side,
+    int? amountPaise,
+    TxnType? type,
+    DateTime? occurredAt,
+    Value<String?> walletHandle = const Value.absent(),
+    Value<String?> pairedWith = const Value.absent(),
+    Value<String?> removedEntry = const Value.absent(),
+    DateTime? readAt,
+  }) => OwnMove(
+    messageKey: messageKey ?? this.messageKey,
+    side: side ?? this.side,
+    amountPaise: amountPaise ?? this.amountPaise,
+    type: type ?? this.type,
+    occurredAt: occurredAt ?? this.occurredAt,
+    walletHandle: walletHandle.present ? walletHandle.value : this.walletHandle,
+    pairedWith: pairedWith.present ? pairedWith.value : this.pairedWith,
+    removedEntry: removedEntry.present ? removedEntry.value : this.removedEntry,
+    readAt: readAt ?? this.readAt,
+  );
+  OwnMove copyWithCompanion(OwnMovesCompanion data) {
+    return OwnMove(
+      messageKey: data.messageKey.present
+          ? data.messageKey.value
+          : this.messageKey,
+      side: data.side.present ? data.side.value : this.side,
+      amountPaise: data.amountPaise.present
+          ? data.amountPaise.value
+          : this.amountPaise,
+      type: data.type.present ? data.type.value : this.type,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      walletHandle: data.walletHandle.present
+          ? data.walletHandle.value
+          : this.walletHandle,
+      pairedWith: data.pairedWith.present
+          ? data.pairedWith.value
+          : this.pairedWith,
+      removedEntry: data.removedEntry.present
+          ? data.removedEntry.value
+          : this.removedEntry,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnMove(')
+          ..write('messageKey: $messageKey, ')
+          ..write('side: $side, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('type: $type, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('walletHandle: $walletHandle, ')
+          ..write('pairedWith: $pairedWith, ')
+          ..write('removedEntry: $removedEntry, ')
+          ..write('readAt: $readAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    messageKey,
+    side,
+    amountPaise,
+    type,
+    occurredAt,
+    walletHandle,
+    pairedWith,
+    removedEntry,
+    readAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OwnMove &&
+          other.messageKey == this.messageKey &&
+          other.side == this.side &&
+          other.amountPaise == this.amountPaise &&
+          other.type == this.type &&
+          other.occurredAt == this.occurredAt &&
+          other.walletHandle == this.walletHandle &&
+          other.pairedWith == this.pairedWith &&
+          other.removedEntry == this.removedEntry &&
+          other.readAt == this.readAt);
+}
+
+class OwnMovesCompanion extends UpdateCompanion<OwnMove> {
+  final Value<String> messageKey;
+  final Value<MoveSide> side;
+  final Value<int> amountPaise;
+  final Value<TxnType> type;
+  final Value<DateTime> occurredAt;
+  final Value<String?> walletHandle;
+  final Value<String?> pairedWith;
+  final Value<String?> removedEntry;
+  final Value<DateTime> readAt;
+  final Value<int> rowid;
+  const OwnMovesCompanion({
+    this.messageKey = const Value.absent(),
+    this.side = const Value.absent(),
+    this.amountPaise = const Value.absent(),
+    this.type = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.walletHandle = const Value.absent(),
+    this.pairedWith = const Value.absent(),
+    this.removedEntry = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OwnMovesCompanion.insert({
+    required String messageKey,
+    required MoveSide side,
+    required int amountPaise,
+    required TxnType type,
+    required DateTime occurredAt,
+    this.walletHandle = const Value.absent(),
+    this.pairedWith = const Value.absent(),
+    this.removedEntry = const Value.absent(),
+    required DateTime readAt,
+    this.rowid = const Value.absent(),
+  }) : messageKey = Value(messageKey),
+       side = Value(side),
+       amountPaise = Value(amountPaise),
+       type = Value(type),
+       occurredAt = Value(occurredAt),
+       readAt = Value(readAt);
+  static Insertable<OwnMove> custom({
+    Expression<String>? messageKey,
+    Expression<String>? side,
+    Expression<int>? amountPaise,
+    Expression<String>? type,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? walletHandle,
+    Expression<String>? pairedWith,
+    Expression<String>? removedEntry,
+    Expression<DateTime>? readAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (messageKey != null) 'message_key': messageKey,
+      if (side != null) 'side': side,
+      if (amountPaise != null) 'amount_paise': amountPaise,
+      if (type != null) 'type': type,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (walletHandle != null) 'wallet_handle': walletHandle,
+      if (pairedWith != null) 'paired_with': pairedWith,
+      if (removedEntry != null) 'removed_entry': removedEntry,
+      if (readAt != null) 'read_at': readAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OwnMovesCompanion copyWith({
+    Value<String>? messageKey,
+    Value<MoveSide>? side,
+    Value<int>? amountPaise,
+    Value<TxnType>? type,
+    Value<DateTime>? occurredAt,
+    Value<String?>? walletHandle,
+    Value<String?>? pairedWith,
+    Value<String?>? removedEntry,
+    Value<DateTime>? readAt,
+    Value<int>? rowid,
+  }) {
+    return OwnMovesCompanion(
+      messageKey: messageKey ?? this.messageKey,
+      side: side ?? this.side,
+      amountPaise: amountPaise ?? this.amountPaise,
+      type: type ?? this.type,
+      occurredAt: occurredAt ?? this.occurredAt,
+      walletHandle: walletHandle ?? this.walletHandle,
+      pairedWith: pairedWith ?? this.pairedWith,
+      removedEntry: removedEntry ?? this.removedEntry,
+      readAt: readAt ?? this.readAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (messageKey.present) {
+      map['message_key'] = Variable<String>(messageKey.value);
+    }
+    if (side.present) {
+      map['side'] = Variable<String>(
+        $OwnMovesTable.$converterside.toSql(side.value),
+      );
+    }
+    if (amountPaise.present) {
+      map['amount_paise'] = Variable<int>(amountPaise.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $OwnMovesTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (walletHandle.present) {
+      map['wallet_handle'] = Variable<String>(walletHandle.value);
+    }
+    if (pairedWith.present) {
+      map['paired_with'] = Variable<String>(pairedWith.value);
+    }
+    if (removedEntry.present) {
+      map['removed_entry'] = Variable<String>(removedEntry.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<DateTime>(readAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OwnMovesCompanion(')
+          ..write('messageKey: $messageKey, ')
+          ..write('side: $side, ')
+          ..write('amountPaise: $amountPaise, ')
+          ..write('type: $type, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('walletHandle: $walletHandle, ')
+          ..write('pairedWith: $pairedWith, ')
+          ..write('removedEntry: $removedEntry, ')
+          ..write('readAt: $readAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6084,6 +6742,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UpcomingPaymentsTable upcomingPayments = $UpcomingPaymentsTable(
     this,
   );
+  late final $OwnMovesTable ownMoves = $OwnMovesTable(this);
   late final Index txnsOccurredAt = Index(
     'txns_occurred_at',
     'CREATE INDEX txns_occurred_at ON txns (occurred_at)',
@@ -6131,6 +6790,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syncCursors,
     pendingCaptures,
     upcomingPayments,
+    ownMoves,
     txnsOccurredAt,
     txnsDedupeKey,
     tagRulesKindRuleKey,
@@ -8620,6 +9280,7 @@ typedef $$PendingCapturesTableCreateCompanionBuilder =
       Value<String?> lookalike,
       required DateTime capturedAt,
       Value<DateTime?> skippedAt,
+      Value<String?> walletHandle,
       Value<int> rowid,
     });
 typedef $$PendingCapturesTableUpdateCompanionBuilder =
@@ -8639,6 +9300,7 @@ typedef $$PendingCapturesTableUpdateCompanionBuilder =
       Value<String?> lookalike,
       Value<DateTime> capturedAt,
       Value<DateTime?> skippedAt,
+      Value<String?> walletHandle,
       Value<int> rowid,
     });
 
@@ -8726,6 +9388,11 @@ class $$PendingCapturesTableFilterComposer
     column: $table.skippedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$PendingCapturesTableOrderingComposer
@@ -8811,6 +9478,11 @@ class $$PendingCapturesTableOrderingComposer
     column: $table.skippedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PendingCapturesTableAnnotationComposer
@@ -8878,6 +9550,11 @@ class $$PendingCapturesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get skippedAt =>
       $composableBuilder(column: $table.skippedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => column,
+  );
 }
 
 class $$PendingCapturesTableTableManager
@@ -8932,6 +9609,7 @@ class $$PendingCapturesTableTableManager
                 Value<String?> lookalike = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<DateTime?> skippedAt = const Value.absent(),
+                Value<String?> walletHandle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PendingCapturesCompanion(
                 dedupeKey: dedupeKey,
@@ -8949,6 +9627,7 @@ class $$PendingCapturesTableTableManager
                 lookalike: lookalike,
                 capturedAt: capturedAt,
                 skippedAt: skippedAt,
+                walletHandle: walletHandle,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8968,6 +9647,7 @@ class $$PendingCapturesTableTableManager
                 Value<String?> lookalike = const Value.absent(),
                 required DateTime capturedAt,
                 Value<DateTime?> skippedAt = const Value.absent(),
+                Value<String?> walletHandle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PendingCapturesCompanion.insert(
                 dedupeKey: dedupeKey,
@@ -8985,6 +9665,7 @@ class $$PendingCapturesTableTableManager
                 lookalike: lookalike,
                 capturedAt: capturedAt,
                 skippedAt: skippedAt,
+                walletHandle: walletHandle,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -9280,6 +9961,297 @@ typedef $$UpcomingPaymentsTableProcessedTableManager =
       UpcomingPayment,
       PrefetchHooks Function()
     >;
+typedef $$OwnMovesTableCreateCompanionBuilder = OwnMovesCompanion Function({
+  required String messageKey,
+  required MoveSide side,
+  required int amountPaise,
+  required TxnType type,
+  required DateTime occurredAt,
+  Value<String?> walletHandle,
+  Value<String?> pairedWith,
+  Value<String?> removedEntry,
+  required DateTime readAt,
+  Value<int> rowid,
+});
+typedef $$OwnMovesTableUpdateCompanionBuilder = OwnMovesCompanion Function({
+  Value<String> messageKey,
+  Value<MoveSide> side,
+  Value<int> amountPaise,
+  Value<TxnType> type,
+  Value<DateTime> occurredAt,
+  Value<String?> walletHandle,
+  Value<String?> pairedWith,
+  Value<String?> removedEntry,
+  Value<DateTime> readAt,
+  Value<int> rowid,
+});
+
+class $$OwnMovesTableFilterComposer
+    extends Composer<_$AppDatabase, $OwnMovesTable> {
+  $$OwnMovesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get messageKey => $composableBuilder(
+    column: $table.messageKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MoveSide, MoveSide, String> get side =>
+      $composableBuilder(
+        column: $table.side,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<TxnType, TxnType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pairedWith => $composableBuilder(
+    column: $table.pairedWith,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get removedEntry => $composableBuilder(
+    column: $table.removedEntry,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OwnMovesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OwnMovesTable> {
+  $$OwnMovesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get messageKey => $composableBuilder(
+    column: $table.messageKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get side => $composableBuilder(
+    column: $table.side,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pairedWith => $composableBuilder(
+    column: $table.pairedWith,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get removedEntry => $composableBuilder(
+    column: $table.removedEntry,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OwnMovesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OwnMovesTable> {
+  $$OwnMovesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get messageKey => $composableBuilder(
+    column: $table.messageKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<MoveSide, String> get side =>
+      $composableBuilder(column: $table.side, builder: (column) => column);
+
+  GeneratedColumn<int> get amountPaise => $composableBuilder(
+    column: $table.amountPaise,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<TxnType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get walletHandle => $composableBuilder(
+    column: $table.walletHandle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get pairedWith => $composableBuilder(
+    column: $table.pairedWith,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get removedEntry => $composableBuilder(
+    column: $table.removedEntry,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get readAt =>
+      $composableBuilder(column: $table.readAt, builder: (column) => column);
+}
+
+class $$OwnMovesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OwnMovesTable,
+          OwnMove,
+          $$OwnMovesTableFilterComposer,
+          $$OwnMovesTableOrderingComposer,
+          $$OwnMovesTableAnnotationComposer,
+          $$OwnMovesTableCreateCompanionBuilder,
+          $$OwnMovesTableUpdateCompanionBuilder,
+          (OwnMove, BaseReferences<_$AppDatabase, $OwnMovesTable, OwnMove>),
+          OwnMove,
+          PrefetchHooks Function()
+        > {
+  $$OwnMovesTableTableManager(_$AppDatabase db, $OwnMovesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OwnMovesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OwnMovesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OwnMovesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> messageKey = const Value.absent(),
+                Value<MoveSide> side = const Value.absent(),
+                Value<int> amountPaise = const Value.absent(),
+                Value<TxnType> type = const Value.absent(),
+                Value<DateTime> occurredAt = const Value.absent(),
+                Value<String?> walletHandle = const Value.absent(),
+                Value<String?> pairedWith = const Value.absent(),
+                Value<String?> removedEntry = const Value.absent(),
+                Value<DateTime> readAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OwnMovesCompanion(
+                messageKey: messageKey,
+                side: side,
+                amountPaise: amountPaise,
+                type: type,
+                occurredAt: occurredAt,
+                walletHandle: walletHandle,
+                pairedWith: pairedWith,
+                removedEntry: removedEntry,
+                readAt: readAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String messageKey,
+                required MoveSide side,
+                required int amountPaise,
+                required TxnType type,
+                required DateTime occurredAt,
+                Value<String?> walletHandle = const Value.absent(),
+                Value<String?> pairedWith = const Value.absent(),
+                Value<String?> removedEntry = const Value.absent(),
+                required DateTime readAt,
+                Value<int> rowid = const Value.absent(),
+              }) => OwnMovesCompanion.insert(
+                messageKey: messageKey,
+                side: side,
+                amountPaise: amountPaise,
+                type: type,
+                occurredAt: occurredAt,
+                walletHandle: walletHandle,
+                pairedWith: pairedWith,
+                removedEntry: removedEntry,
+                readAt: readAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OwnMovesTable, OwnMove>(table),
+                  BaseReferences<_$AppDatabase, $OwnMovesTable, OwnMove>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OwnMovesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OwnMovesTable,
+      OwnMove,
+      $$OwnMovesTableFilterComposer,
+      $$OwnMovesTableOrderingComposer,
+      $$OwnMovesTableAnnotationComposer,
+      $$OwnMovesTableCreateCompanionBuilder,
+      $$OwnMovesTableUpdateCompanionBuilder,
+      (OwnMove, BaseReferences<_$AppDatabase, $OwnMovesTable, OwnMove>),
+      OwnMove,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9307,4 +10279,6 @@ class $AppDatabaseManager {
       $$PendingCapturesTableTableManager(_db, _db.pendingCaptures);
   $$UpcomingPaymentsTableTableManager get upcomingPayments =>
       $$UpcomingPaymentsTableTableManager(_db, _db.upcomingPayments);
+  $$OwnMovesTableTableManager get ownMoves =>
+      $$OwnMovesTableTableManager(_db, _db.ownMoves);
 }

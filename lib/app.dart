@@ -110,6 +110,16 @@ class _PennyAppState extends ConsumerState<PennyApp> {
     ];
     final waiting = reads.where((r) => r.outcome == CaptureOutcome.waiting);
     final unread = reads.where((r) => r.outcome == CaptureOutcome.unread);
+    final moved = [
+      for (final read in reads)
+        if (read.outcome == CaptureOutcome.moved) read,
+    ];
+    if (saved.isEmpty && waiting.isEmpty && moved.isNotEmpty) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(movedNotice(moved).text)));
+      return;
+    }
     if (saved.isEmpty && waiting.isEmpty) {
       if (unread.isEmpty) return;
       messenger

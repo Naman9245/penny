@@ -22,6 +22,7 @@ part 'app_database.g.dart';
     SyncCursors,
     PendingCaptures,
     UpcomingPayments,
+    OwnMoves,
   ],
   // Edits here always move a row's stamp forward.
   include: {'stamps.drift'},
@@ -52,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
   // To change the schema: bump this, add a step to [migration], then run
   // `dart run drift_dev make-migrations` so the new step gets a test.
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -130,6 +131,15 @@ class AppDatabase extends _$AppDatabase {
       // v10: payments a message said are coming, for Home's Coming up card.
       from9To10: (m, schema) async {
         await m.createTable(schema.upcomingPayments);
+      },
+      // v11: moves between your own accounts, like PayZapp and the bank, so
+      // neither half counts, and the wallet's UPI ID behind a read.
+      from10To11: (m, schema) async {
+        await m.createTable(schema.ownMoves);
+        await m.addColumn(
+          schema.pendingCaptures,
+          schema.pendingCaptures.walletHandle,
+        );
       },
     ),
   );

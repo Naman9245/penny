@@ -20,6 +20,7 @@ import 'package:penny/models/your_rules.dart';
 import 'package:penny/services/merchant_categories.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/services/notification_inbox.dart';
+import 'package:penny/services/own_moves.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:penny/services/sms_ai.dart';
 import 'package:penny/services/sms_parser.dart';
@@ -708,8 +709,10 @@ Future<void> _cancelEarlierBack(
 }
 
 /// What Penny did with a notification she read. [unread]: neither her rules
-/// nor, for now, her AI could read it; it's read again later.
-enum CaptureOutcome { waiting, saved, letGo, unread }
+/// nor, for now, her AI could read it; it's read again later. [moved]: it
+/// was half of a move between your own accounts, and an entry saved from
+/// the other half was taken out.
+enum CaptureOutcome { waiting, saved, letGo, unread, moved }
 
 /// One notification Penny read, and what she did with it. [what] says what
 /// it was, like "−₹250 · Swiggy", or why it was let go, like "an OTP".
@@ -822,12 +825,71 @@ Future<List<CaptureRead>> takeCaptures({
           letGo = 'coming up on ${DateFormat('d MMM').format(coming.dueOn)}';
         }
       }
+      // Money into a wallet of yours, or out of it to your bank: the other
+      // half, the bank's or the wallet's, may already be an entry.
+      if (payment == null && letGo == _letGo[IgnoreReason.ownTransfer]) {
+        final text = _textOf(capture);
+        if (moveHalfOf(capture.app, text, parseSms(text, now: capture.at))
+            case final half?) {
+          final move = await takeMove(
+            db,
+            txns,
+            half: half,
+            key: _letGoKey(capture),
+            at: capture.at,
+            now: now,
+            known: true,
+          );
+          if (move != null) {
+            reads.add(
+              read(
+                move.removedEntry != null
+                    ? CaptureOutcome.moved
+                    : CaptureOutcome.letGo,
+                move.what,
+                entryId: move.removedEntry,
+              ),
+            );
+            continue;
+          }
+        }
+      }
       if (payment == null) {
         reads.add(read(CaptureOutcome.letGo, letGo ?? 'no payment in it'));
         continue;
       }
       if (await captures.isKnown(payment.dedupeKey)) continue;
+      if (await isOwnMove(db, payment.dedupeKey)) continue;
       final at = occurredAtOf(payment, capture.at);
+      // Half of a move between your own accounts, like PayZapp's "deducted
+      // from PayZapp Wallet" and the bank's "credited from VPA …@pzw": with
+      // its other half read, neither is money in or out.
+      final half = moveHalfOf(capture.app, _textOf(capture), payment);
+      if (half != null) {
+        if (await takeMove(
+              db,
+              txns,
+              half: half,
+              key: payment.dedupeKey,
+              at: at,
+              now: now,
+            )
+            case final move?) {
+          reads.add(
+            read(
+              move.removedEntry != null
+                  ? CaptureOutcome.moved
+                  : CaptureOutcome.letGo,
+              move.what,
+              key: payment.dedupeKey,
+              at: at,
+              sms: payment,
+              entryId: move.removedEntry,
+            ),
+          );
+          continue;
+        }
+      }
       // Money back for a payment cancels it: it goes in that payment's
       // category, under its name.
       var back = '';
@@ -899,6 +961,7 @@ Future<List<CaptureRead>> takeCaptures({
           at: at,
           entryId: entryId,
           sender: sender,
+          walletHandle: half?.walletHandle,
         );
         reads.add(
           read(
@@ -919,6 +982,7 @@ Future<List<CaptureRead>> takeCaptures({
         at: at,
         sender: sender,
         lookalike: await lookalikeOf(db, payment, at),
+        walletHandle: half?.walletHandle,
       );
       reads.add(
         read(
@@ -964,6 +1028,13 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
         read,
   ];
   final unread = reads.where((r) => r.outcome == CaptureOutcome.unread).length;
+  final moved = [
+    for (final read in reads)
+      if (read.outcome == CaptureOutcome.moved) read,
+  ];
+  if (payments.isEmpty && unread == 0 && moved.isNotEmpty) {
+    return movedNotice(moved);
+  }
   if (payments.isEmpty) {
     if (unread == 0) return null;
     return (
@@ -1002,12 +1073,32 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
     text: [
       if (held > 0) '$held waiting on Home',
       if (saved.isNotEmpty) '${saved.length} saved',
+      if (moved.isNotEmpty) '${moved.length} your own money moving, left out',
       if (unread > 0) "$unread she couldn't read yet",
     ].join(', '),
     lines: [
       for (final read in payments.take(5))
         [read.what, ?_categoryOf(read)].join(' · '),
     ],
+  );
+}
+
+/// What Penny says when money moved between your own accounts and she
+/// took out an entry saved from one half of it.
+PennyNotice movedNotice(List<CaptureRead> moved) {
+  final amounts = {
+    for (final read in moved)
+      if (read.sms case final sms?) sms.amountPaise,
+  };
+  final how = amounts.length == 1
+      ? '${formatPaise(amounts.single)} went between your wallet and your bank'
+      : 'Money went between your wallet and your bank';
+  return (
+    title: 'Your own money moved',
+    text:
+        "$how, so Penny took out what she'd saved for it. It isn't money in "
+        'or out.',
+    lines: const [],
   );
 }
 

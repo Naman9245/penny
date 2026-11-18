@@ -271,8 +271,43 @@ class PendingCaptures extends Table {
   /// When it was skipped. A skipped one stays out of sight for a while.
   DateTimeColumn get skippedAt => dateTime().nullable()();
 
+  /// For a bank's message naming a wallet's UPI ID ("…@pzw"): a fingerprint
+  /// of that ID, never the ID. When the wallet's own message turns up, the
+  /// move is found and the wallet remembered as yours.
+  TextColumn get walletHandle => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {dedupeKey};
+}
+
+/// Messages that were half of a move between your own accounts, like
+/// PayZapp's "Rs.2000 deducted from PayZapp Wallet" and the bank's "credited
+/// from VPA …@pzw" a minute later: neither is money in or out. Kept so the
+/// other half is known when it comes, and so a wallet seen in one is
+/// remembered as yours. Never synced: they stay on this phone.
+@DataClassName('OwnMove')
+class OwnMoves extends Table {
+  /// The message's fingerprint, as its entry would keep it.
+  TextColumn get messageKey => text()();
+  TextColumn get side => textEnum<MoveSide>()();
+  IntColumn get amountPaise => integer()();
+
+  /// Which way the money went for the account this message is about.
+  TextColumn get type => textEnum<TxnType>()();
+  DateTimeColumn get occurredAt => dateTime()();
+
+  /// A fingerprint of the wallet's UPI ID, for the bank's side.
+  TextColumn get walletHandle => text().nullable()();
+
+  /// The other half's fingerprint, once found.
+  TextColumn get pairedWith => text().nullable()();
+
+  /// An entry taken out because it turned out to be this move.
+  TextColumn get removedEntry => text().nullable()();
+  DateTimeColumn get readAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {messageKey};
 }
 
 /// Payments a message said are coming, like an autopay or an EMI, for

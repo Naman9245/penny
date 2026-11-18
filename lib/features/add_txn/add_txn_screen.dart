@@ -19,6 +19,7 @@ import 'package:penny/models/category.dart';
 import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/insight_math.dart';
 import 'package:penny/services/money_kinds.dart';
+import 'package:penny/services/own_moves.dart';
 import 'package:penny/services/quick_add.dart';
 import 'package:penny/services/sms_parser.dart';
 import 'package:penny/widgets/brutal_button.dart';
@@ -187,6 +188,35 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
         context,
         message: 'Deleted',
         onUndo: () => repo.restore(id),
+      );
+      context.pop();
+    } finally {
+      _busy = false;
+    }
+  }
+
+  /// Takes this entry out as money that moved between the user's own
+  /// accounts, with its other half when Penny read one, so the wallet is
+  /// known next time.
+  Future<void> _ownMoney() async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      final db = ref.read(appDatabaseProvider);
+      final repo = ref.read(txnRepositoryProvider);
+      final removed = await markOwnMove(
+        db,
+        repo,
+        widget.args.editing!.id,
+        now: DateTime.now(),
+      );
+      if (!mounted) return;
+      showUndoSnackBar(
+        context,
+        message: removed.length > 1
+            ? 'Took it out, and its other half: your own money moving'
+            : 'Took it out: your own money moving',
+        onUndo: () => putBackMove(db, repo, removed),
       );
       context.pop();
     } finally {
@@ -391,6 +421,18 @@ class _AddTxnViewState extends ConsumerState<AddTxnView>
                             autoPlay: false,
                           )
                           .shakeX(hz: 5, amount: 6),
+                      // One Penny read can be money that only moved between
+                      // the user's own accounts, like PayZapp and the bank.
+                      if (widget.args.editing case final txn?
+                          when txn.source == TxnSource.sms) ...[
+                        const SizedBox(height: 22),
+                        BrutalChip(
+                          key: const ValueKey('own-money'),
+                          label: 'This was my own money moving',
+                          icon: Icons.swap_horiz_rounded,
+                          onTap: _ownMoney,
+                        ),
+                      ],
                     ],
                   ),
                 ),

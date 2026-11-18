@@ -268,5 +268,11 @@
   {"bank": "HDFC", "case": "the bank paying your own wallet", "sms": "Rs.2,567.00 debited from A/c XX4821 to PayZapp Wallet on 15-11-26. UPI Ref 631900000004.",
    "ignored": "ownTransfer"},
   {"bank": "Paytm", "case": "cashback into the wallet is still money in", "sms": "Rs.25 cashback credited to your Paytm Wallet for your recharge.",
-   "expect": {"type": "credit", "paise": 2500, "payee": null, "date": null, "category": "refund"}}
+   "expect": {"type": "credit", "paise": 2500, "payee": null, "date": null, "category": "refund"}},
+  {"bank": "HDFC", "case": "PayZapp sending its money to the bank: half of an own move, paired in captures", "sms": "Rs.2000 Deducted\nFrom PayZapp Wallet\nOn 04-11-2026 23:25:47\nBal: Rs.575.88\nNot you? Report: https://1.hdfc.bank.in/HDFCBK/s/ab12cd34 or SMS BLOCKPZW to 5676712",
+   "expect": {"type": "debit", "paise": 200000, "payee": null, "date": "2026-11-04"}},
+  {"bank": "HDFC", "case": "the bank taking money in from a PayZapp UPI ID: the other half", "sms": "Credit Alert!\nRs.2000.00 credited to HDFC Bank A/c XX4821 on 04-11-26 from VPA *1234@pzw (UPI 175566436892)",
+   "expect": {"type": "credit", "paise": 200000, "payee": null, "date": "2026-11-04"}},
+  {"bank": "HDFC", "case": "a UPI mandate cancelled is no payment", "sms": "Update:\nRs. 139.00 UPI mandate to SPOTIFY INDIA PVT LTD has been cancelled from HDFC Bank A/c x4821.\nUMN:\nabcd1234ef56@okhdfcb",
+   "ignored": "unreadable"}
 ]

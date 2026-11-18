@@ -50,7 +50,15 @@ class CaptureRepository {
     required DateTime at,
     String? sender,
     String? lookalike,
-  }) => _keep(sms, app: app, at: at, sender: sender, lookalike: lookalike);
+    String? walletHandle,
+  }) => _keep(
+    sms,
+    app: app,
+    at: at,
+    sender: sender,
+    lookalike: lookalike,
+    walletHandle: walletHandle,
+  );
 
   /// Remembers that [sms] was saved straight away as [entryId], out of
   /// sight.
@@ -60,7 +68,15 @@ class CaptureRepository {
     required DateTime at,
     required String entryId,
     String? sender,
-  }) => _keep(sms, app: app, at: at, sender: sender, savedAs: entryId);
+    String? walletHandle,
+  }) => _keep(
+    sms,
+    app: app,
+    at: at,
+    sender: sender,
+    savedAs: entryId,
+    walletHandle: walletHandle,
+  );
 
   Future<void> _keep(
     SmsTxn sms, {
@@ -69,6 +85,7 @@ class CaptureRepository {
     String? sender,
     String? lookalike,
     String? savedAs,
+    String? walletHandle,
   }) {
     return _db
         .into(_rows)
@@ -92,6 +109,7 @@ class CaptureRepository {
             ]),
             lookalike: Value(lookalike),
             capturedAt: _clock(),
+            walletHandle: Value(walletHandle),
           ),
         );
   }
@@ -100,13 +118,14 @@ class CaptureRepository {
   /// no longer skipped or saved.
   Future<void> putBack(PendingCapture row) => _db.transaction(() async {
     await _db.into(_rows).insert(row, mode: InsertMode.insertOrIgnore);
-    await (_db.update(_rows)..where((p) => p.dedupeKey.equals(row.dedupeKey)))
-        .write(
-          const PendingCapturesCompanion(
-            skippedAt: Value(null),
-            savedAs: Value(null),
-          ),
-        );
+    await (_db.update(
+      _rows,
+    )..where((p) => p.dedupeKey.equals(row.dedupeKey))).write(
+      const PendingCapturesCompanion(
+        skippedAt: Value(null),
+        savedAs: Value(null),
+      ),
+    );
   });
 
   /// Hides it from Home. It stays known, so the same notification doesn't
@@ -129,7 +148,8 @@ class CaptureRepository {
       (_db.delete(_rows)..where(
             (p) =>
                 p.skippedAt.isSmallerThanValue(before) |
-                (p.savedAs.isNotNull() & p.capturedAt.isSmallerThanValue(before)),
+                (p.savedAs.isNotNull() &
+                    p.capturedAt.isSmallerThanValue(before)),
           ))
           .go();
 
