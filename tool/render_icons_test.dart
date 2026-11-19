@@ -9,8 +9,9 @@ import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 
-// Draws the app icon and the launch screen's Penny from her own drawing, so
-// they always match her. Run after changing how she looks:
+// Draws the app icon, the launch screen's Penny, and her faces for her
+// notifications from her own drawing, so they always match her. Run after
+// changing how she looks:
 //
 //   flutter test tool/render_icons_test.dart
 //   dart run flutter_launcher_icons
@@ -41,6 +42,19 @@ void main() {
     // the adaptive icon.
     await _render(tester, 'splash.png', 512, null, 1);
     await _render(tester, 'splash_android12.png', 960, null, 0.6);
+    // Her notifications: today's mood, on its colour, as the picture beside
+    // what she says. Android shows it round.
+    for (final mood in PennyMood.values) {
+      await _render(
+        tester,
+        'penny_${mood.name}.png',
+        256,
+        mood.color,
+        0.78,
+        mood: mood,
+        dir: 'android/app/src/main/res/drawable-nodpi',
+      );
+    }
   });
 }
 
@@ -50,8 +64,10 @@ Future<void> _render(
   String name,
   int size,
   Color? background,
-  double share,
-) async {
+  double share, {
+  PennyMood mood = PennyMood.happy,
+  String dir = _out,
+}) async {
   tester.view.physicalSize = Size.square(size.toDouble());
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -67,7 +83,7 @@ Future<void> _render(
             data: const MediaQueryData(disableAnimations: true),
             child: Directionality(
               textDirection: TextDirection.ltr,
-              child: PennyMascot(mood: PennyMood.happy, size: size * share),
+              child: PennyMascot(mood: mood, size: size * share),
             ),
           ),
         ),
@@ -79,7 +95,7 @@ Future<void> _render(
   await tester.runAsync(() async {
     final image = await boundary.toImage();
     final png = await image.toByteData(format: ui.ImageByteFormat.png);
-    File('$_out/$name')
+    File('$dir/$name')
       ..createSync(recursive: true)
       ..writeAsBytesSync(png!.buffer.asUint8List());
   });

@@ -49,6 +49,7 @@ Future<List<CaptureRead>> readWaiting({
   if (prefs.getBool(DemoMode.key) ?? false) return const [];
   final db = open('penny');
   final reads = <CaptureRead>[];
+  NoticeToday? today;
   try {
     final mode = CaptureModeSetting.of(prefs);
     do {
@@ -69,9 +70,12 @@ Future<List<CaptureRead>> readWaiting({
     // A message about an autopay may have changed when it goes out.
     final autopays = await AutopayRepository(db).all();
     await inbox.scheduleReminders(remindersFor(autopays, DateTime.now()));
+    today = await noticeTodayFor(db, DateTime.now());
   } finally {
     await db.close();
   }
-  if (noticeFor(reads) case final notice?) await inbox.notify(notice);
+  if (noticeFor(reads, today: today) case final notice?) {
+    await inbox.notify(notice);
+  }
   return reads;
 }

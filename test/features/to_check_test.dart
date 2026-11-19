@@ -239,6 +239,7 @@ void main() {
         'title': 'Penny read −₹250 · Swiggy',
         'text': "🍔 Food? It's waiting on Home: add it or skip it.",
         'lines': <String>[],
+        'mood': null,
       },
     ]);
 
@@ -275,7 +276,12 @@ void main() {
       final hidden = files.open('penny');
       final now = DateTime.now();
       await CaptureRepository(hidden).hold(
-        readCapture((app: 'sms', title: 'AX-HDFCBK', text: bankSwiggy, at: now))!,
+        readCapture((
+          app: 'sms',
+          title: 'AX-HDFCBK',
+          text: bankSwiggy,
+          at: now,
+        ))!,
         app: 'sms',
         at: now,
       );

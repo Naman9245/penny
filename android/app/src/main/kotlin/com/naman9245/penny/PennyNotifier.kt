@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.Icon
 import android.os.Build
 
 /**
@@ -29,8 +30,17 @@ object PennyNotifier {
             PackageManager.PERMISSION_GRANTED
     }
 
-    /** Shows [title] and [text], with [lines] below when there are several. */
-    fun notify(context: Context, title: String, text: String, lines: List<String>) {
+    /**
+     * Shows [title] and [text], with [lines] below when there are several,
+     * and Penny's face in today's [mood] beside them when there is one.
+     */
+    fun notify(
+        context: Context,
+        title: String,
+        text: String,
+        lines: List<String>,
+        mood: String? = null,
+    ) {
         if (!allowed(context)) return
         val manager = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -55,6 +65,7 @@ object PennyNotifier {
             .setContentText(text)
             .setContentIntent(openHome(context))
             .setAutoCancel(true)
+            .also { faceFor(mood)?.let { face -> it.setLargeIcon(Icon.createWithResource(context, face)) } }
             .setStyle(
                 if (lines.isEmpty()) {
                     Notification.BigTextStyle().bigText(text)
@@ -100,6 +111,16 @@ object PennyNotifier {
             .setContentIntent(openHome(context))
             .setAutoCancel(true)
         manager.notify(2000 + (id and 0xFFFFF), builder.build())
+    }
+
+    /** Penny's face in [mood], drawn by tool/render_icons_test.dart. */
+    private fun faceFor(mood: String?): Int? = when (mood) {
+        "happy" -> R.drawable.penny_happy
+        "neutral" -> R.drawable.penny_neutral
+        "worried" -> R.drawable.penny_worried
+        "sad" -> R.drawable.penny_sad
+        "celebrating" -> R.drawable.penny_celebrating
+        else -> null
     }
 
     /** Penny's Home, in the copy that's open if there is one. */

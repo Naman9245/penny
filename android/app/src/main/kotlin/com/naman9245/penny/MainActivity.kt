@@ -84,6 +84,7 @@ class MainActivity : FlutterFragmentActivity() {
                             call.argument<String>("title").orEmpty(),
                             call.argument<String>("text").orEmpty(),
                             call.argument<List<String>>("lines").orEmpty(),
+                            call.argument<String>("mood"),
                         )
                         result.success(null)
                     }

@@ -9,6 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:penny/core/utils/dates.dart';
 import 'package:penny/core/utils/money.dart';
 import 'package:penny/data/autopay_repository.dart';
+import 'package:penny/data/budget_repository.dart';
+import 'package:penny/models/penny_mood.dart';
+import 'package:penny/services/budget_math.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -1152,9 +1155,52 @@ Future<void> _notePaidAutopay(
   );
 }
 
-/// What Penny's notification says about the payments she just read. Null
-/// when there's nothing to say: she only let things go.
-PennyNotice? noticeFor(List<CaptureRead> reads) {
+/// Today as Penny's notification tells it: her mood, and what's left of
+/// today's share or how far over it the day is, by the same rule as Home.
+/// Null without an everyday budget.
+typedef NoticeToday = ({PennyMood mood, String line});
+
+/// [NoticeToday] for [now], from [db].
+Future<NoticeToday?> noticeTodayFor(AppDatabase db, DateTime now) async {
+  final budget = await BudgetRepository(db).current();
+  if (budget.everydayPaise <= 0) return null;
+  final month = monthStart(now);
+  final end = nextMonth(month);
+  final txns =
+      await (db.select(db.txns)..where(
+            (t) =>
+                t.deletedAt.isNull() &
+                t.occurredAt.isBiggerOrEqualValue(month) &
+                t.occurredAt.isSmallerThanValue(end),
+          ))
+          .get();
+  final status = budgetStatus(
+    budget: budget,
+    monthTxns: txns,
+    month: month,
+    now: now,
+  );
+  final mood =
+      dayMoods(
+        budget: budget,
+        monthTxns: txns,
+        month: month,
+        now: now,
+      )[now.day] ??
+      PennyMood.neutral;
+  final left = status.sharePaise - status.todaySpentPaise;
+  return (
+    mood: mood,
+    line: left >= 0
+        ? '${formatPaise(wholeRupees(left))} left today'
+        : "${formatPaise(wholeRupees(-left))} over today's share",
+  );
+}
+
+/// What Penny's notification says about the payments she just read, with
+/// [today]'s money and her face for it when there's a budget. Null when
+/// there's nothing to say: she only let things go.
+PennyNotice? noticeFor(List<CaptureRead> reads, {NoticeToday? today}) {
   final payments = [
     for (final read in reads)
       if (read.outcome case CaptureOutcome.saved || CaptureOutcome.waiting)
@@ -1176,6 +1222,7 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
           : "Penny couldn't read $unread payment messages",
       text: "She'll try again next time you open her. It's on Home.",
       lines: const [],
+      mood: null,
     );
   }
   if (payments case [final one] when unread == 0) {
@@ -1185,16 +1232,22 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
             title: 'Penny saved ${one.what}',
             text: [
               '$category.',
+              if (today != null) '${today.line}.',
               'Open Penny to change it or undo it.',
             ].join(' '),
             lines: const [],
+            mood: today?.mood.name,
           )
         : (
             title: 'Penny read ${one.what}',
-            text: category == null
-                ? "It's waiting on Home: pick a category, then add it."
-                : "$category? It's waiting on Home: add it or skip it.",
+            text: [
+              category == null
+                  ? "It's waiting on Home: pick a category, then add it."
+                  : "$category? It's waiting on Home: add it or skip it.",
+              if (today != null) '${today.line}.',
+            ].join(' '),
             lines: const [],
+            mood: today?.mood.name,
           );
   }
   final saved = payments.where((p) => p.outcome == CaptureOutcome.saved);
@@ -1203,16 +1256,20 @@ PennyNotice? noticeFor(List<CaptureRead> reads) {
     title: payments.length == 1
         ? 'Penny read 1 payment'
         : 'Penny read ${payments.length} payments',
-    text: [
-      if (held > 0) '$held waiting on Home',
-      if (saved.isNotEmpty) '${saved.length} saved',
-      if (moved.isNotEmpty) '${moved.length} your own money moving, left out',
-      if (unread > 0) "$unread she couldn't read yet",
-    ].join(', '),
+    text:
+        [
+          if (held > 0) '$held waiting on Home',
+          if (saved.isNotEmpty) '${saved.length} saved',
+          if (moved.isNotEmpty)
+            '${moved.length} your own money moving, left out',
+          if (unread > 0) "$unread she couldn't read yet",
+        ].join(', ') +
+        (today == null ? '' : ' · ${today.line}'),
     lines: [
       for (final read in payments.take(5))
         [read.what, ?_categoryOf(read)].join(' · '),
     ],
+    mood: today?.mood.name,
   );
 }
 
@@ -1232,6 +1289,7 @@ PennyNotice movedNotice(List<CaptureRead> moved) {
         "$how, so Penny took out what she'd saved for it. It isn't money in "
         'or out.',
     lines: const [],
+    mood: null,
   );
 }
 

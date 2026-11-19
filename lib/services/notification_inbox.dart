@@ -17,7 +17,14 @@ typedef SmsLookBack = ({int kept, DateTime? until, bool done});
 
 /// What Penny's own notification says: a title, a line, and one line each
 /// when it's about several payments.
-typedef PennyNotice = ({String title, String text, List<String> lines});
+typedef PennyNotice = ({
+  String title,
+  String text,
+  List<String> lines,
+
+  /// Today's mood, by name, for Penny's face beside it. Null for none.
+  String? mood,
+});
 
 /// Where captures wait: Android's listener, or a fake in tests.
 abstract interface class CaptureSource {
@@ -82,6 +89,7 @@ class NotificationInbox implements CaptureSource {
     'title': notice.title,
     'text': notice.text,
     'lines': notice.lines,
+    'mood': notice.mood,
   });
 
   /// Anything unreadable is left out of the captures, and dropped with the

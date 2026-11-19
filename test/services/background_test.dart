@@ -93,6 +93,8 @@ void main() {
           '−₹250 · Swiggy · 🍔 Food',
           '+₹500 · Rahul Kumar · 🤝 From people',
         ],
+        // No budget, so no face.
+        'mood': null,
       },
     ]);
     expect(files.opened, ['penny']);
@@ -124,6 +126,7 @@ void main() {
         'title': 'Penny read −₹250 · Swiggy',
         'text': "🍔 Food? It's waiting on Home: add it or skip it.",
         'lines': <String>[],
+        'mood': null,
       },
     ]);
   });

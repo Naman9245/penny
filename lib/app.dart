@@ -117,7 +117,11 @@ class _PennyAppState extends ConsumerState<PennyApp> {
     final onScreen = state == null || state == AppLifecycleState.resumed;
     final messenger = _messenger.currentState;
     if (!onScreen || messenger == null) {
-      if (noticeFor(reads) case final notice?) {
+      final today = await noticeTodayFor(
+        ref.read(appDatabaseProvider),
+        DateTime.now(),
+      );
+      if (noticeFor(reads, today: today) case final notice?) {
         await ref.read(notificationInboxProvider).notify(notice);
       }
       return;

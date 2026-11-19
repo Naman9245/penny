@@ -1,5 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:penny/data/budget_repository.dart';
+import 'package:penny/models/penny_mood.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -878,6 +880,65 @@ void main() {
     test('nothing for what she only let go', () {
       expect(noticeFor([otp]), isNull);
       expect(noticeFor(const []), isNull);
+    });
+
+    test("with a budget: today's money in words, and Penny's face", () {
+      const today = (mood: PennyMood.worried, line: '₹48 over today\'s share');
+      final one = noticeFor([
+        read(CaptureOutcome.saved, swiggy, entryId: 'e1'),
+      ], today: today)!;
+      expect(
+        one.text,
+        "🍔 Food. ₹48 over today's share. Open Penny to change it or undo it.",
+      );
+      expect(one.mood, 'worried');
+      final two = noticeFor([
+        read(CaptureOutcome.saved, swiggy, entryId: 'e1'),
+        read(CaptureOutcome.waiting, rahul),
+      ], today: today)!;
+      expect(two.text, "1 waiting on Home, 1 saved · ₹48 over today's share");
+      expect(two.mood, 'worried');
+    });
+
+    test('without a budget: no face', () {
+      expect(noticeFor([read(CaptureOutcome.waiting, swiggy)])!.mood, isNull);
+    });
+  });
+
+  group("today, as Penny's notification says it", () {
+    late AppDatabase db;
+    setUp(() => db = AppDatabase(NativeDatabase.memory()));
+    tearDown(() => db.close());
+
+    test('nothing without an everyday budget', () async {
+      expect(await noticeTodayFor(db, at), isNull);
+    });
+
+    test("what's left of today's share, and her mood", () async {
+      // ₹6,000 a month for food: ₹200 a day in a 30-day November.
+      await BudgetRepository(db).setAmount('food', 600000);
+      await TxnRepository(db).add(
+        amountPaise: 5000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: at.subtract(const Duration(hours: 2)),
+      );
+      final today = (await noticeTodayFor(db, at))!;
+      expect(today.line, '₹150 left today');
+      expect(today.mood, PennyMood.happy);
+    });
+
+    test('a day over its share says how far', () async {
+      await BudgetRepository(db).setAmount('food', 600000);
+      await TxnRepository(db).add(
+        amountPaise: 26000,
+        type: TxnType.debit,
+        categoryId: 'food',
+        occurredAt: at.subtract(const Duration(hours: 2)),
+      );
+      final today = (await noticeTodayFor(db, at))!;
+      expect(today.line, "₹60 over today's share");
+      expect(today.mood, PennyMood.worried);
     });
   });
 

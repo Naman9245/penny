@@ -14,19 +14,22 @@ class BudgetRepository {
 
   static const _uuid = Uuid();
 
-  Stream<Budget> watch() {
-    final query = _db.select(_db.budgets)..where((b) => b.deletedAt.isNull());
-    return query.watch().map(
-      (rows) => Budget(
-        byCategory: {
-          // An "everyday" row from the first version of budgets no longer
-          // means anything: the monthly budget is the categories' total.
-          for (final row in rows)
-            if (row.budgetKey != 'everyday') row.budgetKey: row.amountPaise,
-        },
-      ),
-    );
-  }
+  Stream<Budget> watch() => _live.watch().map(_budgetOf);
+
+  /// The budget as it is now, once.
+  Future<Budget> current() => _live.get().then(_budgetOf);
+
+  SimpleSelectStatement<$BudgetsTable, BudgetRow> get _live =>
+      _db.select(_db.budgets)..where((b) => b.deletedAt.isNull());
+
+  static Budget _budgetOf(List<BudgetRow> rows) => Budget(
+    byCategory: {
+      // An "everyday" row from the first version of budgets no longer
+      // means anything: the monthly budget is the categories' total.
+      for (final row in rows)
+        if (row.budgetKey != 'everyday') row.budgetKey: row.amountPaise,
+    },
+  );
 
   /// What the user means to spend on [categoryId] a month. Null or nothing
   /// clears it.
