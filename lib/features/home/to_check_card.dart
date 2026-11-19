@@ -191,7 +191,7 @@ class _CaptureRow extends ConsumerWidget {
                     Text(
                       [
                         if (categoryId != null)
-                          '${category!.emoji} ${kindLabel(capture.type, categoryId)}'
+                          kindLabel(capture.type, categoryId)
                         else
                           'Pick a category',
                         when,

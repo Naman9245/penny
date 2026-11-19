@@ -245,7 +245,8 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
                   for (final category in choices)
                     BrutalChip(
                       key: ValueKey('pick-category-${category.id}'),
-                      label: '${category.emoji} ${category.label}',
+                      label: category.label,
+                      icon: category.icon,
                       onTap: () => Navigator.pop(context, category.id),
                     ),
                 ],
@@ -293,10 +294,14 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
         ],
         for (final MapEntry(key: day, value: txns) in byDay.entries) ...[
           _DayHeader(day: day, txns: txns),
-          const SizedBox(height: 8),
-          BrutalCard(
-            padding: EdgeInsets.zero,
-            clipChild: true,
+          const SizedBox(height: 4),
+          // Flat rows between hairlines, as on Home.
+          DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border.symmetric(
+                horizontal: BorderSide(color: AppColors.hairline),
+              ),
+            ),
             child: Column(
               children: [
                 for (var i = 0; i < txns.length; i++) ...[

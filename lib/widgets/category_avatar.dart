@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:penny/core/theme/app_colors.dart';
 import 'package:penny/core/theme/brutal_theme.dart';
 import 'package:penny/models/category.dart';
 
-/// A category's face. Emoji for now; character art replaces this one widget.
+/// A category's face: its drawn icon on its colour.
 class CategoryAvatar extends StatelessWidget {
   const CategoryAvatar({
     super.key,
@@ -30,12 +31,7 @@ class CategoryAvatar extends StatelessWidget {
           borderWidth: 2,
           shadow: raised ? kSmallShadow : Offset.zero,
         ),
-        // An icon, not text: it must not grow past its tile.
-        child: Text(
-          category.emoji,
-          textScaler: TextScaler.noScaling,
-          style: TextStyle(fontSize: size * 0.46, height: 1.2),
-        ),
+        child: Icon(category.icon, size: size * 0.5, color: AppColors.ink),
       ),
     );
   }

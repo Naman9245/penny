@@ -397,7 +397,7 @@ class _CategoryRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(category.emoji, style: AppText.h3),
+            Icon(category.icon, size: 18, color: AppColors.ink),
             const SizedBox(width: 8),
             Expanded(child: Text(category.label, style: AppText.bodyStrong)),
             MoneyText(share.spentPaise, style: AppText.bodyStrong),
@@ -485,10 +485,7 @@ class _ChangeRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${category.emoji} ${category.label}',
-                style: AppText.bodyStrong,
-              ),
+              Text(category.label, style: AppText.bodyStrong),
               Text(what, style: AppText.small),
             ],
           ),

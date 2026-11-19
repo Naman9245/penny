@@ -49,7 +49,7 @@ class NeedsScreen extends ConsumerWidget {
                 for (final category in spendCategories)
                   (
                     key: 'need-category-${category.id}',
-                    label: '${category.emoji}  ${category.label}',
+                    label: category.label,
                     tag: rules.categories[category.id],
                     onChanged: (TxnTag? tag) =>
                         repo.set(RuleKind.category, category.id, tag),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:penny/core/theme/app_colors.dart';
 
-/// Type scale. Baloo 2 (chunky and rounded, like Penny's sheet) for headings
-/// and money; DM Sans for everything you read. Both cover ₹.
+/// Type scale. Baloo 2 (chunky and rounded, like Penny) for money; DM Sans
+/// for headings and everything you read. Both cover ₹.
 abstract final class AppText {
   static const displayFamily = 'Baloo2';
   static const bodyFamily = 'DMSans';
@@ -16,24 +16,27 @@ abstract final class AppText {
     color: AppColors.ink,
   );
   static const h1 = TextStyle(
-    fontFamily: displayFamily,
-    fontSize: 30,
-    fontWeight: FontWeight.w800,
-    height: 1.1,
+    fontFamily: bodyFamily,
+    fontSize: 26,
+    fontWeight: FontWeight.w700,
+    height: 1.15,
+    letterSpacing: -0.5,
     color: AppColors.ink,
   );
   static const h2 = TextStyle(
-    fontFamily: displayFamily,
-    fontSize: 22,
-    fontWeight: FontWeight.w800,
-    height: 1.15,
+    fontFamily: bodyFamily,
+    fontSize: 19,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    letterSpacing: -0.3,
     color: AppColors.ink,
   );
   static const h3 = TextStyle(
-    fontFamily: displayFamily,
-    fontSize: 18,
+    fontFamily: bodyFamily,
+    fontSize: 16.5,
     fontWeight: FontWeight.w700,
-    height: 1.2,
+    height: 1.25,
+    letterSpacing: -0.2,
     color: AppColors.ink,
   );
 

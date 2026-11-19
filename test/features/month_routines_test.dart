@@ -96,22 +96,22 @@ void main() {
         overrides: [todayIs(DateTime(2026, 11, 3))],
       );
       expect(find.text('Same fixed bills as last month?'), findsOneWidget);
-      expect(find.text('🏠 Sunrise PG · ₹8,500'), findsOneWidget);
-      expect(find.text('📺 Netflix · ₹199'), findsOneWidget);
+      expect(find.text('Sunrise PG · ₹8,500'), findsOneWidget);
+      expect(find.text('Netflix · ₹199'), findsOneWidget);
       expect(find.textContaining('Airtel ·'), findsNothing); // Logged.
 
       await tester.tap(find.byKey(const ValueKey('log-bill-0')));
       await tester.pumpAndSettle();
       expect(find.text('Added ₹8,500 · Rent & PG'), findsOneWidget);
-      expect(find.text('🏠 Sunrise PG · ₹8,500'), findsNothing);
+      expect(find.text('Sunrise PG · ₹8,500'), findsNothing);
 
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      expect(find.text('🏠 Sunrise PG · ₹8,500'), findsOneWidget);
+      expect(find.text('Sunrise PG · ₹8,500'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('skip-bill-1')));
       await tester.pumpAndSettle();
-      expect(find.text('📺 Netflix · ₹199'), findsNothing);
+      expect(find.text('Netflix · ₹199'), findsNothing);
 
       // Opened again, the phone still remembers the skip.
       await tester.pumpWidget(const SizedBox());
@@ -122,8 +122,8 @@ void main() {
           todayIs(DateTime(2026, 11, 3)),
         ],
       );
-      expect(find.text('🏠 Sunrise PG · ₹8,500'), findsOneWidget);
-      expect(find.text('📺 Netflix · ₹199'), findsNothing);
+      expect(find.text('Sunrise PG · ₹8,500'), findsOneWidget);
+      expect(find.text('Netflix · ₹199'), findsNothing);
 
       // Once nothing's left, the card goes.
       await tester.tap(find.byKey(const ValueKey('log-bill-0')));

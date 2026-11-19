@@ -91,7 +91,7 @@ void main() {
     tester,
   ) async {
     final db = await pumpApp(tester, seedDb: seedGoals);
-    final spent = find.textContaining('Spent in');
+    final spent = find.byKey(const ValueKey('stat-spent'));
     final below = tester.getTopLeft(spent);
     final tall = tester.getSize(find.byKey(const ValueKey('penny-card')));
     double dot(int i) =>

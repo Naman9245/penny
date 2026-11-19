@@ -190,11 +190,7 @@ class _CategoryRow extends StatelessWidget {
         child: Row(
           children: [
             ExcludeSemantics(
-              child: Text(
-                category.emoji,
-                textScaler: TextScaler.noScaling,
-                style: const TextStyle(fontSize: 24),
-              ),
+              child: Icon(category.icon, size: 22, color: AppColors.ink),
             ),
             const SizedBox(width: 12),
             Expanded(

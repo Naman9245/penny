@@ -178,9 +178,15 @@ class HomeScreen extends ConsumerWidget {
                               ],
                             ),
                           )
-                        : BrutalCard(
-                            padding: EdgeInsets.zero,
-                            clipChild: true,
+                        // Flat rows between hairlines, like the totals.
+                        : DecoratedBox(
+                            decoration: const BoxDecoration(
+                              border: Border.symmetric(
+                                horizontal: BorderSide(
+                                  color: AppColors.hairline,
+                                ),
+                              ),
+                            ),
                             child: Column(
                               children: [
                                 for (var i = 0; i < txns.length; i++) ...[
@@ -727,48 +733,42 @@ class _MonthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalCard(
-      padding: EdgeInsets.zero,
+    // Flat between two hairlines: the bold outline is kept for Penny.
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: AppColors.hairline),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          KeyedSubtree(
-            key: const ValueKey('stat-spent'),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  StatLabel(
-                    icon: Icons.north_east_rounded,
-                    color: AppColors.pink,
-                    label: 'Spent in ${DateFormat('MMMM').format(month)}',
-                  ),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: AnimatedMoney(
-                      wholeRupees(summary.spentPaise),
-                      id: 'spent',
-                      style: AppText.hero,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const RowDivider(),
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   child: StatTile(
+                    key: const ValueKey('stat-spent'),
+                    icon: Icons.north_east_rounded,
+                    color: AppColors.pink,
+                    label: 'Spent',
+                    padding: const EdgeInsets.fromLTRB(4, 12, 8, 14),
+                    value: AnimatedMoney(
+                      wholeRupees(summary.spentPaise),
+                      id: 'spent',
+                      style: AppText.amount,
+                    ),
+                  ),
+                ),
+                const StatDivider(),
+                Expanded(
+                  child: StatTile(
                     key: const ValueKey('stat-got'),
                     icon: Icons.south_west_rounded,
                     color: AppColors.mint,
                     label: 'Got',
+                    padding: const EdgeInsets.fromLTRB(12, 12, 8, 14),
                     value: MoneyText(
                       wholeRupees(summary.gotPaise),
                       style: AppText.amount,
@@ -782,6 +782,7 @@ class _MonthCard extends StatelessWidget {
                     icon: Icons.account_balance_wallet_outlined,
                     color: AppColors.yellow,
                     label: 'Left',
+                    padding: const EdgeInsets.fromLTRB(12, 12, 4, 14),
                     value: summary.hasIncome
                         ? MoneyText(
                             wholeRupees(summary.leftPaise),

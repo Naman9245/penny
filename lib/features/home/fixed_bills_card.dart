@@ -175,7 +175,7 @@ class _BillRow extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            '${category.emoji} ${bill.place ?? category.label} · '
+            '${bill.place ?? category.label} · '
             '${formatPaise(bill.amountPaise)}',
             key: ValueKey('bill-$index'),
             style: AppText.bodyStrong,

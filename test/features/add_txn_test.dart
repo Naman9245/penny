@@ -228,7 +228,7 @@ void main() {
       },
     );
     await openAdd(tester);
-    expect(find.text('🍔 Chai point · ₹20'), findsOneWidget);
+    expect(find.text('Chai point · ₹20'), findsOneWidget);
     expect(find.byKey(const ValueKey('again-1')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('again-0')));
@@ -394,7 +394,7 @@ void main() {
           .widget<Text>(find.byKey(const ValueKey('quick-preview')))
           .textSpan!
           .toPlainText(),
-      endsWith('₹240 · 🍔 Food · Swiggy'),
+      endsWith('₹240 · Food · Swiggy'),
     );
 
     await tester.tap(find.text('Done'));
@@ -425,7 +425,7 @@ void main() {
           .widget<Text>(find.byKey(const ValueKey('quick-preview')))
           .textSpan!
           .toPlainText(),
-      endsWith('₹240 · 🚌 Travel · Swiggy'),
+      endsWith('₹240 · Travel · Swiggy'),
     );
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();

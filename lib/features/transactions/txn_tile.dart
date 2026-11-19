@@ -11,6 +11,7 @@ import 'package:penny/models/txn_enums.dart';
 import 'package:penny/services/money_kinds.dart';
 import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/money_text.dart';
+import 'package:penny/widgets/monogram.dart';
 import 'package:penny/widgets/pressable_area.dart';
 
 /// One transaction row: category face, what it was, when, and the signed
@@ -70,8 +71,13 @@ class TxnTile extends ConsumerWidget {
               builder: (context, constraints) => Row(
                 children: [
                   switch (picked) {
+                    final on? => _PickMark(picked: on),
+                    // Who was paid, when known; else the category.
+                    null when merchant != null => Monogram(
+                      name: merchant,
+                      person: txn.payeeIsPerson ?? false,
+                    ),
                     null => CategoryAvatar(category: category),
-                    final on => _PickMark(picked: on),
                   },
                   const SizedBox(width: 12),
                   Expanded(

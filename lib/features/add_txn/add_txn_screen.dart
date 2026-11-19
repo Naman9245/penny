@@ -572,6 +572,7 @@ Category _paidBackTile(Category? paidBackFor) => Category(
   id: _paidBackTileId,
   label: paidBackFor == null ? 'Paid back' : '${paidBackFor.label} · paid back',
   emoji: '🤝',
+  icon: Icons.handshake_rounded,
   color: AppColors.cream,
   type: TxnType.credit,
 );
@@ -845,6 +846,7 @@ class _Again extends StatelessWidget {
               BrutalChip(
                 key: ValueKey('again-$i'),
                 label: _label(entry),
+                icon: categoryById(entry.categoryId).icon,
                 selected: _filledIn(entry),
                 onTap: () => onTap(entry),
               ),
@@ -855,11 +857,10 @@ class _Again extends StatelessWidget {
     );
   }
 
-  /// "🍔 Chai point · ₹20", or "🍔 Food · paid back · ₹300" with no place.
+  /// "Chai point · ₹20", or "Food · paid back · ₹300" with no place.
   String _label(UsualEntry entry) {
-    final category = categoryById(entry.categoryId);
     final what = entry.place ?? kindLabel(state.type, entry.categoryId);
-    return '${category.emoji} $what · ${formatPaise(entry.amountPaise)}';
+    return '$what · ${formatPaise(entry.amountPaise)}';
   }
 }
 
@@ -1033,13 +1034,13 @@ class _WhereSheetState extends State<_WhereSheet> {
   void _done() =>
       Navigator.pop<_Where>(context, (text: _text.text, typed: _typed));
 
-  /// "₹240 · 🍔 Food · Swiggy": what Done will fill in.
+  /// "₹240 · Food · Swiggy": what Done will fill in.
   String _preview(TypedEntry typed) {
     final categoryId = widget.categoryId ?? typed.categoryId;
     final category = categoryId == null ? null : categoryById(categoryId);
     return [
       formatPaise(typed.amountPaise),
-      if (category != null) '${category.emoji} ${category.label}',
+      if (category != null) category.label,
       ?typed.place,
     ].join(' · ');
   }
