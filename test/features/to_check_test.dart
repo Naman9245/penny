@@ -317,6 +317,14 @@ void main() {
     final row = tester.widget<Text>(find.byKey(const ValueKey('unread-0')));
     expect(row.data, contains('Ref ••••••••••••'));
 
+    // The card ends low on the screen, and in the afternoon the greeting
+    // takes two lines in the test font, which puts Skip behind the tab bar.
+    // Brought up into view, as someone would scroll to it.
+    Scrollable.ensureVisible(
+      tester.element(key('unread-skip-0')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(key('unread-skip-0'));
     await tester.pumpAndSettle();
     expect(key('to-check'), findsNothing);
