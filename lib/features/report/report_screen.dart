@@ -415,7 +415,7 @@ class _Report extends ConsumerWidget {
           ReportSection(
             'Every wasteful item',
             subtitle:
-                '${formatPaise(items.fold(0, (sum, i) => sum + i.spentPaise))}'
+                '${formatTotal(items.fold(0, (sum, i) => sum + i.spentPaise))}'
                 ' in all. Tap "I need this" on anything you do need.',
           ),
           for (final (i, item) in items.indexed) ...[
@@ -555,7 +555,7 @@ class _Hero extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: MoneyText(totalPaise, style: AppText.hero),
+            child: MoneyText(wholeRupees(totalPaise), style: AppText.hero),
           ),
           Text(
             over
@@ -619,7 +619,7 @@ class _HabitCard extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           Text(
-            '${formatPaise(habit.spentPaise)} this month',
+            '${formatTotal(habit.spentPaise)} this month',
             style: AppText.bodyStrong,
           ),
           const SizedBox(height: 8),
@@ -633,7 +633,7 @@ class _HabitCard extends StatelessWidget {
                 child: BrutalPill(label: cut.short, color: AppColors.white),
               ),
               BrutalPill(
-                label: 'Save ${formatPaise(habit.savePaise)}',
+                label: 'Save ${formatTotal(habit.savePaise)}',
                 color: AppColors.mint,
               ),
             ],
@@ -689,14 +689,14 @@ class _WastefulItemCard extends StatelessWidget {
             children: [
               Expanded(child: Text(item.names.join(' · '), style: AppText.h3)),
               const SizedBox(width: 8),
-              MoneyText(item.spentPaise, style: AppText.h3),
+              MoneyText(wholeRupees(item.spentPaise), style: AppText.h3),
             ],
           ),
           const SizedBox(height: 2),
           Text(
             item.count == 1
                 ? times
-                : '$times · about ${formatPaise(item.averagePaise)} each',
+                : '$times · about ${formatTotal(item.averagePaise)} each',
             style: AppText.small.copyWith(color: AppColors.ink),
           ),
           if (item.reason.isNotEmpty) ...[
@@ -770,7 +770,7 @@ class _Income extends StatelessWidget {
                   ),
                 ),
                 MoneyText(
-                  totals[income['category']] ?? 0,
+                  wholeRupees(totals[income['category']] ?? 0),
                   type: TxnType.credit,
                   style: AppText.h3,
                 ),

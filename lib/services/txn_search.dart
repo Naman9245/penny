@@ -35,7 +35,7 @@ String totalLine(Iterable<Txn> txns) {
     sums[txn.kind] = sums[txn.kind]! + txn.amountPaise;
   }
   String part(MoneyKind kind, String Function(String) words) =>
-      sums[kind]! > 0 ? words(formatPaise(sums[kind]!)) : '';
+      sums[kind]! > 0 ? words(formatTotal(sums[kind]!)) : '';
   return [
     count == 1 ? '1 entry' : '$count entries',
     part(MoneyKind.spent, (paise) => 'spent $paise'),

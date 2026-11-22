@@ -110,7 +110,7 @@ class _Cheer extends StatelessWidget {
       ),
       > 0 => (
         PennyMood.happy,
-        '${formatPaise(savedThisMonth)} put aside this month!',
+        '${formatTotal(savedThisMonth)} put aside this month!',
       ),
       _ => (PennyMood.neutral, 'Every rupee counts. Put a little aside today!'),
     };
@@ -209,8 +209,8 @@ class _GoalCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${formatPaise(progress.savedPaise)} of '
-                  '${formatPaise(goal.targetPaise)}',
+                  '${formatTotal(progress.savedPaise)} of '
+                  '${formatTotal(goal.targetPaise)}',
                   style: AppText.bodyStrong,
                 ),
                 const SizedBox(height: 2),

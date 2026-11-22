@@ -115,15 +115,15 @@ class _Total extends StatelessWidget {
               ),
             ),
             Text(
-              'Everyday ${formatPaise(everyday)} · Paid in one go '
-              '${formatPaise(budget.oneGoPaise)}',
+              'Everyday ${formatTotal(everyday)} · Paid in one go '
+              '${formatTotal(budget.oneGoPaise)}',
               key: const ValueKey('budget-split'),
               style: AppText.bodyStrong,
             ),
             if (everyday > 0) ...[
               const SizedBox(height: 12),
               Text(
-                '${formatPaise(spent)} of ${formatPaise(everyday)} everyday '
+                '${formatTotal(spent)} of ${formatTotal(everyday)} everyday '
                 'spent · ${daysLeftLabel(status.daysLeft)}',
                 style: AppText.small.copyWith(color: AppColors.ink),
               ),
@@ -200,8 +200,8 @@ class _CategoryRow extends StatelessWidget {
                   Text(category.label, style: AppText.label),
                   Text(
                     amount == null
-                        ? '${formatPaise(spentPaise)} this month · no budget'
-                        : '${formatPaise(spentPaise)} of ${formatPaise(amount)} '
+                        ? '${formatTotal(spentPaise)} this month · no budget'
+                        : '${formatTotal(spentPaise)} of ${formatTotal(amount)} '
                               'this month',
                     style: AppText.small,
                   ),
@@ -214,7 +214,7 @@ class _CategoryRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Text(
-              amount == null ? 'Add' : formatPaise(amount),
+              amount == null ? 'Add' : formatTotal(amount),
               style: AppText.chip,
             ),
             const Icon(Icons.chevron_right_rounded, color: AppColors.ink),

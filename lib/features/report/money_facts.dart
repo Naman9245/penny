@@ -86,7 +86,7 @@ class WhereMoneyWent extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Your share each day, '
-            '${formatPaise(dailySharePaise(everydayPaise, month))}: '
+            '${formatTotal(dailySharePaise(everydayPaise, month))}: '
             '${shareExplained(everydayPaise, month)}',
             key: const ValueKey('facts-share'),
             style: AppText.small,
@@ -125,7 +125,7 @@ class WhereMoneyWent extends StatelessWidget {
                       if (shop.isPerson) 'Person',
                       shop.count == 1 ? 'once' : '${shop.count} times',
                     ].join(' · '),
-                    paise: shop.paidPaise,
+                    paise: wholeRupees(shop.paidPaise),
                   ),
                 ],
               ],
@@ -186,9 +186,9 @@ class MoneyHistory extends StatelessWidget {
                 _LineRow(
                   title: DateFormat('MMMM yyyy').format(line.month),
                   detail:
-                      'Spent ${formatPaise(line.spentPaise)} · '
-                      'got ${formatPaise(line.gotPaise)}',
-                  paise: line.leftPaise,
+                      'Spent ${formatTotal(line.spentPaise)} · '
+                      'got ${formatTotal(line.gotPaise)}',
+                  paise: wholeRupees(line.leftPaise),
                   signed: true,
                 ),
               ],
@@ -218,7 +218,7 @@ class MoneyHistory extends StatelessWidget {
                   ],
                 ),
               ),
-              MoneyText(report.savedSoFarPaise, style: AppText.h3),
+              MoneyText(wholeRupees(report.savedSoFarPaise), style: AppText.h3),
             ],
           ),
         ),
@@ -334,9 +334,9 @@ class SpendingPatterns extends StatelessWidget {
             child: Text(
               p.smallCount == 1
                   ? '1 small spend under ₹100 came to '
-                        '${formatPaise(p.smallPaise)}.'
+                        '${formatTotal(p.smallPaise)}.'
                   : '${p.smallCount} small spends under ₹100 added up to '
-                        '${formatPaise(p.smallPaise)}.',
+                        '${formatTotal(p.smallPaise)}.',
               style: AppText.bodyStrong,
             ),
           ),
@@ -401,7 +401,7 @@ class _CategoryRow extends StatelessWidget {
             Icon(category.icon, size: 18, color: AppColors.ink),
             const SizedBox(width: 8),
             Expanded(child: Text(category.label, style: AppText.bodyStrong)),
-            MoneyText(share.spentPaise, style: AppText.bodyStrong),
+            MoneyText(wholeRupees(share.spentPaise), style: AppText.bodyStrong),
           ],
         ),
         const SizedBox(height: 6),
@@ -470,10 +470,10 @@ class _ChangeRow extends StatelessWidget {
     final what = change.beforePaise == 0
         ? 'Nothing last month'
         : change.nowPaise == 0
-        ? 'Nothing this month, ${formatPaise(change.beforePaise)} last month'
-        : '${up ? 'Up' : 'Down'} ${formatPaise(diff.abs())} '
+        ? 'Nothing this month, ${formatTotal(change.beforePaise)} last month'
+        : '${up ? 'Up' : 'Down'} ${formatTotal(diff.abs())} '
               '(${up ? '+' : '−'}${(diff.abs() * 100 / change.beforePaise).round()}%) '
-              'from ${formatPaise(change.beforePaise)}';
+              'from ${formatTotal(change.beforePaise)}';
     return Row(
       children: [
         Icon(
@@ -491,7 +491,7 @@ class _ChangeRow extends StatelessWidget {
             ],
           ),
         ),
-        MoneyText(change.nowPaise, style: AppText.bodyStrong),
+        MoneyText(wholeRupees(change.nowPaise), style: AppText.bodyStrong),
       ],
     );
   }
@@ -534,7 +534,7 @@ class _BarRow extends StatelessWidget {
           SizedBox(
             width: 84,
             child: Text(
-              formatPaise(paise),
+              formatTotal(paise),
               style: AppText.small.copyWith(color: AppColors.ink),
               textAlign: TextAlign.right,
             ),
@@ -561,7 +561,7 @@ class _Average extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: MoneyText(paise, style: AppText.h3),
+            child: MoneyText(wholeRupees(paise), style: AppText.h3),
           ),
           const Text('spent on average', style: AppText.small),
         ],

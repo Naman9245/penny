@@ -123,7 +123,7 @@ class _Ask extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Where can ${formatPaise(perWeekPaise)} a week come from? '
+                  'Where can ${formatTotal(perWeekPaise)} a week come from? '
                   'Penny picks what to cut.',
                   style: AppText.h3,
                 ),
@@ -244,10 +244,10 @@ class _Plan extends StatelessWidget {
             children: [
               Text(
                 enough
-                    ? 'These free about ${formatPaise(total)} a month, '
+                    ? 'These free about ${formatTotal(total)} a month, '
                           'enough!'
-                    : 'About ${formatPaise(total)} of the '
-                          '${formatPaise(needPaise)} a month you need.',
+                    : 'About ${formatTotal(total)} of the '
+                          '${formatTotal(needPaise)} a month you need.',
                 style: AppText.h3,
               ),
               const SizedBox(height: 4),
@@ -330,7 +330,7 @@ class _CutCard extends StatelessWidget {
                 child: BrutalPill(label: cut.short, color: AppColors.white),
               ),
               BrutalPill(
-                label: 'About ${formatPaise(view.savePaise)} a month',
+                label: 'About ${formatTotal(view.savePaise)} a month',
                 color: AppColors.mint,
               ),
             ],

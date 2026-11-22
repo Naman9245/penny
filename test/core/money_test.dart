@@ -120,4 +120,11 @@ void main() {
       expect(formatSumText('-50'), '− ₹50');
     });
   });
+
+  test('a total shows whole rupees; a single entry keeps its paise', () {
+    expect(formatTotal(1556634), '₹15,566');
+    expect(formatTotal(1556650), '₹15,567');
+    expect(formatTotal(-2040034), '−₹20,400');
+    expect(formatPaise(1556634), '₹15,566.34');
+  });
 }

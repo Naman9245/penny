@@ -94,7 +94,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     key: const ValueKey('share-explained'),
                     icon: Icons.today_rounded,
                     color: AppColors.yellow,
-                    title: 'Your share each day: ${formatPaise(share)}',
+                    title: 'Your share each day: ${formatTotal(share)}',
                     subtitle: shareExplained(everyday, month),
                   ),
                 ),
@@ -371,8 +371,8 @@ class _MonthSummary extends StatelessWidget {
                   style: AppText.bodyStrong,
                 ),
                 Text(
-                  '${formatPaise(summary.spentPaise)} of your '
-                  '${formatPaise(budgetPaise)} everyday budget spent',
+                  '${formatTotal(summary.spentPaise)} of your '
+                  '${formatTotal(budgetPaise)} everyday budget spent',
                   key: const ValueKey('month-spent'),
                   style: AppText.small.copyWith(color: AppColors.ink),
                 ),

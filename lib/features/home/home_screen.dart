@@ -420,8 +420,8 @@ class _BudgetWell extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 left >= 0
-                    ? '${formatPaise(left)} left today'
-                    : "${formatPaise(-left)} over today's share",
+                    ? '${formatTotal(left)} left today'
+                    : "${formatTotal(-left)} over today's share",
                 key: const ValueKey('today-left'),
                 style: AppText.h2,
               ),
@@ -430,15 +430,15 @@ class _BudgetWell extends StatelessWidget {
             MeterBar(value: share == 0 ? 0 : todaySpent / share),
             const SizedBox(height: 4),
             Text(
-              'Today ${formatPaise(todaySpent)} of your '
-              '${formatPaise(share)} share',
+              'Today ${formatTotal(todaySpent)} of your '
+              '${formatTotal(share)} share',
               key: const ValueKey('today-line'),
               style: AppText.small,
             ),
             const SizedBox(height: 14),
             Text(
-              '${formatPaise(wholeRupees(status.everydaySpentPaise))} of '
-              '${formatPaise(everyday)}',
+              '${formatTotal(status.everydaySpentPaise)} of '
+              '${formatTotal(everyday)}',
               key: const ValueKey('budget-line'),
               style: AppText.bodyStrong,
             ),
@@ -684,9 +684,9 @@ class _GoalRow extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     progress.reached
-                        ? formatPaise(goal.targetPaise)
-                        : '${formatPaise(progress.savedPaise)} of '
-                              '${formatPaise(goal.targetPaise)}',
+                        ? formatTotal(goal.targetPaise)
+                        : '${formatTotal(progress.savedPaise)} of '
+                              '${formatTotal(goal.targetPaise)}',
                     style: AppText.label,
                   ),
                 ],
@@ -783,7 +783,7 @@ class _MonthCard extends StatelessWidget {
                     hint: !summary.hasIncome
                         ? 'Log income to see this'
                         : summary.investedPaise > 0
-                        ? '${formatPaise(summary.investedPaise)} invested'
+                        ? '${formatTotal(summary.investedPaise)} invested'
                         : null,
                   ),
                 ),

@@ -402,8 +402,8 @@ class _DayHeader extends StatelessWidget {
       }
     }
     final totals = [
-      if (spent > 0) '−${formatPaise(spent)}',
-      if (got > 0) '+${formatPaise(got)}',
+      if (spent > 0) '−${formatTotal(spent)}',
+      if (got > 0) '+${formatTotal(got)}',
     ].join('   ');
 
     return Row(

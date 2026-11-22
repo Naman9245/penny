@@ -165,7 +165,7 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
     final paise = await showAmountSheet(
       context,
       title: 'Take out',
-      hint: 'Up to ${formatPaise(progress.savedPaise)}.',
+      hint: 'Up to ${formatTotal(progress.savedPaise)}.',
       maxPaise: progress.savedPaise,
     );
     if (paise == null || paise <= 0) return;
@@ -255,12 +255,12 @@ class _Progress extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: MoneyText(
-                        progress.savedPaise,
+                        wholeRupees(progress.savedPaise),
                         style: AppText.hero,
                       ),
                     ),
                     Text(
-                      'of ${formatPaise(goal.targetPaise)} by '
+                      'of ${formatTotal(goal.targetPaise)} by '
                       '${DateFormat('d MMM y').format(goal.deadline)}',
                       style: AppText.chip,
                     ),
@@ -288,7 +288,7 @@ class _Progress extends StatelessWidget {
                 Text(goalNeedLine(progress, today), style: AppText.bodyStrong),
                 if (!progress.reached && !missed)
                   Text(
-                    'About ${formatPaise(progress.perMonthPaise(today))} a '
+                    'About ${formatTotal(progress.perMonthPaise(today))} a '
                     'month',
                     style: AppText.small,
                   ),

@@ -83,32 +83,32 @@ class _DaySheet extends StatelessWidget {
                     // against the share; the rest is listed apart.
                     Text(
                       share == null
-                          ? '${formatPaise(spend.counted + spend.noBudget)} '
+                          ? '${formatTotal(spend.counted + spend.noBudget)} '
                                 'spent'
-                          : '${formatPaise(spend.counted)} of your '
-                                '${formatPaise(share)} share',
+                          : '${formatTotal(spend.counted)} of your '
+                                '${formatTotal(share)} share',
                       key: const ValueKey('day-spent'),
                       style: AppText.bodyStrong,
                     ),
                     if (share != null && spend.noBudget > 0)
                       Text(
-                        'Plus ${formatPaise(spend.noBudget)} with no budget',
+                        'Plus ${formatTotal(spend.noBudget)} with no budget',
                         style: AppText.small,
                       ),
                     if (spend.oneGo > 0)
                       Text(
-                        'Plus ${formatPaise(spend.oneGo)} paid in one go',
+                        'Plus ${formatTotal(spend.oneGo)} paid in one go',
                         style: AppText.small,
                       ),
                     if (spend.cameBack > 0)
                       Text(
-                        '${formatPaise(spend.cameBack)} came back',
+                        '${formatTotal(spend.cameBack)} came back',
                         key: const ValueKey('day-came-back'),
                         style: AppText.small,
                       ),
                     if (spend.invested > 0)
                       Text(
-                        '${formatPaise(spend.invested)} invested',
+                        '${formatTotal(spend.invested)} invested',
                         key: const ValueKey('day-invested'),
                         style: AppText.small,
                       ),

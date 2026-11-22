@@ -20,8 +20,8 @@ String goalNeedLine(GoalProgress progress, DateTime today) {
   if (progress.isMissed(today)) {
     return 'The date has passed. Move it or lower the target.';
   }
-  return '${formatPaise(progress.toGoPaise)} to go · '
-      '${formatPaise(progress.perWeekPaise(today))} a week until '
+  return '${formatTotal(progress.toGoPaise)} to go · '
+      '${formatTotal(progress.perWeekPaise(today))} a week until '
       '${DateFormat('d MMM').format(progress.goal.deadline)}';
 }
 

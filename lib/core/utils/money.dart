@@ -23,6 +23,10 @@ String formatPaise(int paise) {
 /// and paise stay on single entries.
 int wholeRupees(int paise) => (paise / 100).round() * 100;
 
+/// [paise] as a total shows it, to the nearest rupee: "₹15,566". A single
+/// entry keeps its paise, with [formatPaise].
+String formatTotal(int paise) => formatPaise(wholeRupees(paise));
+
 /// Short ₹ for chart axes: ₹950, ₹12.5K, ₹1.2L, ₹3.4Cr.
 String compactRupees(int paise) {
   final rupees = paise / 100;

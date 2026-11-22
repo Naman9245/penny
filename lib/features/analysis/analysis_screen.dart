@@ -368,10 +368,10 @@ class _CategoryRow extends StatelessWidget {
       null when total.count == 1 => '1 entry',
       null => '${total.count} entries',
       final limit when total.totalPaise > limit =>
-        '${formatPaise(total.totalPaise - limit)} over budget',
+        '${formatTotal(total.totalPaise - limit)} over budget',
       final limit =>
-        '${formatPaise(limit - total.totalPaise)} left of '
-            '${formatPaise(limit)}',
+        '${formatTotal(limit - total.totalPaise)} left of '
+            '${formatTotal(limit)}',
     };
     return PressableArea(
       key: ValueKey('category-card-${category.id}'),
@@ -398,7 +398,7 @@ class _CategoryRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       MoneyText(
-                        total.totalPaise,
+                        wholeRupees(total.totalPaise),
                         style: AppText.h3,
                         tabular: true,
                       ),
@@ -444,7 +444,7 @@ class _CategoryRow extends StatelessWidget {
                       if (cameBack > 0) ...[
                         const Text('·', style: AppText.small),
                         Text(
-                          '${formatPaise(cameBack)} came back',
+                          '${formatTotal(cameBack)} came back',
                           key: ValueKey('came-back-${category.id}'),
                           style: AppText.small,
                         ),
@@ -558,7 +558,7 @@ class _MonthsChart extends StatelessWidget {
         touchTooltipData: BarTouchTooltipData(
           getTooltipColor: (_) => AppColors.ink,
           getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(
-            '${rodIndex == 0 ? 'Got' : 'Spent'} ${formatPaise(rod.toY.round())}',
+            '${rodIndex == 0 ? 'Got' : 'Spent'} ${formatTotal(rod.toY.round())}',
             AppText.chip.copyWith(color: AppColors.cream),
           ),
         ),
