@@ -34,6 +34,7 @@ import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/speech_bubble.dart';
 import 'package:penny/widgets/stat_tile.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// Penny's mood and what's safe to spend today, this month at a glance, and
 /// the latest entries.
@@ -179,14 +180,8 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           )
                         // Flat rows between hairlines, like the totals.
-                        : DecoratedBox(
-                            decoration: const BoxDecoration(
-                              border: Border.symmetric(
-                                horizontal: BorderSide(
-                                  color: AppColors.hairline,
-                                ),
-                              ),
-                            ),
+                        : FlatSection(
+                            padding: EdgeInsets.zero,
                             child: Column(
                               children: [
                                 for (var i = 0; i < txns.length; i++) ...[
@@ -734,12 +729,8 @@ class _MonthCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Flat between two hairlines: the bold outline is kept for Penny.
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border.symmetric(
-          horizontal: BorderSide(color: AppColors.hairline),
-        ),
-      ),
+    return FlatSection(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

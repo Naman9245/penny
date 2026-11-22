@@ -19,6 +19,7 @@ import 'package:penny/widgets/brutal_chip.dart';
 import 'package:penny/widgets/icon_badge.dart';
 import 'package:penny/widgets/page_header.dart';
 import 'package:penny/widgets/pressable_area.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// Penny's settings, in a bottom sheet: a short list, each row opening its
 /// own page, then exporting and the welcome again.
@@ -107,9 +108,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
         children: [
           const Text('Settings', style: AppText.h2),
           const SizedBox(height: 16),
-          BrutalCard(
+          FlatSection(
             padding: EdgeInsets.zero,
-            clipChild: true,
             child: Column(
               children: [
                 _SettingsRow(
@@ -168,9 +168,8 @@ class _SettingsSheetState extends ConsumerState<_SettingsSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          BrutalCard(
+          FlatSection(
             padding: EdgeInsets.zero,
-            clipChild: true,
             child: Column(
               children: [
                 _SettingsRow(

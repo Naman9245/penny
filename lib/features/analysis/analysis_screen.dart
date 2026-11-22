@@ -28,6 +28,7 @@ import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/stat_tile.dart';
 import 'package:penny/widgets/tag_split_bar.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// Where a month's money went and came from, category by category, biggest
 /// first, and the six months up to it side by side.
@@ -177,7 +178,7 @@ class _Totals extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const padding = EdgeInsets.fromLTRB(14, 12, 10, 14);
-    return BrutalCard(
+    return FlatSection(
       padding: EdgeInsets.zero,
       child: IntrinsicHeight(
         child: Row(
@@ -320,9 +321,8 @@ class _Ranked extends StatelessWidget {
       children: [
         Text(title, style: AppText.h2),
         const SizedBox(height: 12),
-        BrutalCard(
+        FlatSection(
           padding: EdgeInsets.zero,
-          clipChild: true,
           child: Column(
             children: [
               for (final (i, total) in totals.indexed) ...[

@@ -21,6 +21,7 @@ import 'package:penny/widgets/page_header.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/progress_ring.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// One goal: how far along it is, money in and out, and what's been put in.
 class GoalScreen extends ConsumerStatefulWidget {
@@ -114,9 +115,8 @@ class _GoalScreenState extends ConsumerState<GoalScreen> {
             if (deposits.isEmpty)
               const Text('Nothing put aside yet.', style: AppText.bodyMuted)
             else
-              BrutalCard(
+              FlatSection(
                 padding: EdgeInsets.zero,
-                clipChild: true,
                 child: Column(
                   children: [
                     for (final (i, deposit) in deposits.indexed) ...[

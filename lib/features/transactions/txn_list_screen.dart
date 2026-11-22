@@ -23,6 +23,7 @@ import 'package:penny/widgets/month_switcher.dart';
 import 'package:penny/widgets/penny_mascot.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 import 'package:penny/widgets/page_header.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 enum _Filter {
   all('All'),
@@ -296,12 +297,8 @@ class _TxnListScreenState extends ConsumerState<TxnListScreen> {
           _DayHeader(day: day, txns: txns),
           const SizedBox(height: 4),
           // Flat rows between hairlines, as on Home.
-          DecoratedBox(
-            decoration: const BoxDecoration(
-              border: Border.symmetric(
-                horizontal: BorderSide(color: AppColors.hairline),
-              ),
-            ),
+          FlatSection(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 for (var i = 0; i < txns.length; i++) ...[

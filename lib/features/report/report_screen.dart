@@ -31,6 +31,7 @@ import 'package:penny/widgets/tag_split_bar.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
 import 'package:penny/widgets/waiting_bar.dart';
 import 'package:penny/widgets/page_header.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// The Money report for one month: where every rupee went, the months
 /// before, when the money goes, and Penny's look at it: what's wasteful and
@@ -745,7 +746,7 @@ class _Income extends StatelessWidget {
             (totals[txn.categoryId] ?? 0) + txn.amountPaise;
       }
     }
-    return BrutalCard(
+    return FlatSection(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

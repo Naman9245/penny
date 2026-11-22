@@ -13,6 +13,7 @@ import 'package:penny/widgets/brutal_button.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/sliding_toggle.dart';
 import 'package:penny/widgets/page_header.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// My needs: the user's own calls on what is necessary for their living and
 /// what is wasteful, by category and by shop, and a note about their life
@@ -114,9 +115,8 @@ class _Rules extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalCard(
+    return FlatSection(
       padding: EdgeInsets.zero,
-      clipChild: true,
       child: Column(
         children: [
           for (final (i, row) in rows.indexed) ...[

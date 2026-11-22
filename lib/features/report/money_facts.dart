@@ -10,6 +10,7 @@ import 'package:penny/services/report_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 // The Money report's own sections: where the money went, the months
 // before, and when it goes. Every number is worked out on the phone, so
@@ -60,7 +61,7 @@ class WhereMoneyWent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const ReportSection('Where every rupee went'),
-        BrutalCard(
+        FlatSection(
           key: const ValueKey('facts-totals'),
           child: Column(
             children: [
@@ -98,7 +99,7 @@ class WhereMoneyWent extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('By category', style: AppText.h3),
           const SizedBox(height: 8),
-          BrutalCard(
+          FlatSection(
             key: const ValueKey('facts-categories'),
             child: Column(
               children: [
@@ -112,7 +113,7 @@ class WhereMoneyWent extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('Paid most', style: AppText.h3),
           const SizedBox(height: 8),
-          BrutalCard(
+          FlatSection(
             key: const ValueKey('facts-shops'),
             child: Column(
               children: [
@@ -133,7 +134,7 @@ class WhereMoneyWent extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('Biggest spends', style: AppText.h3),
           const SizedBox(height: 8),
-          BrutalCard(
+          FlatSection(
             key: const ValueKey('facts-biggest'),
             child: Column(
               children: [
@@ -176,7 +177,7 @@ class MoneyHistory extends StatelessWidget {
               ? 'Your first month with Penny. Each month adds to this.'
               : 'The last ${history.length} months',
         ),
-        BrutalCard(
+        FlatSection(
           key: const ValueKey('facts-history'),
           child: Column(
             children: [
@@ -225,7 +226,7 @@ class MoneyHistory extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('Against last month', style: AppText.h3),
           const SizedBox(height: 8),
-          BrutalCard(
+          FlatSection(
             key: const ValueKey('facts-changes'),
             child: Column(
               children: [
@@ -241,7 +242,7 @@ class MoneyHistory extends StatelessWidget {
           const SizedBox(height: 16),
           const Text('New this month', style: AppText.h3),
           const SizedBox(height: 8),
-          BrutalCard(
+          FlatSection(
             key: const ValueKey('facts-new'),
             child: Text(
               'First time paying ${report.newShops.join(', ')}.',
@@ -273,7 +274,7 @@ class SpendingPatterns extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const ReportSection('Your patterns'),
-        BrutalCard(
+        FlatSection(
           key: const ValueKey('facts-patterns'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

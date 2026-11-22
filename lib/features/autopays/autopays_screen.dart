@@ -21,6 +21,7 @@ import 'package:penny/widgets/category_avatar.dart';
 import 'package:penny/widgets/page_header.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/undo_snack_bar.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// Every autopay: the ones that still go out, soonest first, with what they
 /// come to a month, then the paused and cancelled ones. Penny finds them in
@@ -109,9 +110,8 @@ class _List extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalCard(
+    return FlatSection(
       padding: EdgeInsets.zero,
-      clipChild: true,
       child: Column(
         children: [
           for (final (i, autopay) in autopays.indexed) ...[

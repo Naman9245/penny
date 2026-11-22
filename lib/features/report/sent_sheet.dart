@@ -7,6 +7,7 @@ import 'package:penny/models/month_insight.dart';
 import 'package:penny/services/insight_builder.dart';
 import 'package:penny/services/penny_ai.dart';
 import 'package:penny/widgets/brutal_card.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// Shows exactly what asking Penny would send for [request]'s month, with
 /// [goal] as a plan sends it, or [goals] as the chat sends them.
@@ -184,9 +185,8 @@ class _SentSheet extends StatelessWidget {
                   })
                     (
                       key: 'sent-history-$key',
-                      title: DateFormat(
-                        'MMMM yyyy',
-                      ).format(DateTime.parse('$key-01')),
+                      title: DateFormat('MMMM yyyy')
+                          .format(DateTime.parse('$key-01')),
                       detail:
                           'Spent, got, invested, and '
                           '${categories.length == 1 ? '1 category' : '${categories.length} categories'}',
@@ -227,9 +227,8 @@ class _Rows extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrutalCard(
+    return FlatSection(
       padding: EdgeInsets.zero,
-      clipChild: true,
       child: Column(
         children: [
           for (final (i, row) in rows.indexed) ...[

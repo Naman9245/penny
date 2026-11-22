@@ -9,6 +9,7 @@ import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/budget_math.dart';
 import 'package:penny/widgets/brutal_card.dart';
 import 'package:penny/widgets/penny_mascot.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// One day from the mood calendar: Penny's face for it, the numbers behind
 /// the face, and the day's entries.
@@ -120,9 +121,8 @@ class _DaySheet extends StatelessWidget {
           if (entries.isEmpty)
             const Text('Nothing spent. Nice!', style: AppText.bodyMuted)
           else
-            BrutalCard(
+            FlatSection(
               padding: EdgeInsets.zero,
-              clipChild: true,
               child: Column(
                 children: [
                   for (final (i, txn) in entries.indexed) ...[

@@ -12,6 +12,7 @@ import 'package:penny/widgets/meter_bar.dart';
 import 'package:penny/widgets/money_text.dart';
 import 'package:penny/widgets/pressable_area.dart';
 import 'package:penny/widgets/page_header.dart';
+import 'package:penny/widgets/flat_section.dart';
 
 /// The budget: what the user means to spend on each category a month. The
 /// monthly budget is their total; Penny's mood and the calendar go by its
@@ -54,9 +55,8 @@ class BudgetScreen extends ConsumerWidget {
               style: AppText.small,
             ),
             const SizedBox(height: 12),
-            BrutalCard(
+            FlatSection(
               padding: EdgeInsets.zero,
-              clipChild: true,
               child: Column(
                 children: [
                   for (final (i, category) in spendCategories.indexed) ...[
