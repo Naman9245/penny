@@ -2,7 +2,19 @@
 
 A money manager for Indian users, with Penny, a coin who reacts to how your month is going. An Android app built with Flutter.
 
-**Status: eight milestones done.** Manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, payments read from notifications, paybacks and investing, the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, fixed bills each month, search, CSV export, Penny's animations, the welcome, Google sign-in with backup and sync, the Money report, payments coming up, reading older bank SMS and the app lock work. Receipt photos come later.
+<p align="center">
+  <img src="docs/screenshots/home.jpg" width="200" alt="Home: Penny celebrating, what's left today, and the month">
+  <img src="docs/screenshots/add.jpg" width="200" alt="Add: 240 rupees typed and Food picked">
+  <img src="docs/screenshots/calendar.jpg" width="200" alt="The mood calendar: every day as Penny's face">
+  <img src="docs/screenshots/analysis.jpg" width="200" alt="Analysis: spent, got, left and necessary vs wasteful">
+</p>
+
+**Status: eight milestones done, then a round of fixes and a new look from real use.**
+- **Logging and capture:** manual entry with bill splitting, usual entries and typing it in one go, bank SMS import, payments read from notifications, paybacks and investing, your own money moving between wallet and bank, combining entries.
+- **Understanding and planning:** the Analysis tab, Penny's wasteful-spending report, My needs, the chat with Penny, the budget with Penny's moods and a forecast, the mood calendar, goals with Penny's plans, autopays with reminders, fixed bills each month, search, CSV export, the Money report, payments coming up.
+- **Around it:** Penny's animations and notifications, the welcome, Google sign-in with backup and sync, reading older bank SMS and the app lock.
+
+Receipt photos come later. All money in the screenshots is made-up demo data.
 
 ## The idea
 
@@ -21,6 +33,25 @@ Penny tries the opposite:
 - **Numbers you can trust.** Every rupee figure is worked out on the phone from your entries. The AI only judges and explains, so it can't get a total wrong.
 - **Private by design.** Everything lives on the phone. The AI sees month totals per shop, with people only as "Person 1, 2", never SMS text, account numbers or names. Backup is optional.
 
+## Screens
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240"><br>**Home**: Penny's mood, what's left today, the month | <img src="docs/screenshots/transactions.jpg" width="240"><br>**See all**: every entry, with search and filters | <img src="docs/screenshots/combined.jpg" width="240"><br>**A combined entry** and what it's made of |
+| <img src="docs/screenshots/own-money.jpg" width="240"><br>**Your own money moving**: wallet to bank isn't spending | <img src="docs/screenshots/autopays.jpg" width="240"><br>**Autopays**, with reminders 5 days and 1 day before | <img src="docs/screenshots/budget.jpg" width="240"><br>**Budget**: everyday and paid in one go |
+| <img src="docs/screenshots/report-ai.jpg" width="240"><br>**The Money report** after asking Penny | <img src="docs/screenshots/habits.jpg" width="240"><br>**Habits to cut**, and what cutting saves | <img src="docs/screenshots/chat.jpg" width="240"><br>**Talk to Penny** in English, Hindi or Hinglish |
+| <img src="docs/screenshots/goals.jpg" width="240"><br>**Goals** with rings | <img src="docs/screenshots/calendar.jpg" width="240"><br>**Mood calendar** | <img src="docs/screenshots/welcome.jpg" width="240"><br>**The welcome** |
+
+**Penny's notifications** carry her face for today and what's left of today's share:
+
+<img src="docs/screenshots/notifications.jpg" width="720" alt="Penny's notifications: a payment saved, one waiting, several read, and her own money moved">
+
+**The crafted look**: every category has a drawn icon on its colour, and who was paid shows as a monogram:
+
+<img src="docs/screenshots/icons.jpg" width="720" alt="All 30 category icons and some monograms">
+
+Every screen, the design system and how Penny is built are explained in [docs/Penny-Product-and-Technology.pdf](docs/Penny-Product-and-Technology.pdf).
+
 ## What works now
 
 - **Add in under 5 seconds**: type the amount on the keypad, pick a category, tap ✓. Undo is one tap away. The keypad adds and takes away like a calculator (3000 + 2500 − 200) wherever you type an amount, and once an amount is in, its keys get smaller so the categories have the room.
@@ -30,7 +61,7 @@ Penny tries the opposite:
   - **Type it**: in Where, "240 Swiggy", "auto 45" or "Rs.20 Chai point" fill in the amount, place and category at once, guessed from the shops Penny knows and everyday words. This works while no amount is typed yet, so a place like "Sector 18" never changes one.
 - **Combine entries**: in See all, hold an entry and tap the others, then Combine makes one entry for their total, on the latest one's day and time, with Undo. Only money of one kind combines. A combined entry says "2 in 1", and its screen lists what it was made of, each with its day, time and where it came from, with Split them apart (and Undo). When one payee has two or more payments out on one day of the last week, Home offers "Make these one?"; Not now is remembered.
 - **Paybacks**: when a friend pays you back their share, log it under Got → Paid back and say what it was for. It reads "Food · paid back", comes off that category's spending (never below zero) on Home, Analysis, the budget and Penny's mood, and isn't counted as income. A day keeps what you paid that day, and its sheet says what came back.
-- **Investing**: three kinds of money put away, not spent: 📈 Mutual funds & SIP, 📊 Stocks & ETFs, and 🏦 FD, RD, PPF & NPS. Fund houses, Groww, Coin, Kuvera, INDmoney, NACH and BSE SIP debits, brokers like Zerodha and Upstox, and deposits are recognised, even when an SMS never says "invested". Investing stays out of Spent, the budget, the mood and necessary vs wasteful; Left takes it off with "₹1,000 invested" under it, and Analysis shows each kind under Put away.
+- **Investing**: three kinds of money put away, not spent: Mutual funds & SIP, Stocks & ETFs, and FD, RD, PPF & NPS. Fund houses, Groww, Coin, Kuvera, INDmoney, NACH and BSE SIP debits, brokers like Zerodha and Upstox, and deposits are recognised, even when an SMS never says "invested". Investing stays out of Spent, the budget, the mood and necessary vs wasteful; Left takes it off with "₹1,000 invested" under it, and Analysis shows each kind under Put away.
 - **Categories**: spending has Food, Groceries, Travel, Fuel, Shopping, Bills & recharge, Rent & PG, Home & upkeep, Subscriptions, EMIs & loans, Bank charges & fees, Fun, Health, Personal care, Education, Gifts & donations, Family, To people and Other; income has Pocket money, Salary/stipend, Freelance, Refund/cashback, Interest, Dividends, From people and Other.
 - **Bank SMS import**: share an SMS from Messages to Penny, or paste one. It's read on the phone: numbers are masked, OTPs and look-alikes (payment requests, reminders, offers) are refused with a reason, and the SMS itself is never saved.
 - **Payments read from notifications** (Android, opt-in): once you allow Penny on Android's Notification access page (Settings → Reading payments → Read payment notifications), it reads payments from your SMS app and from payment, wallet and investing apps (GPay, PhonePe, Paytm, PayZapp, MobiKwik, CRED, BHIM, super.money, Groww, Kite, Upstox, INDmoney and Paytm Money), with the same rules as a shared SMS. An SMS counts only when it's from a bank, a wallet or an investment: a sender code (with or without its prefix, like HDFCBK), a money brand's name (HDFC Bank, PayZapp), or a message showing a masked account or card number (A/c XX4821, card ending 4455); a friend's text never does, even one that says "account" or "wallet", and the Messages app's notification for it is passed over unkept. Loading a wallet or UPI Lite, sending to your own account, and a lender's receipt are left out, so nothing counts twice.
@@ -64,7 +95,7 @@ Penny tries the opposite:
 - **Penny moves**: she floats and blinks, bops to her headphones when happy, sweats when worried, cries when sad, and hops in confetti when celebrating; a new mood lands with a bounce. Moments get their own faces: thinking while the chat waits, glasses on while a report or plan is worked out, an idea beside tips, sleepy where nothing's logged. She keeps still when the phone asks for less motion. All of it is drawn in code, no animation files. On Home, the goals and her chat she talks in a speech bubble pointing at her, and on a goal's page she sits inside a ring that fills as the money goes in. Each tab's cards rise in on its first look and its big amounts count up, once, and never when the phone asks for less motion.
 - **The look**: crafted. Every category has a drawn, rounded icon on its colour, and an entry shows who was paid as a letter monogram on a soft colour ("Z" for Zomato, "RK" for a person), never emoji. Lists and the month's totals sit flat between hairlines; only Penny's card, the main buttons and the + keep the bold ink outline and hard shadow. Headings are in DM Sans, and Baloo 2 stays for money. Totals (Spent, Got and Left, the budget, the report's money in and out) show whole rupees; a single entry keeps its paise. Settings is a short list (Back up with Google, Lock Penny, Reading payments, Autopays, Demo data, then Export and the welcome), each opening its own page with Back to the list.
 - **First launch**: three short pages (meet Penny, what stays private, where to start), shown once and again from Settings. The app icon and launch screen are Penny too, drawn from her own painter by `tool/render_icons_test.dart`.
-- **Backup and sync** (optional): sign in with Google in Settings → Back up with Google, and your entries, budgets, goals with their money, My needs rules and note are kept in your account and synced: as the app opens or comes back, a few seconds after a change, and on Sync now. A new phone signs in and gets everything back; two phones end up the same, the newer edit of each row winning. An edit always counts as newer than the one it replaces, even within the same second or on a phone whose clock is behind, and when the account refuses an edit because it already has one as new, the phone takes the account's. Sign out keeps everything on the phone. Delete account removes the account and its copy, and can clear the phone too. The app works fully without an account, and backup pauses while demo data is on.
+- **Backup and sync** (optional): sign in with Google in Settings → Back up with Google, and your entries, budgets, goals with their money, autopays, My needs rules and note are kept in your account and synced: as the app opens or comes back, a few seconds after a change, and on Sync now. A new phone signs in and gets everything back; two phones end up the same, the newer edit of each row winning. An edit always counts as newer than the one it replaces, even within the same second or on a phone whose clock is behind, and when the account refuses an edit because it already has one as new, the phone takes the account's. Sign out keeps everything on the phone. Delete account removes the account and its copy, and can clear the phone too. The app works fully without an account, and backup pauses while demo data is on.
 - **Offline-first**: everything lives on the phone in SQLite (Drift). Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, ready for sync.
 
 ## Privacy
@@ -78,7 +109,7 @@ Penny tries the opposite:
 - On Gemini's free tier, Google may use what's sent to improve its products. The chat screen says so.
 - The Gemini key lives only in Supabase's secrets. Its logs hold timings and token counts, never messages. Reports and the chat are stored on the phone; Clear chat deletes it.
 - Android's own backup is off for Penny, so her data never goes to Google Drive or another phone by itself; after a reinstall it comes back only through her backup.
-- Until you sign in for backup, the server keeps nothing about your money, only a count of AI calls per day. With backup on, your entries (payees included), budgets, goals and their money, My needs rules and note are stored in Supabase (Mumbai) under your account. Row-level security lets only that signed-in account read or write them through the app; the project's owner can see them in the Supabase dashboard. SMS text and fingerprints, the chat, and Penny's reports and plans never leave the phone. Delete account removes the account and its copy.
+- Until you sign in for backup, the server keeps nothing about your money, only a count of AI calls per day. With backup on, your entries (payees included), budgets, goals and their money, autopays, My needs rules and note are stored in Supabase (Mumbai) under your account. Row-level security lets only that signed-in account read or write them through the app; the project's owner can see them in the Supabase dashboard. SMS text and fingerprints, the chat, and Penny's reports and plans never leave the phone. Delete account removes the account and its copy.
 
 ## Stack
 
@@ -94,6 +125,7 @@ flowchart TB
     MF["MoneyFilter<br/>money words + bank senders only"]
     Q[("CaptureQueue<br/>private file")]
     BR["BackgroundReader<br/>hidden Flutter engine"]
+    RS["ReminderScheduler<br/>autopay alarms, kept through a restart"]
     NL --> MF
     SR --> MF
     MF --> Q
@@ -101,10 +133,10 @@ flowchart TB
   end
 
   subgraph App["Flutter app (Dart)"]
-    CAP["captures.dart<br/>read, de-duplicate, money back,<br/>coming up, save or wait"]
-    PARSE["sms_parser.dart<br/>rules: amount, direction, payee,<br/>date, OTP, failed, own moves, card bills"]
-    MATH["budget, report, goal, upcoming maths<br/>every number, on the phone"]
-    UI["features/*<br/>Home, Analysis, Goals, Calendar,<br/>Money report, chat, Settings"]
+    CAP["captures.dart<br/>read, de-duplicate, own money moving,<br/>money back, coming up, autopays,<br/>save or wait"]
+    PARSE["sms_parser.dart<br/>rules: amount, direction, payee,<br/>date, OTP, failed, own moves,<br/>mandates, card bills"]
+    MATH["budget, report, goal, autopay,<br/>upcoming maths<br/>every number, on the phone"]
+    UI["features/*<br/>Home, Analysis, Goals, Calendar,<br/>Money report, chat, Autopays, Settings"]
     DB[("Drift / SQLite<br/>offline-first, paise, UUIDv7")]
     AIC["penny_ai.dart<br/>masks names and long numbers"]
     CAP --> PARSE
@@ -126,14 +158,16 @@ flowchart TB
   BR --> CAP
   AIC --> EF
   DB <-. "optional backup and sync" .-> PG
+  UI -- "reminders" --> RS
 ```
 
 **How a payment flows.** A bank SMS or a payment app's notification arrives:
 1. **Android filters it first.** `MoneyFilter` keeps only messages with an amount, and for SMS only those from a bank, wallet or investment sender. A friend's text is never stored.
 2. **It waits** in a private file (`CaptureQueue`) until Penny reads it: right away if she's open, or else through a hidden copy of the app (`BackgroundReader`).
-3. **The rules read it.** `sms_parser.dart` works out the amount, debit or credit, payee, date and category. It lets go of OTPs, requests, failed payments, payments not made yet (which go to Home's *Coming up* card), moves between your own accounts and credit card bills.
+3. **The rules read it.** `sms_parser.dart` works out the amount, debit or credit, payee, date and category. It lets go of OTPs, requests, failed payments, payments not made yet (which go to Home's *Coming up* card and set an autopay's day), moves between your own accounts and credit card bills, and notes mandates set up, paused or cancelled in Autopays.
 4. **The rules aren't the end of it.** `captures.dart` checks the reading against what's already there:
-   - one payment seen twice (the bank's SMS and GPay's notice) is kept once;
+   - one payment seen twice (the bank's SMS and GPay's notice, or a SIP's two messages from one app) is kept once;
+   - the two halves of your own money moving (out of the PayZapp wallet, into the bank) are paired, and neither counts;
    - a payment already typed by hand or restored from backup isn't added again;
    - a reversal or refund cancels the payment it's for;
    - a shop or person you've categorised before keeps your category.
@@ -142,7 +176,7 @@ flowchart TB
 
 **Where things live:**
 - **Phone (the source of truth):** SQLite through Drift. Amounts are integer paise, never floating point. Rows carry UUIDv7 ids, timestamps and soft deletes, so the app works fully offline and sync can merge edits.
-- **Riverpod providers** connect the database to the screens. The maths (`money_kinds`, `budget_math`, `report_math`, `goal_math`, `upcoming_math`) is plain Dart functions with tests.
+- **Riverpod providers** connect the database to the screens. The maths (`money_kinds`, `budget_math`, `report_math`, `goal_math`, `autopay_math`, `upcoming_math`, `own_moves`) is plain Dart functions with tests.
 - **Server (only for what needs one):**
   - Edge Functions call Gemini with a fixed JSON schema and clean every answer before the app sees it. Sentences with digits are dropped, so numbers only ever come from the phone.
   - Daily limits are counted per user in Postgres.
@@ -192,7 +226,7 @@ dart run flutter_native_splash:create
 
 `supabase/` holds the server side:
 
-- `migrations/`: the `ai_usage` table and the functions behind the daily limits, counted apart for reports, chat and plans; and the sync tables (`txns`, `budgets`, `goals`, `goal_deposits`, `tag_rules`, and `prefs` for the note). Only the signed-in account can read or write its rows, never an anonymous one. Every change gets the next number from `sync_seq`, one account's changes commit in order, the newer edit wins, and deletes stay soft so they reach every phone.
+- `migrations/`: the `ai_usage` table and the functions behind the daily limits, counted apart for reports, chat and plans; and the sync tables (`txns`, with what an entry was combined into, `budgets`, `goals`, `goal_deposits`, `autopays`, `tag_rules`, and `prefs` for the note). Only the signed-in account can read or write its rows, never an anonymous one. Every change gets the next number from `sync_seq`, one account's changes commit in order, the newer edit wins, and deletes stay soft so they reach every phone.
 - `functions/_shared/`: what the functions share: the month's schema with the budget, masking, the Gemini call and the limits.
 - `functions/analyze-month/`: the report. It checks the request, counts the call, asks Gemini for JSON in a fixed schema, and cleans the answer before returning it.
 - `functions/penny-chat/`: the chat. It checks the month, the goals and the last 12 messages, masks long digit runs, and returns Penny's reply as plain text.
@@ -224,13 +258,14 @@ lib/
   data/       Drift database, repositories, Riverpod providers, demo data,
               the Google account and sync
   models/     enums, categories, Penny's moods, the budget, the report and plans
-  services/   SMS parser, share inbox, what Penny sends, report, budget, goal
-              and plan maths, AI client
+  services/   SMS parser, captures, own money moving, share inbox, what Penny
+              sends, report, budget, goal, autopay and plan maths, AI client
   features/   home, add_txn, import, transactions, analysis, report, needs,
-              chat, budget, goals, calendar, settings, welcome
-  widgets/    brutal card/button/chip/pill, keypad, pill nav bar, split bar,
-              meter bar, progress ring, speech bubble, page header, card
-              titles and stat tiles, first-look motion, Penny
+              chat, budget, goals, autopays, calendar, settings, welcome, lock
+  widgets/    brutal card/button/chip/pill, flat section, category icons and
+              monograms, keypad, pill nav bar, split bar, meter bar, progress
+              ring, speech bubble, page header, card titles and stat tiles,
+              first-look motion, Penny
 assets/icon/  the icon and launch images Penny's painter draws
 tool/         render_icons_test.dart, which draws them, and screenshots_test.dart,
               which draws every screen
@@ -241,7 +276,7 @@ supabase/     migrations, and the analyze-month, penny-chat, plan-goal,
               read-sms and delete-account Edge Functions
 docs/         Penny-App-Overview.pdf, the app explained for anyone, and
               Penny-Product-and-Technology.pdf, every screen, the design
-              system and how Penny is built
+              system and how Penny is built; screenshots/ for this README
 ```
 
 ## Roadmap
@@ -254,6 +289,11 @@ docs/         Penny-App-Overview.pdf, the app explained for anyone, and
 6. ✅ Faster logging (split, usual entries, type it), paybacks and investing, fixed bills, a forecast and search
 7. ✅ Payments read from notifications (bank, wallet and investing SMS, payment, wallet and investing apps), checked first or saved straight away, Penny's own notification and What Penny read, reading with Penny closed, AI for what the rules can't read, more categories, and CSV export
 8. ✅ The Money report (where every rupee went, history, every wasteful item explained, patterns), payments coming up, reading older bank SMS, payments never saved twice, the app lock, and fixes from two outside reviews
+
+From real use (18 to 22 Nov 2026): ✅ your own money moving between wallet and bank, one SIP counted once, what a combined entry is made of, autopays and Penny's reminders, Penny's face and today's money in notifications, the crafted look (drawn icons, monograms, flat lists), and whole rupees for every total.
+
 9. Later: receipt photos
+
+Ideas being weighed: **My accounts and cards** (the last four digits of your own accounts and cards, so every move between them and every card bill is recognised for certain), and before sharing Penny widely, a release key of her own, a Play Store listing and a privacy policy.
 
 Baloo 2 and DM Sans are bundled under the SIL Open Font License.
