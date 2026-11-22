@@ -1,0 +1,44 @@
+flowchart TB
+  subgraph Android["Android (Kotlin)"]
+    NL["PaymentNotificationListener<br/>bank SMS app + payment apps"]
+    SR["SmsReceiver / SmsInbox<br/>new SMS, catch-up, look back"]
+    MF["MoneyFilter<br/>money words + bank senders only"]
+    Q[("CaptureQueue<br/>private file")]
+    BR["BackgroundReader<br/>hidden Flutter engine"]
+    RS["ReminderScheduler<br/>autopay alarms, kept through a restart"]
+    NL --> MF
+    SR --> MF
+    MF --> Q
+    Q --> BR
+  end
+
+  subgraph App["Flutter app (Dart)"]
+    CAP["captures.dart<br/>read, de-duplicate, own money moving,<br/>money back, coming up, autopays,<br/>save or wait"]
+    PARSE["sms_parser.dart<br/>rules: amount, direction, payee,<br/>date, OTP, failed, own moves,<br/>mandates, card bills"]
+    MATH["budget, report, goal, autopay,<br/>upcoming maths<br/>every number, on the phone"]
+    UI["features/*<br/>Home, Analysis, Goals, Calendar,<br/>Money report, chat, Autopays, Settings"]
+    DB[("Drift / SQLite<br/>offline-first, paise, UUIDv7")]
+    AIC["penny_ai.dart<br/>masks names and long numbers"]
+    CAP --> PARSE
+    CAP --> DB
+    DB --> MATH --> UI
+    UI --> AIC
+    CAP -. "only what the rules<br/>can't read" .-> AIC
+  end
+
+  subgraph Server["Supabase"]
+    EF["Edge Functions (Deno)<br/>analyze-month, penny-chat,<br/>plan-goal, read-sms, delete-account"]
+    PG[("Postgres<br/>sync tables with row-level security,<br/>daily AI limits")]
+    G["Google Gemini<br/>schema-bound JSON"]
+    EF --> G
+    EF --> PG
+  end
+
+  Q --> CAP
+  BR --> CAP
+  AIC --> EF
+  DB <-. "optional backup and sync" .-> PG
+  UI -- "reminders" --> RS
+  style Android fill:#A9E5FF,stroke:#1A1A1A
+  style App fill:#FFD84D,stroke:#1A1A1A
+  style Server fill:#B8A6FF,stroke:#1A1A1A

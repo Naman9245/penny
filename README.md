@@ -117,49 +117,9 @@ Flutter · Riverpod · go_router · Drift (SQLite) · flutter_animate · fl_char
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  subgraph Android["Android (Kotlin)"]
-    NL["PaymentNotificationListener<br/>bank SMS app + payment apps"]
-    SR["SmsReceiver / SmsInbox<br/>new SMS, catch-up, look back"]
-    MF["MoneyFilter<br/>money words + bank senders only"]
-    Q[("CaptureQueue<br/>private file")]
-    BR["BackgroundReader<br/>hidden Flutter engine"]
-    RS["ReminderScheduler<br/>autopay alarms, kept through a restart"]
-    NL --> MF
-    SR --> MF
-    MF --> Q
-    Q --> BR
-  end
+<img src="docs/screenshots/architecture.png" width="760" alt="Architecture: Android filters and queues money messages, the Flutter app reads and counts them on the phone, Supabase runs the AI functions and optional backup">
 
-  subgraph App["Flutter app (Dart)"]
-    CAP["captures.dart<br/>read, de-duplicate, own money moving,<br/>money back, coming up, autopays,<br/>save or wait"]
-    PARSE["sms_parser.dart<br/>rules: amount, direction, payee,<br/>date, OTP, failed, own moves,<br/>mandates, card bills"]
-    MATH["budget, report, goal, autopay,<br/>upcoming maths<br/>every number, on the phone"]
-    UI["features/*<br/>Home, Analysis, Goals, Calendar,<br/>Money report, chat, Autopays, Settings"]
-    DB[("Drift / SQLite<br/>offline-first, paise, UUIDv7")]
-    AIC["penny_ai.dart<br/>masks names and long numbers"]
-    CAP --> PARSE
-    CAP --> DB
-    DB --> MATH --> UI
-    UI --> AIC
-    CAP -. "only what the rules<br/>can't read" .-> AIC
-  end
-
-  subgraph Server["Supabase"]
-    EF["Edge Functions (Deno)<br/>analyze-month, penny-chat,<br/>plan-goal, read-sms, delete-account"]
-    PG[("Postgres<br/>sync tables with row-level security,<br/>daily AI limits")]
-    G["Google Gemini<br/>schema-bound JSON"]
-    EF --> G
-    EF --> PG
-  end
-
-  Q --> CAP
-  BR --> CAP
-  AIC --> EF
-  DB <-. "optional backup and sync" .-> PG
-  UI -- "reminders" --> RS
-```
+The diagram's source is [docs/architecture.mmd](docs/architecture.mmd) (Mermaid).
 
 **How a payment flows.** A bank SMS or a payment app's notification arrives:
 1. **Android filters it first.** `MoneyFilter` keeps only messages with an amount, and for SMS only those from a bank, wallet or investment sender. A friend's text is never stored.
