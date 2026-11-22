@@ -105,7 +105,7 @@ class BudgetStatus {
       final category = categoryById(amount.key);
       final over = spentIn(amount.key) - amount.value;
       if (category.oneGo && over > 0) {
-        return '${category.label} went ${formatPaise(over)} over its budget';
+        return '${category.label} went ${formatTotal(over)} over its budget';
       }
     }
     return null;
@@ -200,7 +200,7 @@ int dailySharePaise(int everydayPaise, DateTime month) =>
 /// How the daily share of [month] is worked out, in words.
 String shareExplained(int everydayPaise, DateTime month) {
   final days = DateTime(month.year, month.month + 1, 0).day;
-  return 'Your everyday budget, ${formatPaise(everydayPaise)}, ÷ $days days. '
+  return 'Your everyday budget, ${formatTotal(everydayPaise)}, ÷ $days days. '
       'Rent, EMIs and other one-go costs stay out of it.';
 }
 
@@ -348,8 +348,8 @@ MonthMood? monthMood({
       for (final MapEntry(key: id, value: amount) in budget.byCategory.entries)
         if (!categoryById(id).oneGo &&
             _against(byCategory[id] ?? 0, amount) == level)
-          '${categoryById(id).label}: ${formatPaise(byCategory[id] ?? 0)} of '
-              '${formatPaise(amount)}',
+          '${categoryById(id).label}: ${formatTotal(byCategory[id] ?? 0)} of '
+              '${formatTotal(amount)}',
   ];
 
   return (mood: mood, spentPaise: spent, counts: counts, categoryNotes: notes);

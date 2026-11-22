@@ -25,9 +25,9 @@ class TagSplitBar extends StatelessWidget {
     ];
     return Semantics(
       label:
-          'Necessary ${formatPaise(split.necessaryPaise)}, '
-          'wasteful ${formatPaise(split.wastefulPaise)}, '
-          'not sorted ${formatPaise(split.unsortedPaise)}',
+          'Necessary ${formatTotal(split.necessaryPaise)}, '
+          'wasteful ${formatTotal(split.wastefulPaise)}, '
+          'not sorted ${formatTotal(split.unsortedPaise)}',
       child: ClipRRect(
         borderRadius: BorderRadius.circular(kPillRadius),
         child: SizedBox(
@@ -80,7 +80,7 @@ class TagSplitKey extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              '${formatPaise(cameBack)} of it came back',
+              '${formatTotal(cameBack)} of it came back',
               key: const ValueKey('split-came-back'),
               style: AppText.small,
             ),
@@ -107,7 +107,7 @@ class TagSplitKey extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(child: Text(label, style: AppText.body)),
-                Text(formatPaise(paise), style: AppText.bodyStrong),
+                Text(formatTotal(paise), style: AppText.bodyStrong),
               ],
             ),
           ),
