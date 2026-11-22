@@ -296,4 +296,6 @@ From real use (18 to 22 Nov 2026): ✅ your own money moving between wallet and 
 
 Ideas being weighed: **My accounts and cards** (the last four digits of your own accounts and cards, so every move between them and every card bill is recognised for certain), and before sharing Penny widely, a release key of her own, a Play Store listing and a privacy policy.
 
-Baloo 2 and DM Sans are bundled under the SIL Open Font License.
+## License
+
+Penny's code is under the [MIT License](LICENSE). Baloo 2 and DM Sans are bundled under the SIL Open Font License.
