@@ -12,6 +12,7 @@ import 'package:penny/data/autopay_repository.dart';
 import 'package:penny/data/budget_repository.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/services/budget_math.dart';
+import 'package:penny/services/goal_math.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
 import 'package:penny/data/prefs_repository.dart';
@@ -1156,8 +1157,9 @@ Future<void> _notePaidAutopay(
 }
 
 /// Today as Penny's notification tells it: her mood, and what's left of
-/// today's share or how far over it the day is, by the same rule as Home.
-/// Null without an everyday budget.
+/// today's share or how far over it the day is, by the same rule as Home,
+/// so she celebrates on a day a goal is reached. Null without an everyday
+/// budget.
 typedef NoticeToday = ({PennyMood mood, String line});
 
 /// [NoticeToday] for [now], from [db].
@@ -1180,12 +1182,22 @@ Future<NoticeToday?> noticeTodayFor(AppDatabase db, DateTime now) async {
     month: month,
     now: now,
   );
+  // The days goals were reached, as Home and the calendar have them.
+  final goals = await (db.select(
+    db.goals,
+  )..where((g) => g.deletedAt.isNull())).get();
+  final deposits = await (db.select(
+    db.goalDeposits,
+  )..where((d) => d.deletedAt.isNull())).get();
   final mood =
       dayMoods(
         budget: budget,
         monthTxns: txns,
         month: month,
         now: now,
+        goalDays: {
+          for (final goal in goalProgress(goals, deposits)) ?goal.reachedOn,
+        },
       )[now.day] ??
       PennyMood.neutral;
   final left = status.sharePaise - status.todaySpentPaise;

@@ -4,6 +4,7 @@ import 'package:penny/data/budget_repository.dart';
 import 'package:penny/models/penny_mood.dart';
 import 'package:penny/data/capture_repository.dart';
 import 'package:penny/data/db/app_database.dart';
+import 'package:penny/data/goal_repository.dart';
 import 'package:penny/data/prefs_repository.dart';
 import 'package:penny/data/providers.dart';
 import 'package:penny/data/txn_repository.dart';
@@ -939,6 +940,30 @@ void main() {
       final today = (await noticeTodayFor(db, at))!;
       expect(today.line, "₹60 over today's share");
       expect(today.mood, PennyMood.worried);
+    });
+
+    test('a goal reached today makes her celebrate, as Home does', () async {
+      await BudgetRepository(db).setAmount('food', 600000);
+      final goals = GoalRepository(
+        db,
+        clock: () => at.subtract(const Duration(hours: 1)),
+      );
+      final headphones = await goals.add(
+        title: 'Headphones',
+        targetPaise: 250000,
+        deadline: DateTime(2026, 12, 31),
+      );
+      await goals.deposit(headphones, 100000);
+      expect((await noticeTodayFor(db, at))!.mood, PennyMood.happy);
+
+      await goals.deposit(headphones, 150000);
+      final today = (await noticeTodayFor(db, at))!;
+      expect(today.mood, PennyMood.celebrating);
+      expect(today.line, '₹200 left today');
+
+      // A goal reached on an earlier day doesn't make today a goal day.
+      final tomorrow = at.add(const Duration(days: 1));
+      expect((await noticeTodayFor(db, tomorrow))!.mood, PennyMood.happy);
     });
   });
 
